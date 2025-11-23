@@ -1,0 +1,436 @@
+[
+  {
+    "id": "EXCEL_001",
+    "name": "Convención de nombres en variables y argumentos",
+    "description": "Variables deben usar camelCase y argumentos PascalCase con prefijos (in_, out_, io_). Ejemplo correcto: customerName, in_OrderId.",
+    "category": "general",
+    "severity": "error",
+    "penalty": 10,
+    "enabled": true,
+    "sets": [
+      "NTTData"
+    ],
+    "implementation_status": "pending",
+    "source": "excel"
+  },
+  {
+    "id": "EXCEL_002",
+    "name": "Gestión de excepciones (Try-Catch)",
+    "description": "Todo workflow debe tener bloques Try-Catch para capturar errores y registrar logs.",
+    "category": "general",
+    "severity": "error",
+    "penalty": 10,
+    "enabled": true,
+    "sets": [
+      "NTTData"
+    ],
+    "implementation_status": "pending",
+    "source": "excel"
+  },
+  {
+    "id": "EXCEL_003",
+    "name": "Uso de Orchestrator Assets para credenciales/configuración",
+    "description": "Nunca hardcodear credenciales, rutas o parámetros sensibles. Deben almacenarse en Assets o Config files.",
+    "category": "general",
+    "severity": "error",
+    "penalty": 10,
+    "enabled": true,
+    "sets": [
+      "NTTData"
+    ],
+    "implementation_status": "pending",
+    "source": "excel"
+  },
+  {
+    "id": "EXCEL_004",
+    "name": "Porcentaje de actividades comentadas (Comment Out)",
+    "description": ">10% del total de actividades comentadas indica código muerto.",
+    "category": "general",
+    "severity": "error",
+    "penalty": 10,
+    "enabled": true,
+    "sets": [
+      "NTTData"
+    ],
+    "implementation_status": "pending",
+    "source": "excel"
+  },
+  {
+    "id": "EXCEL_005",
+    "name": "If anidados (>3 niveles)",
+    "description": "No se deben tener más de 3 niveles de If anidados. Usar Switch o sub-workflows.",
+    "category": "general",
+    "severity": "error",
+    "penalty": 10,
+    "enabled": true,
+    "sets": [
+      "NTTData"
+    ],
+    "implementation_status": "pending",
+    "source": "excel"
+  },
+  {
+    "id": "EXCEL_006",
+    "name": "Uso de REFramework en procesos complejos",
+    "description": "Procesos de negocio deben usar REFramework o un marco estructurado.",
+    "category": "general",
+    "severity": "error",
+    "penalty": 10,
+    "enabled": true,
+    "sets": [
+      "NTTData"
+    ],
+    "implementation_status": "pending",
+    "source": "excel"
+  },
+  {
+    "id": "EXCEL_007",
+    "name": "Tipado explícito en variables",
+    "description": "Evitar GenericValue salvo necesidad. Usar tipos claros (String, Int32, Boolean).",
+    "category": "general",
+    "severity": "warning",
+    "penalty": 3,
+    "enabled": true,
+    "sets": [
+      "NTTData"
+    ],
+    "implementation_status": "pending",
+    "source": "excel"
+  },
+  {
+    "id": "EXCEL_008",
+    "name": "Workflows demasiado largos (>100 actividades)",
+    "description": "Los workflows deben dividirse en sub-workflows para modularidad y reutilización.",
+    "category": "general",
+    "severity": "warning",
+    "penalty": 3,
+    "enabled": true,
+    "sets": [
+      "NTTData"
+    ],
+    "implementation_status": "pending",
+    "source": "excel"
+  },
+  {
+    "id": "EXCEL_009",
+    "name": "Documentación y anotaciones",
+    "description": "Actividades clave deben tener anotaciones descriptivas.",
+    "category": "general",
+    "severity": "warning",
+    "penalty": 3,
+    "enabled": true,
+    "sets": [
+      "NTTData"
+    ],
+    "implementation_status": "pending",
+    "source": "excel"
+  },
+  {
+    "id": "EXCEL_010",
+    "name": "Uso de Delay en lugar de sincronización",
+    "description": "Evitar Delay para esperar procesos externos. Usar Element Exists, Retry Scope o Wait Attribute.",
+    "category": "general",
+    "severity": "warning",
+    "penalty": 3,
+    "enabled": true,
+    "sets": [
+      "NTTData"
+    ],
+    "implementation_status": "pending",
+    "source": "excel"
+  },
+  {
+    "id": "EXCEL_011",
+    "name": "Validación de entradas/salidas en argumentos",
+    "description": "Los workflows deben validar datos de entrada y salida.",
+    "category": "general",
+    "severity": "warning",
+    "penalty": 3,
+    "enabled": true,
+    "sets": [
+      "NTTData"
+    ],
+    "implementation_status": "pending",
+    "source": "excel"
+  },
+  {
+    "id": "EXCEL_012",
+    "name": "Uso de Config files",
+    "description": "Parámetros deben estar en archivos de configuración, no hardcodeados.",
+    "category": "general",
+    "severity": "warning",
+    "penalty": 3,
+    "enabled": true,
+    "sets": [
+      "NTTData"
+    ],
+    "implementation_status": "pending",
+    "source": "excel"
+  },
+  {
+    "id": "EXCEL_013",
+    "name": "Nombres de workflows poco descriptivos",
+    "description": "Evitar nombres genéricos como Main.xaml. Usar nombres que reflejen la función.",
+    "category": "general",
+    "severity": "info",
+    "penalty": 1,
+    "enabled": true,
+    "sets": [
+      "NTTData"
+    ],
+    "implementation_status": "pending",
+    "source": "excel"
+  },
+  {
+    "id": "EXCEL_014",
+    "name": "Convención en argumentos (in_out_io_)",
+    "description": "Argumentos deben seguir prefijos estándar para claridad.",
+    "category": "general",
+    "severity": "info",
+    "penalty": 1,
+    "enabled": true,
+    "sets": [
+      "NTTData"
+    ],
+    "implementation_status": "pending",
+    "source": "excel"
+  },
+  {
+    "id": "EXCEL_015",
+    "name": "Variables demasiado largas (>30 caracteres)",
+    "description": "Nombres excesivamente largos afectan legibilidad.",
+    "category": "general",
+    "severity": "info",
+    "penalty": 1,
+    "enabled": true,
+    "sets": [
+      "NTTData"
+    ],
+    "implementation_status": "pending",
+    "source": "excel"
+  },
+  {
+    "id": "EXCEL_016",
+    "name": "No usar Layout Diagrams adecuados",
+    "description": "Procesos que requieren Flowchart o State Machine deben usarlos en lugar de Sequence.",
+    "category": "general",
+    "severity": "info",
+    "penalty": 1,
+    "enabled": true,
+    "sets": [
+      "NTTData"
+    ],
+    "implementation_status": "pending",
+    "source": "excel"
+  },
+  {
+    "id": "EXCEL_017",
+    "name": "Dependencias no usadas",
+    "description": "Eliminar paquetes/librerías innecesarias del proyecto.",
+    "category": "general",
+    "severity": "info",
+    "penalty": 1,
+    "enabled": true,
+    "sets": [
+      "NTTData"
+    ],
+    "implementation_status": "pending",
+    "source": "excel"
+  },
+  {
+    "id": "EXCEL_018",
+    "name": "No aplicar paralelismo cuando es posible",
+    "description": "Ejemplo: no usar Parallel.ForEach en tareas repetitivas que lo permiten.",
+    "category": "general",
+    "severity": "info",
+    "penalty": 1,
+    "enabled": true,
+    "sets": [
+      "NTTData"
+    ],
+    "implementation_status": "pending",
+    "source": "excel"
+  },
+  {
+    "id": "EXCEL_019",
+    "name": "Eliminar dependencias no utilizadas",
+    "description": "Los proyectos deben limpiar paquetes NuGet y librerías que no se usan.",
+    "category": "general",
+    "severity": "warning",
+    "penalty": 3,
+    "enabled": true,
+    "sets": [
+      "NTTData"
+    ],
+    "implementation_status": "pending",
+    "source": "excel"
+  },
+  {
+    "id": "EXCEL_020",
+    "name": "Versionado correcto de dependencias",
+    "description": "Usar versiones estables y consistentes de paquetes. Evitar mezclar versiones distintas de la misma librería.",
+    "category": "general",
+    "severity": "error",
+    "penalty": 10,
+    "enabled": true,
+    "sets": [
+      "NTTData"
+    ],
+    "implementation_status": "pending",
+    "source": "excel"
+  },
+  {
+    "id": "EXCEL_021",
+    "name": "Uso de SecureString para credenciales",
+    "description": "Variables sensibles deben almacenarse como SecureString en lugar de String.",
+    "category": "general",
+    "severity": "error",
+    "penalty": 10,
+    "enabled": true,
+    "sets": [
+      "NTTData"
+    ],
+    "implementation_status": "pending",
+    "source": "excel"
+  },
+  {
+    "id": "EXCEL_022",
+    "name": "No duplicar variables en distintos scopes",
+    "description": "Evitar declarar la misma variable en múltiples ámbitos (Main.xaml y sub-workflows).",
+    "category": "general",
+    "severity": "warning",
+    "penalty": 3,
+    "enabled": true,
+    "sets": [
+      "NTTData"
+    ],
+    "implementation_status": "pending",
+    "source": "excel"
+  },
+  {
+    "id": "EXCEL_023",
+    "name": "Eliminar workflows huérfanos",
+    "description": "No dejar archivos XAML sin referencia en el proyecto.",
+    "category": "general",
+    "severity": "warning",
+    "penalty": 3,
+    "enabled": true,
+    "sets": [
+      "NTTData"
+    ],
+    "implementation_status": "pending",
+    "source": "excel"
+  },
+  {
+    "id": "EXCEL_024",
+    "name": "Uso de Throw/Rethrow adecuado",
+    "description": "Excepciones deben lanzarse con Throw o Rethrow en lugar de ignorarse.",
+    "category": "general",
+    "severity": "error",
+    "penalty": 10,
+    "enabled": true,
+    "sets": [
+      "NTTData"
+    ],
+    "implementation_status": "pending",
+    "source": "excel"
+  },
+  {
+    "id": "EXCEL_025",
+    "name": "Logs estructurados",
+    "description": "Uso de Log Message con niveles (Info, Warning, Error) y mensajes claros.",
+    "category": "general",
+    "severity": "warning",
+    "penalty": 3,
+    "enabled": true,
+    "sets": [
+      "NTTData"
+    ],
+    "implementation_status": "pending",
+    "source": "excel"
+  },
+  {
+    "id": "EXCEL_026",
+    "name": "Evitar variables globales innecesarias",
+    "description": "Usar argumentos en lugar de variables globales para pasar datos entre workflows.",
+    "category": "general",
+    "severity": "warning",
+    "penalty": 3,
+    "enabled": true,
+    "sets": [
+      "NTTData"
+    ],
+    "implementation_status": "pending",
+    "source": "excel"
+  },
+  {
+    "id": "EXCEL_027",
+    "name": "Control de flujo con Switch/Flow Decision",
+    "description": "Usar Switch o Flow Decision en lugar de múltiples If encadenados.",
+    "category": "general",
+    "severity": "error",
+    "penalty": 10,
+    "enabled": true,
+    "sets": [
+      "NTTData"
+    ],
+    "implementation_status": "pending",
+    "source": "excel"
+  },
+  {
+    "id": "EXCEL_028",
+    "name": "Uso de Retry Scope en operaciones críticas",
+    "description": "Para operaciones con riesgo de fallo intermitente (UI, API), usar Retry Scope.",
+    "category": "general",
+    "severity": "warning",
+    "penalty": 3,
+    "enabled": true,
+    "sets": [
+      "NTTData"
+    ],
+    "implementation_status": "pending",
+    "source": "excel"
+  },
+  {
+    "id": "EXCEL_029",
+    "name": "Eliminar actividades obsoletas",
+    "description": "Sustituir actividades deprecated por alternativas modernas.",
+    "category": "general",
+    "severity": "warning",
+    "penalty": 3,
+    "enabled": true,
+    "sets": [
+      "NTTData"
+    ],
+    "implementation_status": "pending",
+    "source": "excel"
+  },
+  {
+    "id": "EXCEL_030",
+    "name": "Consistencia en nombres de archivos XAML",
+    "description": "Los nombres de workflows deben reflejar su función (ProcessInvoice.xaml, ReadConfig.xaml).",
+    "category": "general",
+    "severity": "info",
+    "penalty": 1,
+    "enabled": true,
+    "sets": [
+      "NTTData"
+    ],
+    "implementation_status": "pending",
+    "source": "excel"
+  },
+  {
+    "id": "EXCEL_031",
+    "name": "Uso de Source Control (Git/TFS)",
+    "description": "El proyecto debe estar bajo control de versiones. Puede detectarse por ausencia de .git o .tfvc.",
+    "category": "general",
+    "severity": "info",
+    "penalty": 1,
+    "enabled": true,
+    "sets": [
+      "NTTData"
+    ],
+    "implementation_status": "pending",
+    "source": "excel"
+  }
+]

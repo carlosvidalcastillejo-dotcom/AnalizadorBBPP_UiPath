@@ -1,0 +1,179 @@
+{
+  "metadata": {
+    "name": "Buenas Prácticas UiPath",
+    "description": "Reglas oficiales de UiPath para desarrollo RPA",
+    "version": "1.0.0",
+    "author": "Carlos Vidal Castillejo",
+    "company": "NTT Data",
+    "created": "2024-11-20",
+    "last_updated": "2024-11-20"
+  },
+  "rules": [
+    {
+      "id": "NOMENCLATURA_001",
+      "name": "Variables en camelCase",
+      "category": "nomenclatura",
+      "severity": "warning",
+      "enabled": true,
+      "description": "Las variables deben seguir el patrón camelCase (primera letra minúscula, resto PascalCase)",
+      "rule_type": "variable_naming",
+      "parameters": {
+        "pattern": "^[a-z][a-zA-Z0-9]*$",
+        "check_type": "regex"
+      },
+      "examples": {
+        "correct": ["miVariable", "datoCliente", "contador"],
+        "incorrect": ["MiVariable", "dato_cliente", "CONTADOR"]
+      },
+      "documentation": "Según estándar UiPath, las variables deben usar camelCase para mantener consistencia en el código."
+    },
+    {
+      "id": "NOMENCLATURA_002",
+      "name": "Detectados nombres genéricos",
+      "category": "nomenclatura",
+      "severity": "warning",
+      "enabled": true,
+      "description": "Evitar nombres de variables genéricos que no indican su propósito",
+      "rule_type": "generic_names",
+      "parameters": {
+        "forbidden_names": [
+          "var", "var1", "var2",
+          "temp", "temp1", "temp2",
+          "test", "test1",
+          "data", "value", "result",
+          "output", "input",
+          "item", "elemento"
+        ]
+      },
+      "examples": {
+        "correct": ["nombreCliente", "facturaActual", "listadoEmpleados"],
+        "incorrect": ["var1", "temp", "data"]
+      },
+      "documentation": "Los nombres descriptivos mejoran la legibilidad y mantenibilidad del código."
+    },
+    {
+      "id": "NOMENCLATURA_003",
+      "name": "Argumentos con prefijos",
+      "category": "nomenclatura",
+      "severity": "warning",
+      "enabled": true,
+      "description": "Los argumentos deben tener prefijos según su dirección (in_, out_, io_)",
+      "rule_type": "argument_prefixes",
+      "parameters": {
+        "check_prefixes": true,
+        "prefix_in": "in_",
+        "prefix_out": "out_",
+        "prefix_inout": "io_"
+      },
+      "examples": {
+        "correct": ["in_nombreCliente", "out_resultado", "io_configuracion"],
+        "incorrect": ["nombreCliente", "resultado", "config"]
+      },
+      "documentation": "Los prefijos ayudan a identificar rápidamente la dirección de los argumentos."
+    },
+    {
+      "id": "NOMENCLATURA_004",
+      "name": "Argumentos con descripción",
+      "category": "nomenclatura",
+      "severity": "info",
+      "enabled": true,
+      "description": "Todos los argumentos deben tener una descripción clara",
+      "rule_type": "argument_descriptions",
+      "parameters": {
+        "require_description": true,
+        "min_description_length": 10
+      },
+      "examples": {
+        "correct": ["Argument: in_Cliente | Description: Nombre completo del cliente"],
+        "incorrect": ["Argument: in_Cliente | Description: (vacío)"]
+      },
+      "documentation": "Las descripciones facilitan el uso de workflows reutilizables."
+    },
+    {
+      "id": "ANIDAMIENTO_001",
+      "name": "Máximo de IFs anidados",
+      "category": "anidamiento",
+      "severity": "warning",
+      "enabled": true,
+      "description": "Limitar el número de estructuras IF anidadas para mejorar legibilidad",
+      "rule_type": "nested_ifs",
+      "parameters": {
+        "max_nested_levels": 3
+      },
+      "examples": {
+        "correct": "Hasta 3 niveles de IF anidados",
+        "incorrect": "4 o más niveles de IF anidados"
+      },
+      "documentation": "Demasiados IFs anidados indican que el código debe refactorizarse o usar State Machine."
+    },
+    {
+      "id": "TRY_CATCH_001",
+      "name": "Try-Catch con bloque Catch vacío",
+      "category": "try_catch",
+      "severity": "info",
+      "enabled": true,
+      "description": "Detectados bloques Try-Catch donde el Catch está vacío (sin acciones)",
+      "rule_type": "empty_catch",
+      "parameters": {
+        "allow_empty_catch": false
+      },
+      "examples": {
+        "correct": "Try-Catch con LogMessage o acciones en el Catch",
+        "incorrect": "Try-Catch con Catch completamente vacío"
+      },
+      "documentation": "Los bloques Catch vacíos ocultan errores y dificultan el debugging."
+    },
+    {
+      "id": "MODULARIZACION_001",
+      "name": "Sequences con demasiadas actividades",
+      "category": "modularizacion",
+      "severity": "warning",
+      "enabled": true,
+      "description": "Los Sequences no deben tener demasiadas actividades",
+      "rule_type": "sequence_size",
+      "parameters": {
+        "max_activities": 20
+      },
+      "examples": {
+        "correct": "Sequence con 15 actividades",
+        "incorrect": "Sequence con 30 actividades"
+      },
+      "documentation": "Sequences muy largos deben dividirse en workflows separados o usar State Machine."
+    },
+    {
+      "id": "CODIGO_COMENTADO_001",
+      "name": "Código comentado excesivo",
+      "category": "codigo_comentado",
+      "severity": "warning",
+      "enabled": true,
+      "description": "Detectado porcentaje excesivo de código comentado",
+      "rule_type": "commented_code",
+      "parameters": {
+        "max_commented_percent": 5
+      },
+      "examples": {
+        "correct": "Menos del 5% del código comentado",
+        "incorrect": "Más del 10% del código comentado"
+      },
+      "documentation": "El código comentado debe eliminarse antes de entregar. Usar control de versiones en su lugar."
+    },
+    {
+      "id": "LOGS_001",
+      "name": "Workflows sin logs",
+      "category": "logs",
+      "severity": "info",
+      "enabled": true,
+      "description": "Detectados workflows que no tienen ningún LogMessage",
+      "rule_type": "missing_logs",
+      "parameters": {
+        "require_logs": true,
+        "min_logs": 1
+      },
+      "examples": {
+        "correct": "Workflow con al menos 1 LogMessage",
+        "incorrect": "Workflow sin ningún LogMessage"
+      },
+      "documentation": "Los logs son esenciales para debugging y auditoría de procesos."
+    }
+  ]
+}

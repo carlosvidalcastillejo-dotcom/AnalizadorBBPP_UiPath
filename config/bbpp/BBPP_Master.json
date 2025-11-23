@@ -1,0 +1,367 @@
+{
+    "metadata": {
+        "name": "Configuración Maestra de Reglas BBPP",
+        "description": "Catálogo unificado de todas las reglas de buenas prácticas",
+        "version": "2.1.0",
+        "author": "Carlos Vidal Castillejo",
+        "company": "Your Company",
+        "created": "2025-11-22",
+        "last_updated": "2025-11-23",
+        "changelog": "v2.1.0: IDs reorganizados por categorías lógicas, código limpio 100%"
+    },
+    "sets": {
+        "UiPath": {
+            "name": "Buenas Prácticas UiPath",
+            "description": "Reglas oficiales de UiPath",
+            "enabled": true
+        },
+        "NTTData": {
+            "name": "Buenas Prácticas NTT Data",
+            "description": "Estándares personalizados de NTT Data",
+            "enabled": true
+        }
+    },
+    "rules": [
+        {
+            "id": "NOMENCLATURA_001",
+            "name": "Variables en camelCase",
+            "description": "Las variables deben seguir el patrón camelCase (primera letra minúscula, resto PascalCase)",
+            "category": "nomenclatura",
+            "severity": "warning",
+            "penalty": 2,
+            "enabled": true,
+            "sets": [
+                "UiPath",
+                "NTTData"
+            ],
+            "implementation_status": "implemented",
+            "rule_type": "variable_naming"
+        },
+        {
+            "id": "NOMENCLATURA_002",
+            "name": "Evitar nombres genéricos",
+            "description": "Evitar nombres de variables genéricos que no indican su propósito (var, temp, data, etc.)",
+            "category": "nomenclatura",
+            "severity": "warning",
+            "penalty": 2,
+            "enabled": true,
+            "sets": [
+                "UiPath",
+                "NTTData"
+            ],
+            "implementation_status": "implemented",
+            "rule_type": "generic_names"
+        },
+        {
+            "id": "NOMENCLATURA_003",
+            "name": "Argumentos con prefijos",
+            "description": "Los argumentos deben tener prefijos según su dirección (in_, out_, io_)",
+            "category": "nomenclatura",
+            "severity": "warning",
+            "penalty": 2,
+            "enabled": true,
+            "sets": [
+                "UiPath",
+                "NTTData"
+            ],
+            "implementation_status": "implemented",
+            "rule_type": "argument_prefixes",
+            "parameters": {
+                "check_prefixes": true,
+                "prefix_in": "in_",
+                "prefix_out": "out_",
+                "prefix_inout": "io_"
+            }
+        },
+        {
+            "id": "NOMENCLATURA_004",
+            "name": "Argumentos con descripción",
+            "description": "Todos los argumentos deben tener una descripción clara",
+            "category": "nomenclatura",
+            "severity": "info",
+            "penalty": 1,
+            "enabled": true,
+            "sets": [
+                "UiPath"
+            ],
+            "implementation_status": "implemented",
+            "rule_type": "argument_description",
+            "parameters": {
+                "require_description": true,
+                "min_description_length": 5
+            }
+        },
+        {
+            "id": "ESTRUCTURA_001",
+            "name": "IFs anidados excesivos",
+            "description": "Evitar más de 3 niveles de anidamiento de IFs (configurable)",
+            "category": "estructura",
+            "severity": "warning",
+            "penalty": 3,
+            "enabled": true,
+            "sets": [
+                "UiPath",
+                "NTTData"
+            ],
+            "implementation_status": "implemented",
+            "rule_type": "nested_ifs",
+            "old_id": "ANIDAMIENTO_001",
+            "parameters": {
+                "max_nested_levels": {
+                    "type": "number",
+                    "value": 3,
+                    "min": 1,
+                    "max": 10,
+                    "description": "Máximo número de niveles de anidamiento permitidos"
+                }
+            }
+        },
+        {
+            "id": "ESTRUCTURA_002",
+            "name": "Try-Catch vacíos",
+            "description": "Los bloques Try-Catch no deben estar vacíos",
+            "category": "estructura",
+            "severity": "error",
+            "penalty": 5,
+            "enabled": true,
+            "sets": [
+                "UiPath",
+                "NTTData"
+            ],
+            "implementation_status": "implemented",
+            "rule_type": "empty_catch",
+            "old_id": "TRY_CATCH_001"
+        },
+        {
+            "id": "ESTRUCTURA_003",
+            "name": "Actividades críticas en Try-Catch",
+            "description": "Todas las actividades críticas deben estar dentro de Try-Catch",
+            "category": "estructura",
+            "severity": "error",
+            "penalty": 5,
+            "enabled": true,
+            "sets": [
+                "NTTData"
+            ],
+            "implementation_status": "implemented",
+            "rule_type": "critical_in_try_catch",
+            "old_id": "EXCEL_002"
+        },
+        {
+            "id": "MODULARIZACION_001",
+            "name": "Sequences muy largos",
+            "description": "Los Sequences no deben tener más de N actividades (configurable, default: 20). Cuenta recursivamente hasta encontrar Invoke.",
+            "category": "modularizacion",
+            "severity": "info",
+            "penalty": 2,
+            "enabled": true,
+            "sets": [
+                "UiPath",
+                "NTTData"
+            ],
+            "implementation_status": "implemented",
+            "rule_type": "long_sequence",
+            "parameters": {
+                "max_activities": {
+                    "type": "number",
+                    "value": 20,
+                    "min": 5,
+                    "max": 200,
+                    "description": "Máximo número de actividades permitidas en un Sequence (cuenta recursivamente)"
+                }
+            }
+        },
+        {
+            "id": "MODULARIZACION_002",
+            "name": "Uso de Invoke Workflow",
+            "description": "Sugerencia: Modularizar workflows largos usando Invoke Workflow File. Por defecto: workflows >50 actividades sin Invoke.",
+            "category": "modularizacion",
+            "severity": "info",
+            "penalty": 0,
+            "enabled": true,
+            "sets": [
+                "NTTData"
+            ],
+            "implementation_status": "implemented",
+            "rule_type": "invoke_workflow_usage",
+            "old_id": "EXCEL_006",
+            "parameters": {
+                "min_activities_for_modularization": {
+                    "type": "number",
+                    "value": 50,
+                    "min": 10,
+                    "max": 200,
+                    "description": "Mínimo de actividades para sugerir modularización"
+                },
+                "penalty_mode": {
+                    "type": "string",
+                    "value": "total",
+                    "options": [
+                        "total",
+                        "individual"
+                    ],
+                    "description": "Modo de penalización: 'total' (fija) o 'individual' (multiplicada por casos)"
+                }
+            }
+        },
+        {
+            "id": "MODULARIZACION_003",
+            "name": "Patrón Init/End en State Machines",
+            "description": "Las State Machines deben tener estados Init (primero) y End (último)",
+            "category": "modularizacion",
+            "severity": "warning",
+            "penalty": 3,
+            "enabled": false,
+            "sets": [
+                "UiPath",
+                "NTTData"
+            ],
+            "implementation_status": "implemented",
+            "rule_type": "init_end_pattern",
+            "old_id": "STATE_MACHINE_001"
+        },
+        {
+            "id": "CODIGO_001",
+            "name": "Código comentado excesivo",
+            "description": "No debe haber más del 5% de código comentado (CommentOut)",
+            "category": "codigo_limpio",
+            "severity": "warning",
+            "penalty": 3,
+            "enabled": true,
+            "sets": [
+                "UiPath",
+                "NTTData"
+            ],
+            "implementation_status": "implemented",
+            "rule_type": "commented_code",
+            "old_id": "COMENTARIOS_001",
+            "parameters": {
+                "max_percentage": {
+                    "type": "number",
+                    "value": 5,
+                    "min": 0,
+                    "max": 50,
+                    "description": "Porcentaje máximo de código comentado permitido"
+                }
+            }
+        },
+        {
+            "id": "LOGGING_001",
+            "name": "Logging insuficiente",
+            "description": "Debe haber al menos 1 LogMessage cada N actividades (configurable). Por defecto: 10 actividades por log.",
+            "category": "logging",
+            "severity": "info",
+            "penalty": 1,
+            "enabled": true,
+            "sets": [
+                "NTTData"
+            ],
+            "implementation_status": "implemented",
+            "rule_type": "insufficient_logging",
+            "old_id": "LOGS_001",
+            "parameters": {
+                "max_activities_per_log": {
+                    "type": "number",
+                    "value": 10,
+                    "min": 1,
+                    "max": 50,
+                    "description": "Máximo número de actividades permitidas por cada LogMessage"
+                }
+            }
+        },
+        {
+            "id": "LOGGING_002",
+            "name": "Logging en inicio y fin",
+            "description": "Usar Log Message al inicio y fin de workflows principales. Por defecto: primeras/últimas 5 actividades.",
+            "category": "logging",
+            "severity": "info",
+            "penalty": 1,
+            "enabled": true,
+            "sets": [
+                "NTTData"
+            ],
+            "implementation_status": "implemented",
+            "rule_type": "adequate_logging",
+            "old_id": "EXCEL_009",
+            "parameters": {
+                "check_start_activities": {
+                    "type": "number",
+                    "value": 5,
+                    "min": 1,
+                    "max": 20,
+                    "description": "Número de actividades iniciales donde debe haber al menos un LogMessage"
+                },
+                "check_end_activities": {
+                    "type": "number",
+                    "value": 5,
+                    "min": 1,
+                    "max": 20,
+                    "description": "Número de actividades finales donde debe haber al menos un LogMessage"
+                }
+            }
+        },
+        {
+            "id": "CONFIGURACION_001",
+            "name": "Uso de Orchestrator Assets",
+            "description": "Usar Assets para credenciales y configuración en lugar de valores hardcodeados",
+            "category": "configuracion",
+            "severity": "error",
+            "penalty": 10,
+            "enabled": true,
+            "sets": [
+                "NTTData"
+            ],
+            "implementation_status": "implemented",
+            "rule_type": "orchestrator_assets",
+            "old_id": "EXCEL_003"
+        },
+        {
+            "id": "RENDIMIENTO_001",
+            "name": "Timeouts explícitos",
+            "description": "No usar timeouts por defecto (30000ms) en actividades críticas. Penalización configurable: Total (fija) o Individual (x casos encontrados).",
+            "category": "rendimiento",
+            "severity": "info",
+            "penalty": 2,
+            "enabled": true,
+            "sets": [
+                "NTTData"
+            ],
+            "implementation_status": "implemented",
+            "rule_type": "explicit_timeouts",
+            "old_id": "EXCEL_007",
+            "parameters": {
+                "default_timeout_ms": {
+                    "type": "number",
+                    "value": 30000,
+                    "min": 1000,
+                    "max": 300000,
+                    "description": "Timeout por defecto de UiPath en milisegundos"
+                },
+                "penalty_mode": {
+                    "type": "string",
+                    "value": "individual",
+                    "options": [
+                        "total",
+                        "individual"
+                    ],
+                    "description": "Modo de penalización: 'total' (fija) o 'individual' (multiplicada por casos)"
+                }
+            }
+        },
+        {
+            "id": "SELECTORES_001",
+            "name": "Selectores estables",
+            "description": "Evitar selectores con índices (idx) o atributos volátiles",
+            "category": "selectores",
+            "severity": "warning",
+            "penalty": 3,
+            "enabled": true,
+            "sets": [
+                "NTTData"
+            ],
+            "implementation_status": "implemented",
+            "rule_type": "stable_selectors",
+            "old_id": "EXCEL_008"
+        }
+    ]
+}

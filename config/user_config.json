@@ -1,0 +1,28 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2025-11-23",
+  "active_bbpp_sets": [],
+  "thresholds": {
+    "max_activities_sequence": 20,
+    "max_nested_ifs": 3,
+    "max_commented_code_percent": 5
+  },
+  "validations": {
+    "validate_variable_prefixes": true,
+    "validate_argument_descriptions": true,
+    "validate_init_end_pattern": false
+  },
+  "output": {
+    "auto_generate_reports": true,
+    "generate_html": true,
+    "generate_excel": true,
+    "include_charts": true
+  },
+  "scoring": {
+    "error_weight": -10,
+    "warning_weight": -3,
+    "info_weight": -0.5
+  },
+  "build_author": "Carlos Vidal Castillejo",
+  "custom_logo": "C:/Users/Imrik/Downloads/Gemini_Generated_Image_e5dss7e5dss7e5ds.png"
+}

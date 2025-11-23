@@ -1,0 +1,30 @@
+{
+  "metadata": {
+    "name": "Buenas Prácticas NTT Data",
+    "description": "Estándares personalizados de NTT Data para desarrollo UiPath",
+    "version": "1.0.0",
+    "author": "Carlos Vidal Castillejo",
+    "company": "NTT Data",
+    "created": "2024-11-20",
+    "last_updated": "2024-11-20"
+  },
+  "rules": [
+    {
+      "id": "CUSTOM_001",
+      "name": "Ejemplo de regla personalizada",
+      "category": "custom",
+      "severity": "warning",
+      "enabled": false,
+      "description": "Esta es una regla de ejemplo. Puedes editarla o eliminarla.",
+      "rule_type": "custom",
+      "parameters": {
+        "ejemplo_parametro": "valor"
+      },
+      "examples": {
+        "correct": "Ejemplo de uso correcto",
+        "incorrect": "Ejemplo de uso incorrecto"
+      },
+      "documentation": "Aquí puedes agregar documentación sobre por qué existe esta regla y cómo aplicarla."
+    }
+  ]
+}

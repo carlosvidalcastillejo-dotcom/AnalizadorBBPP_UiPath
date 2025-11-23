@@ -1,0 +1,39 @@
+{
+    "company": {
+        "name": "Your Company",
+        "short_name": "YC",
+        "website": "https://yourcompany.com",
+        "email": "contact@yourcompany.com"
+    },
+    "branding": {
+        "logo_path": null,
+        "logo_width": 150,
+        "logo_height": 50,
+        "use_logo_in_reports": true,
+        "use_logo_in_ui": true,
+        "use_logo_in_excel": true
+    },
+    "colors": {
+        "primary": "#0067B1",
+        "secondary": "#00A3E0",
+        "accent": "#FFC107",
+        "success": "#28A745",
+        "warning": "#FFC107",
+        "error": "#DC3545",
+        "info": "#17A2B8",
+        "background": "#F5F5F5",
+        "text": "#333333"
+    },
+    "texts": {
+        "app_title": "Analizador BBPP UiPath",
+        "app_subtitle": "Análisis de Buenas Prácticas",
+        "report_footer": "Desarrollado por {author}",
+        "sidebar_company": "Your Company",
+        "welcome_message": "Bienvenido al Analizador de Buenas Prácticas"
+    },
+    "metadata": {
+        "version": "1.0.0",
+        "last_updated": "2025-11-23",
+        "description": "Configuración de branding personalizable para el Analizador BBPP UiPath"
+    }
+}
