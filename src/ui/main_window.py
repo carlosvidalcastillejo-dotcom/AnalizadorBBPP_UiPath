@@ -48,13 +48,13 @@ class MainWindow:
         
     def _create_sidebar(self):
         """Crear menú lateral"""
-        sidebar = tk.Frame(self.root, bg=PRIMARY_COLOR, width=200)
-        sidebar.pack(side=tk.LEFT, fill=tk.Y)
-        sidebar.pack_propagate(False)
+        self.sidebar = tk.Frame(self.root, bg=PRIMARY_COLOR, width=200)
+        self.sidebar.pack(side=tk.LEFT, fill=tk.Y)
+        self.sidebar.pack_propagate(False)
         
         # Título de la aplicación
         title_label = tk.Label(
-            sidebar,
+            self.sidebar,
             text="Analizador BBPP\nUiPath",
             bg=PRIMARY_COLOR,
             fg="white",
@@ -65,7 +65,7 @@ class MainWindow:
         
         # Versión
         version_label = tk.Label(
-            sidebar,
+            self.sidebar,
             text=f"v{APP_VERSION} {APP_VERSION_TYPE}",
             bg=PRIMARY_COLOR,
             fg="white",
@@ -74,22 +74,22 @@ class MainWindow:
         version_label.pack()
         
         # Separador
-        separator = tk.Frame(sidebar, bg="white", height=2)
+        separator = tk.Frame(self.sidebar, bg="white", height=2)
         separator.pack(fill=tk.X, padx=20, pady=20)
         
         # Botones del menú
-        self._create_menu_button(sidebar, "📊 Análisis", self._show_analysis_screen)
-        self._create_menu_button(sidebar, "📋 Gestión de BBPP", self._show_bbpp_management_screen)
-        self._create_menu_button(sidebar, "⚙️ Configuración", self._show_config_screen)
-        self._create_menu_button(sidebar, "📈 Métricas", self._show_metrics_dashboard)
-        self._create_menu_button(sidebar, "📝 Notas de Versión", self._show_version_notes)
+        self._create_menu_button(self.sidebar, "📊 Análisis", self._show_analysis_screen)
+        self._create_menu_button(self.sidebar, "📋 Gestión de BBPP", self._show_bbpp_management_screen)
+        self._create_menu_button(self.sidebar, "⚙️ Configuración", self._show_config_screen)
+        self._create_menu_button(self.sidebar, "📈 Métricas", self._show_metrics_dashboard)
+        self._create_menu_button(self.sidebar, "📝 Notas de Versión", self._show_version_notes)
         
         # Espaciador
-        tk.Frame(sidebar, bg=PRIMARY_COLOR).pack(fill=tk.BOTH, expand=True)
+        tk.Frame(self.sidebar, bg=PRIMARY_COLOR).pack(fill=tk.BOTH, expand=True)
         
         # Botón salir al final
         exit_btn = tk.Button(
-            sidebar,
+            self.sidebar,
             text="🚪 Salir",
             command=self.root.quit,
             bg="#DC3545",
@@ -101,15 +101,81 @@ class MainWindow:
         )
         exit_btn.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=10)
         
-        # Logo NTT Data (placeholder)
-        company_label = tk.Label(
-            sidebar,
-            text=COMPANY,
-            bg=PRIMARY_COLOR,
-            fg="white",
-            font=("Arial", 10, "bold")
-        )
-        company_label.pack(side=tk.BOTTOM, pady=10)
+        # Logo y nombre de empresa
+        self._create_company_branding()
+    
+    def _create_company_branding(self):
+        """Crear sección de branding (logo + nombre de empresa)"""
+        try:
+            from src.branding_manager import get_branding_manager
+            branding = get_branding_manager()
+            
+            # Frame contenedor para logo y nombre
+            branding_frame = tk.Frame(self.sidebar, bg=PRIMARY_COLOR)
+            branding_frame.pack(side=tk.BOTTOM, pady=10)
+            
+            # Intentar cargar y mostrar logo si está configurado
+            logo_path = branding.get_logo_path()
+            if logo_path and logo_path.exists() and branding.use_logo_in_ui():
+                try:
+                    from PIL import Image, ImageTk
+                    
+                    # Cargar imagen
+                    img = Image.open(logo_path)
+                    
+                    # Obtener dimensiones configuradas
+                    logo_width, logo_height = branding.get_logo_dimensions()
+                    
+                    # Redimensionar manteniendo aspecto
+                    img.thumbnail((logo_width, logo_height), Image.Resampling.LANCZOS)
+                    
+                    # Convertir a PhotoImage
+                    photo = ImageTk.PhotoImage(img)
+                    
+                    # Crear label con imagen
+                    logo_label = tk.Label(
+                        branding_frame,
+                        image=photo,
+                        bg=PRIMARY_COLOR
+                    )
+                    logo_label.image = photo  # Mantener referencia
+                    logo_label.pack(pady=(0, 5))
+                    
+                except Exception as e:
+                    print(f"⚠️ No se pudo cargar el logo: {e}")
+                    # Continuar sin logo
+            
+            # Nombre de empresa (siempre se muestra)
+            company_name = branding.get_company_name()
+            company_label = tk.Label(
+                branding_frame,
+                text=company_name,
+                bg=PRIMARY_COLOR,
+                fg="white",
+                font=("Arial", 10, "bold")
+            )
+            company_label.pack()
+            
+        except Exception as e:
+            print(f"⚠️ Error al cargar branding: {e}")
+            # Fallback: mostrar solo el nombre de empresa por defecto
+            company_label = tk.Label(
+                self.sidebar,
+                text=COMPANY,
+                bg=PRIMARY_COLOR,
+                fg="white",
+                font=("Arial", 10, "bold")
+            )
+            company_label.pack(side=tk.BOTTOM, pady=10)
+    
+    def refresh_sidebar(self):
+        """Refrescar sidebar para mostrar cambios de branding"""
+        # Destruir sidebar actual
+        if hasattr(self, 'sidebar'):
+            self.sidebar.destroy()
+        
+        # Recrear sidebar
+        self._create_sidebar()
         
     def _create_menu_button(self, parent, text, command):
         """Crear botón del menú"""
