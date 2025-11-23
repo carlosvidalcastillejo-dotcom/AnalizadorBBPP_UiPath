@@ -120,6 +120,54 @@ class MetricsDashboard(tk.Frame):
             
             self.stats_labels[key] = value_label
         
+        # Barra de búsqueda en tiempo real
+        search_frame = tk.LabelFrame(
+            main_container,
+            text="🔎 Búsqueda en Tiempo Real",
+            font=("Segoe UI", 11, "bold"),
+            bg=self.BG_COLOR,
+            fg=self.NTT_BLUE
+        )
+        search_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        search_inner = tk.Frame(search_frame, bg=self.BG_COLOR)
+        search_inner.pack(fill=tk.X, padx=15, pady=10)
+        
+        tk.Label(
+            search_inner,
+            text="Buscar:",
+            font=("Segoe UI", 10),
+            bg=self.BG_COLOR,
+            fg=self.TEXT_COLOR
+        ).pack(side=tk.LEFT, padx=(0, 10))
+        
+        self.search_var = tk.StringVar()
+        self.search_var.trace('w', lambda *args: self._on_search_change())
+        
+        self.search_entry = tk.Entry(
+            search_inner,
+            textvariable=self.search_var,
+            font=("Segoe UI", 10),
+            relief=tk.SOLID,
+            borderwidth=1
+        )
+        self.search_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 10))
+        
+        # Botón para limpiar búsqueda
+        clear_btn = tk.Button(
+            search_inner,
+            text="✖",
+            command=lambda: self.search_var.set(""),
+            bg="#DC3545",
+            fg="white",
+            font=("Segoe UI", 9),
+            relief=tk.FLAT,
+            cursor="hand2",
+            padx=8,
+            pady=2
+        )
+        clear_btn.pack(side=tk.LEFT)
+        
         # Filtro de proyectos
         filter_frame = tk.LabelFrame(
             main_container,
@@ -329,6 +377,36 @@ class MetricsDashboard(tk.Frame):
     def _on_filter_change(self, event):
         """Manejar cambio de filtro"""
         self._load_data()
+    
+    def _on_search_change(self):
+        """Manejar cambio en la búsqueda en tiempo real"""
+        search_text = self.search_var.get().lower()
+        
+        # Si no hay texto de búsqueda, mostrar todos los items
+        if not search_text:
+            for item in self.tree.get_children():
+                self.tree.reattach(item, '', 'end')
+            return
+        
+        # Filtrar items basándose en el texto de búsqueda
+        all_items = list(self.tree.get_children())
+        
+        for item in all_items:
+            values = self.tree.item(item)['values']
+            # Buscar en fecha (0), proyecto (1), y versión (2)
+            project_name = str(values[1]).lower() if len(values) > 1 else ""
+            date_str = str(values[0]).lower() if len(values) > 0 else ""
+            version_str = str(values[2]).lower() if len(values) > 2 else ""
+            
+            # Si coincide con la búsqueda, mantener visible
+            if (search_text in project_name or 
+                search_text in date_str or 
+                search_text in version_str):
+                self.tree.reattach(item, '', 'end')
+            else:
+                # Ocultar item que no coincide
+                self.tree.detach(item)
+    
     
     def _update_stats(self, history, project_name):
         """Actualizar panel de estadísticas"""
