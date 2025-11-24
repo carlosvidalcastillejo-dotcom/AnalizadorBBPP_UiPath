@@ -398,40 +398,7 @@ class MainWindow:
         # Variables para los controles
         self.config_vars = {}
         
-        # ========== SECCIÓN 1: VALIDACIONES ==========
-        self._create_config_section(
-            scrollable_frame,
-            "✅ Opciones de Validación",
-            "Activa o desactiva validaciones específicas"
-        )
-        
-        # Frame para validaciones
-        validations_frame = tk.Frame(scrollable_frame, bg=BG_COLOR)
-        validations_frame.pack(padx=40, pady=10, fill=tk.X)
-        
-        # Validaciones opcionales
-        self._create_validation_checkbox(
-            validations_frame,
-            "validate_variable_prefixes",
-            "Validar prefijos in_/out_/io_ en argumentos",
-            config.get("validations", {}).get("validate_variable_prefixes", True)
-        )
-        
-        self._create_validation_checkbox(
-            validations_frame,
-            "validate_argument_descriptions",
-            "Validar descripciones en argumentos",
-            config.get("validations", {}).get("validate_argument_descriptions", True)
-        )
-        
-        self._create_validation_checkbox(
-            validations_frame,
-            "validate_init_end_pattern",
-            "Validar patrón Init/End en States",
-            config.get("validations", {}).get("validate_init_end_pattern", False)
-        )
-        
-        # ========== SECCIÓN 2: OPCIONES DE SALIDA ==========
+        # ========== SECCIÓN 1: OPCIONES DE SALIDA ==========
         self._create_config_section(
             scrollable_frame,
             "📄 Opciones de Reportes",
@@ -842,13 +809,6 @@ class MainWindow:
                 "max_activities_sequence": self.config_vars.get("max_activities_sequence", tk.IntVar(value=20)).get(),
                 "max_nested_ifs": self.config_vars.get("max_nested_ifs", tk.IntVar(value=3)).get(),
                 "max_commented_code_percent": self.config_vars.get("max_commented_code_percent", tk.IntVar(value=5)).get()
-            }
-            
-            # Actualizar validaciones
-            config["validations"] = {
-                "validate_variable_prefixes": self.config_vars.get("validate_variable_prefixes", tk.BooleanVar(value=True)).get(),
-                "validate_argument_descriptions": self.config_vars.get("validate_argument_descriptions", tk.BooleanVar(value=True)).get(),
-                "validate_init_end_pattern": self.config_vars.get("validate_init_end_pattern", tk.BooleanVar(value=False)).get()
             }
             
             # Actualizar opciones de salida

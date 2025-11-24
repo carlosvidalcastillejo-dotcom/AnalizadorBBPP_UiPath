@@ -86,9 +86,6 @@ DEFAULT_CONFIG = {
         "max_commented_code_percent": 5,  # % máximo de código comentado
     },
     "validations": {
-        "validate_init_end_pattern": False,  # Validar patrón Init/End en States
-        "validate_variable_prefixes": True,  # Validar prefijos in_/out_/io_
-        "validate_argument_descriptions": True,  # Validar descripciones en argumentos
         "detect_unused_variables": False,  # Detectar variables no utilizadas (futuro)
     },
     "output": {

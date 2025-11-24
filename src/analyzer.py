@@ -855,6 +855,11 @@ class BBPPAnalyzer:
     
     def _check_init_end_pattern(self, data: Dict):
         """Verificar que State Machines tengan patrón Init/End"""
+        # Buscar regla en JSON
+        rule = next((r for r in self.rules if r['id'] == 'MODULARIZACION_003'), None)
+        if not rule or not rule.get('enabled'):
+            return
+        
         file_path = data.get('file_path', '')
         workflow_type = data.get('workflow_type', '')
         
@@ -881,18 +886,14 @@ class BBPPAnalyzer:
             if not has_end:
                 missing.append('End/Final')
             
-            # Crear finding manual (no hay regla JSON para esto)
-            finding = Finding(
-                category='estructura',
-                severity='warning',
-                rule_name='Patrón Init/End en State Machine',
-                description=f'State Machine sin patrón Init/End recomendado. Falta: {", ".join(missing)}',
+            # Usar regla del JSON
+            self._add_finding(
+                rule=rule,
                 file_path=file_path,
                 location="State Machine",
                 details={
                     'found_states': [s.get('name', '') for s in states],
-                    'missing_pattern': missing
-                },
-                rule_id='ESTRUCTURA_001'
+                    'missing_pattern': missing,
+                    'suggestion': f'Agregar estados faltantes: {", ".join(missing)}'
+                }
             )
-            self.findings.append(finding)
