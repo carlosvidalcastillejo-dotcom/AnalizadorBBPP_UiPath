@@ -41,6 +41,9 @@ class MetricsDashboard(tk.Frame):
         self.db = None
         self.calculator = None
         
+        # Lista de todos los items del tree para búsqueda
+        self.all_tree_items = []
+        
         self._init_database()
         self._create_widgets()
         self._load_data()
@@ -371,6 +374,9 @@ class MetricsDashboard(tk.Frame):
             if history:
                 self._update_stats(history, selected_project)
             
+            # Guardar todos los items para la búsqueda
+            self.all_tree_items = list(self.tree.get_children())
+            
         except Exception as e:
             messagebox.showerror("Error", f"Error al cargar datos:\n{e}")
 
@@ -384,28 +390,41 @@ class MetricsDashboard(tk.Frame):
         
         # Si no hay texto de búsqueda, mostrar todos los items
         if not search_text:
-            for item in self.tree.get_children():
-                self.tree.reattach(item, '', 'end')
+            # Primero detach todos
+            for item in self.all_tree_items:
+                try:
+                    self.tree.detach(item)
+                except:
+                    pass
+            # Luego reattach todos en orden
+            for item in self.all_tree_items:
+                try:
+                    self.tree.reattach(item, '', 'end')
+                except:
+                    pass
             return
         
         # Filtrar items basándose en el texto de búsqueda
-        all_items = list(self.tree.get_children())
-        
-        for item in all_items:
-            values = self.tree.item(item)['values']
-            # Buscar en fecha (0), proyecto (1), y versión (2)
-            project_name = str(values[1]).lower() if len(values) > 1 else ""
-            date_str = str(values[0]).lower() if len(values) > 0 else ""
-            version_str = str(values[2]).lower() if len(values) > 2 else ""
-            
-            # Si coincide con la búsqueda, mantener visible
-            if (search_text in project_name or 
-                search_text in date_str or 
-                search_text in version_str):
-                self.tree.reattach(item, '', 'end')
-            else:
-                # Ocultar item que no coincide
-                self.tree.detach(item)
+        for item in self.all_tree_items:
+            try:
+                values = self.tree.item(item)['values']
+                # Buscar en fecha (0), proyecto (1), y versión (2)
+                project_name = str(values[1]).lower() if len(values) > 1 else ""
+                date_str = str(values[0]).lower() if len(values) > 0 else ""
+                version_str = str(values[2]).lower() if len(values) > 2 else ""
+                
+                # Si coincide con la búsqueda, mantener visible
+                if (search_text in project_name or 
+                    search_text in date_str or 
+                    search_text in version_str):
+                    # Asegurarse de que esté visible
+                    self.tree.reattach(item, '', 'end')
+                else:
+                    # Ocultar item que no coincide
+                    self.tree.detach(item)
+            except:
+                # Si hay algún error con el item, continuar
+                pass
     
     
     def _update_stats(self, history, project_name):

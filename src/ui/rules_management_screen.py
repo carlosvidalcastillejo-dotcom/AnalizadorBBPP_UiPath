@@ -880,6 +880,72 @@ class RulesManagementScreen:
                 self.rules_manager.update_rule(rule['id'], {'enabled': False})
             self._load_rules()
             messagebox.showinfo("Éxito", "❌ Todas las reglas desactivadas")
+    
+    def _save_company_settings(self):
+        """Guardar configuración de empresa"""
+        try:
+            # Obtener valores de los campos
+            company_name = self.company_name_var.get().strip()
+            company_short_name = self.company_short_name_var.get().strip()
+            
+            # Validar que no estén vacíos
+            if not company_name:
+                messagebox.showwarning("Advertencia", "El nombre de empresa no puede estar vacío")
+                return
+            
+            if not company_short_name:
+                messagebox.showwarning("Advertencia", "El nombre corto no puede estar vacío")
+                return
+            
+            # Guardar en branding_manager
+            success_name = self.branding_manager.set_company_name(company_name)
+            success_short = self.branding_manager.set_company_short_name(company_short_name)
+            
+            if success_name and success_short:
+                messagebox.showinfo(
+                    "✅ Configuración Guardada",
+                    f"La configuración de empresa se ha guardado correctamente:\n\n"
+                    f"Nombre: {company_name}\n"
+                    f"Nombre Corto: {company_short_name}\n\n"
+                    f"El sidebar se actualizará ahora."
+                )
+                
+                # Refrescar sidebar para mostrar cambios inmediatamente
+                try:
+                    # Obtener la ventana raíz (Tk)
+                    root = self.parent.winfo_toplevel()
+                    
+                    # Acceder a MainWindow a través de la referencia guardada en root
+                    if hasattr(root, 'main_window'):
+                        root.main_window.refresh_sidebar()
+                        print("✅ Sidebar refrescado correctamente")
+                    else:
+                        print("⚠️ No se encontró la referencia a MainWindow")
+                        messagebox.showinfo(
+                            "Información",
+                            "Los cambios se aplicarán al reiniciar la aplicación."
+                        )
+                except Exception as e:
+                    print(f"⚠️ No se pudo refrescar el sidebar automáticamente: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    messagebox.showinfo(
+                        "Información",
+                        "Los cambios se aplicarán al reiniciar la aplicación."
+                    )
+            else:
+                messagebox.showerror(
+                    "❌ Error",
+                    "No se pudo guardar la configuración de empresa."
+                )
+        except Exception as e:
+            messagebox.showerror(
+                "❌ Error",
+                f"Error al guardar la configuración:\n{str(e)}"
+            )
+
+
+
 
 
 # Test standalone

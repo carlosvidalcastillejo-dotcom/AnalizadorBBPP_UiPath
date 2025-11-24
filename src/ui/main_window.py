@@ -31,20 +31,23 @@ class MainWindow:
         self.root.geometry(f"{WINDOW_MIN_WIDTH}x{WINDOW_MIN_HEIGHT}")
         self.root.minsize(WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT)
         
+        # Guardar referencia a MainWindow en el root para acceso desde widgets hijos
+        self.root.main_window = self
+        
         self.project_path = None
         
         self._setup_ui()
         
     def _setup_ui(self):
         """Configurar la interfaz de usuario"""
+        # Barra de estado (primero para que quede abajo)
+        self._create_status_bar()
+        
         # Menú lateral
         self._create_sidebar()
         
         # Área principal
         self._create_main_area()
-        
-        # Barra de estado
-        self._create_status_bar()
         
     def _create_sidebar(self):
         """Crear menú lateral"""
@@ -147,35 +150,44 @@ class MainWindow:
             
             # Nombre de empresa (siempre se muestra)
             company_name = branding.get_company_name()
-            company_label = tk.Label(
+            self.company_label = tk.Label(
                 branding_frame,
                 text=company_name,
                 bg=PRIMARY_COLOR,
                 fg="white",
                 font=("Arial", 10, "bold")
             )
-            company_label.pack()
+            self.company_label.pack()
             
         except Exception as e:
             print(f"⚠️ Error al cargar branding: {e}")
             # Fallback: mostrar solo el nombre de empresa por defecto
-            company_label = tk.Label(
+            self.company_label = tk.Label(
                 self.sidebar,
                 text=COMPANY,
                 bg=PRIMARY_COLOR,
                 fg="white",
                 font=("Arial", 10, "bold")
             )
-            company_label.pack(side=tk.BOTTOM, pady=10)
+            self.company_label.pack(side=tk.BOTTOM, pady=10)
     
     def refresh_sidebar(self):
         """Refrescar sidebar para mostrar cambios de branding"""
-        # Destruir sidebar actual
-        if hasattr(self, 'sidebar'):
-            self.sidebar.destroy()
-        
-        # Recrear sidebar
-        self._create_sidebar()
+        try:
+            from src.branding_manager import get_branding_manager
+            branding = get_branding_manager()
+            
+            # Solo actualizar el texto del label de empresa si existe
+            if hasattr(self, 'company_label') and self.company_label.winfo_exists():
+                new_company_name = branding.get_company_name()
+                self.company_label.config(text=new_company_name)
+                print(f"✅ Nombre de empresa actualizado a: {new_company_name}")
+            else:
+                print("⚠️ No se encontró el label de empresa para actualizar")
+        except Exception as e:
+            print(f"⚠️ Error al refrescar sidebar: {e}")
+            import traceback
+            traceback.print_exc()
         
     def _create_menu_button(self, parent, text, command):
         """Crear botón del menú"""
@@ -571,6 +583,91 @@ class MainWindow:
         )
         reset_logo_btn.pack(side=tk.LEFT, padx=5)
         
+        # ========== SECCIÓN 5: CONFIGURACIÓN DE EMPRESA ==========
+        self._create_config_section(
+            scrollable_frame,
+            "🏢 Configuración de Empresa",
+            "Configura el nombre de tu empresa que aparece en la aplicación"
+        )
+        
+        # Frame para configuración de empresa
+        company_frame = tk.Frame(scrollable_frame, bg=BG_COLOR)
+        company_frame.pack(padx=40, pady=10, fill=tk.X)
+        
+        # Importar branding_manager
+        try:
+            from src.branding_manager import get_branding_manager
+            branding = get_branding_manager()
+            
+            # Nombre de Empresa
+            name_row = tk.Frame(company_frame, bg=BG_COLOR)
+            name_row.pack(fill=tk.X, pady=5)
+            
+            tk.Label(
+                name_row,
+                text="Nombre de Empresa:",
+                font=("Arial", 10),
+                bg=BG_COLOR,
+                fg=TEXT_COLOR,
+                width=25,
+                anchor="w"
+            ).pack(side=tk.LEFT, padx=(0, 10))
+            
+            self.company_name_var = tk.StringVar(value=branding.get_company_name())
+            company_name_entry = tk.Entry(
+                name_row,
+                textvariable=self.company_name_var,
+                font=("Arial", 10)
+            )
+            company_name_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+            
+            # Nombre Corto
+            short_name_row = tk.Frame(company_frame, bg=BG_COLOR)
+            short_name_row.pack(fill=tk.X, pady=5)
+            
+            tk.Label(
+                short_name_row,
+                text="Nombre Corto:",
+                font=("Arial", 10),
+                bg=BG_COLOR,
+                fg=TEXT_COLOR,
+                width=25,
+                anchor="w"
+            ).pack(side=tk.LEFT, padx=(0, 10))
+            
+            self.company_short_name_var = tk.StringVar(value=branding.get_company_short_name())
+            short_name_entry = tk.Entry(
+                short_name_row,
+                textvariable=self.company_short_name_var,
+                font=("Arial", 10)
+            )
+            short_name_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+            
+            # Botón Guardar Configuración de Empresa
+            save_company_btn = tk.Button(
+                company_frame,
+                text="💾 Guardar Configuración de Empresa",
+                command=self._save_company_settings,
+                bg=COLOR_SUCCESS,
+                fg="white",
+                font=("Arial", 10, "bold"),
+                relief=tk.FLAT,
+                cursor="hand2",
+                padx=15,
+                pady=8
+            )
+            save_company_btn.pack(pady=(10, 0))
+            
+        except Exception as e:
+            error_label = tk.Label(
+                company_frame,
+                text=f"⚠️ Error al cargar configuración de empresa: {e}",
+                font=("Arial", 9),
+                bg=BG_COLOR,
+                fg="red"
+            )
+            error_label.pack()
+        
         # ========== BOTONES DE ACCIÓN ==========
         buttons_frame = tk.Frame(scrollable_frame, bg=BG_COLOR)
         buttons_frame.pack(pady=30)
@@ -817,6 +914,57 @@ class MainWindow:
                     "❌ Error",
                     "No se pudo restaurar la configuración."
                 )
+        
+    def _save_company_settings(self):
+        """Guardar configuración de empresa"""
+        try:
+            from src.branding_manager import get_branding_manager
+            branding = get_branding_manager()
+            
+            # Obtener valores de los campos
+            company_name = self.company_name_var.get().strip()
+            company_short_name = self.company_short_name_var.get().strip()
+            
+            # Validar que no estén vacíos
+            if not company_name:
+                messagebox.showwarning("Advertencia", "El nombre de empresa no puede estar vacío")
+                return
+            
+            if not company_short_name:
+                messagebox.showwarning("Advertencia", "El nombre corto no puede estar vacío")
+                return
+            
+            # Guardar en branding_manager
+            success_name = branding.set_company_name(company_name)
+            success_short = branding.set_company_short_name(company_short_name)
+            
+            if success_name and success_short:
+                messagebox.showinfo(
+                    "✅ Configuración Guardada",
+                    f"La configuración de empresa se ha guardado correctamente:\n\n"
+                    f"Nombre: {company_name}\n"
+                    f"Nombre Corto: {company_short_name}\n\n"
+                    f"El sidebar se actualizará ahora."
+                )
+                
+                # Refrescar sidebar para mostrar cambios inmediatamente
+                try:
+                    self.refresh_sidebar()
+                    print("✅ Sidebar refrescado correctamente")
+                except Exception as e:
+                    print(f"⚠️ Error al refrescar sidebar: {e}")
+                    import traceback
+                    traceback.print_exc()
+            else:
+                messagebox.showerror(
+                    "❌ Error",
+                    "No se pudo guardar la configuración de empresa."
+                )
+        except Exception as e:
+            messagebox.showerror(
+                "❌ Error",
+                f"Error al guardar la configuración:\n{str(e)}"
+            )
         
     def _show_version_notes(self):
         """Mostrar notas de versión desde CHANGELOG.md"""
