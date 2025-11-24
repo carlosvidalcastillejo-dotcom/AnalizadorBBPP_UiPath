@@ -44,6 +44,9 @@ class MetricsDashboard(tk.Frame):
         # Lista de todos los items del tree para búsqueda
         self.all_tree_items = []
         
+        # Diccionario para almacenar datos completos de análisis por ID
+        self.analysis_data = {}
+        
         self._init_database()
         self._create_widgets()
         self._load_data()
@@ -239,6 +242,9 @@ class MetricsDashboard(tk.Frame):
         
         self.tree.pack(fill=tk.BOTH, expand=True)
         
+        # Bind doble-click para abrir reportes
+        self.tree.bind("<Double-Button-1>", self._on_double_click)
+        
         # Botones
         buttons_frame = tk.Frame(main_container, bg=self.BG_COLOR)
         buttons_frame.pack(fill=tk.X, pady=(20, 0))
@@ -365,9 +371,13 @@ class MetricsDashboard(tk.Frame):
                 warnings = str(analysis.get('medium_findings', 0))
                 info = str(analysis.get('low_findings', 0))
                 
-                self.tree.insert('', 'end', 
+                # Insertar en tree y guardar datos completos
+                item_id = self.tree.insert('', 'end', 
                                values=(date_str, project, version, score, errors, warnings, info),
                                tags=(str(analysis['id']),))
+                
+                # Guardar datos completos del análisis para acceso posterior
+                self.analysis_data[str(analysis['id'])] = analysis
             
             # Actualizar estadísticas
             # Actualizar estadísticas
@@ -425,6 +435,185 @@ class MetricsDashboard(tk.Frame):
             except:
                 # Si hay algún error con el item, continuar
                 pass
+    
+    def _on_double_click(self, event):
+        """Manejar doble-click en un item para abrir reportes"""
+        from tkinter import messagebox, Toplevel, Button, Label
+        
+        # Obtener item seleccionado
+        selection = self.tree.selection()
+        if not selection:
+            return
+        
+        item = selection[0]
+        # Obtener ID del análisis desde los tags
+        tags = self.tree.item(item, 'tags')
+        if not tags:
+            return
+        
+        analysis_id = tags[0]
+        
+        # Obtener datos completos del análisis
+        analysis = self.analysis_data.get(analysis_id)
+        if not analysis:
+            messagebox.showwarning(
+                "Sin Datos",
+                "No se encontraron datos para este análisis."
+            )
+            return
+        
+        # Obtener rutas de reportes
+        html_path = analysis.get('html_report_path')
+        excel_path = analysis.get('excel_report_path')
+        
+        if not html_path and not excel_path:
+            messagebox.showinfo(
+                "Sin Reportes",
+                "No hay reportes disponibles para este análisis."
+            )
+            return
+        
+        # Preguntar qué reporte abrir
+        
+        if html_path and excel_path:
+            # Ambos reportes disponibles - crear diálogo personalizado
+            dialog = Toplevel(self.parent)
+            dialog.title("Abrir Reporte")
+            dialog.geometry("350x180")
+            dialog.resizable(False, False)
+            dialog.transient(self.parent)
+            dialog.grab_set()
+            
+            # Centrar diálogo
+            dialog.update_idletasks()
+            x = (dialog.winfo_screenwidth() // 2) - (350 // 2)
+            y = (dialog.winfo_screenheight() // 2) - (180 // 2)
+            dialog.geometry(f"+{x}+{y}")
+            
+            # Variable para almacenar la elección
+            choice = {'value': None}
+            
+            # Mensaje
+            Label(
+                dialog,
+                text="¿Qué reporte deseas abrir?",
+                font=("Segoe UI", 11, "bold"),
+                pady=20
+            ).pack()
+            
+            # Frame para botones
+            btn_frame = tk.Frame(dialog)
+            btn_frame.pack(pady=10)
+            
+            def choose_html():
+                choice['value'] = 'html'
+                dialog.destroy()
+            
+            def choose_excel():
+                choice['value'] = 'excel'
+                dialog.destroy()
+            
+            def choose_both():
+                choice['value'] = 'both'
+                dialog.destroy()
+            
+            def choose_cancel():
+                choice['value'] = None
+                dialog.destroy()
+            
+            # Botones
+            Button(
+                btn_frame,
+                text="📄 HTML",
+                command=choose_html,
+                bg="#0067B1",
+                fg="white",
+                font=("Segoe UI", 10),
+                width=12,
+                cursor="hand2"
+            ).pack(side=tk.LEFT, padx=5)
+            
+            Button(
+                btn_frame,
+                text="📊 Excel",
+                command=choose_excel,
+                bg="#217346",
+                fg="white",
+                font=("Segoe UI", 10),
+                width=12,
+                cursor="hand2"
+            ).pack(side=tk.LEFT, padx=5)
+            
+            Button(
+                btn_frame,
+                text="📄📊 Ambos",
+                command=choose_both,
+                bg="#7030A0",
+                fg="white",
+                font=("Segoe UI", 10),
+                width=12,
+                cursor="hand2"
+            ).pack(side=tk.LEFT, padx=5)
+            
+            # Botón cancelar
+            Button(
+                dialog,
+                text="Cancelar",
+                command=choose_cancel,
+                font=("Segoe UI", 9),
+                width=15
+            ).pack(pady=10)
+            
+            # Esperar a que se cierre el diálogo
+            dialog.wait_window()
+            
+            # Ejecutar según la elección
+            if choice['value'] == 'html':
+                self._open_file(html_path)
+            elif choice['value'] == 'excel':
+                self._open_file(excel_path)
+            elif choice['value'] == 'both':
+                self._open_file(html_path)
+                self._open_file(excel_path)
+            # Si es None, no hacer nada (cancelado)
+            
+        elif html_path:
+            self._open_file(html_path)
+        elif excel_path:
+            self._open_file(excel_path)
+    
+    def _open_file(self, file_path):
+        """Abrir archivo con la aplicación predeterminada del sistema"""
+        import os
+        import platform
+        from pathlib import Path
+        
+        if not file_path:
+            return
+        
+        path = Path(file_path)
+        if not path.exists():
+            messagebox.showerror(
+                "Archivo No Encontrado",
+                f"El archivo no existe:\n{file_path}"
+            )
+            return
+        
+        try:
+            # Abrir con aplicación predeterminada según el sistema operativo
+            if platform.system() == 'Windows':
+                os.startfile(str(path))
+            elif platform.system() == 'Darwin':  # macOS
+                os.system(f'open "{path}"')
+            else:  # Linux
+                os.system(f'xdg-open "{path}"')
+            
+            print(f"✅ Abriendo reporte: {path}")
+        except Exception as e:
+            messagebox.showerror(
+                "Error al Abrir Archivo",
+                f"No se pudo abrir el archivo:\n{str(e)}"
+            )
     
     
     def _update_stats(self, history, project_name):

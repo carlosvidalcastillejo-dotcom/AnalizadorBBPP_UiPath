@@ -837,12 +837,37 @@ class MainWindow:
             
     def _reset_logo(self):
         """Restaurar logo por defecto"""
-        self.logo_path_label.config(text="Logo actual: Logo por defecto")
-        self.custom_logo_path = None
-        messagebox.showinfo(
-            "Logo Restaurado",
-            "Logo restaurado al valor por defecto.\nNo olvides guardar la configuración."
-        )
+        try:
+            # Limpiar logo del branding_manager
+            from src.branding_manager import get_branding_manager
+            branding = get_branding_manager()
+            branding.set_logo_path(None)
+            
+            # Limpiar variable temporal
+            self.logo_path_label.config(text="Logo actual: Logo por defecto")
+            self.custom_logo_path = None
+            
+            # Refrescar sidebar para quitar el logo
+            try:
+                if hasattr(self, 'sidebar'):
+                    self.sidebar.destroy()
+                self._create_sidebar()
+                print("✅ Sidebar recreado sin logo")
+            except Exception as e:
+                print(f"⚠️ Error al refrescar sidebar: {e}")
+            
+            messagebox.showinfo(
+                "✅ Logo Restaurado",
+                "Logo restaurado al valor por defecto.\n\nEl logo ha sido eliminado del sidebar."
+            )
+        except Exception as e:
+            messagebox.showerror(
+                "❌ Error",
+                f"Error al restaurar logo:\n{str(e)}"
+            )
+            import traceback
+            traceback.print_exc()
+        
         
     def _save_configuration(self):
         """Guardar toda la configuración"""
@@ -872,16 +897,31 @@ class MainWindow:
                 "include_charts": self.config_vars.get("include_charts", tk.BooleanVar(value=True)).get()
             }
             
-            # Actualizar logo personalizado si se cambió
-            if hasattr(self, 'custom_logo_path'):
-                config["custom_logo"] = self.custom_logo_path
+            # Guardar logo en branding_manager si se cambió
+            if hasattr(self, 'custom_logo_path') and self.custom_logo_path:
+                from src.branding_manager import get_branding_manager
+                branding = get_branding_manager()
+                from pathlib import Path
+                branding.set_logo_path(Path(self.custom_logo_path))
+                print(f"✅ Logo guardado en branding: {self.custom_logo_path}")
             
-            # Guardar
+            # Guardar user config
             if save_user_config(config):
                 messagebox.showinfo(
                     "✅ Configuración Guardada",
-                    "La configuración se ha guardado correctamente."
+                    "La configuración se ha guardado correctamente.\n\nReinicia la aplicación para ver el logo."
                 )
+                
+                # Refrescar sidebar si hay logo nuevo
+                if hasattr(self, 'custom_logo_path') and self.custom_logo_path:
+                    try:
+                        # Destruir y recrear sidebar para cargar nuevo logo
+                        if hasattr(self, 'sidebar'):
+                            self.sidebar.destroy()
+                        self._create_sidebar()
+                        print("✅ Sidebar recreado con nuevo logo")
+                    except Exception as e:
+                        print(f"⚠️ Error al refrescar sidebar: {e}")
             else:
                 messagebox.showerror(
                     "❌ Error",
@@ -893,6 +933,8 @@ class MainWindow:
                 "❌ Error",
                 f"Error al guardar la configuración:\n{str(e)}"
             )
+            import traceback
+            traceback.print_exc()
             
     def _reset_configuration(self):
         """Restaurar configuración a valores por defecto"""
