@@ -398,45 +398,7 @@ class MainWindow:
         # Variables para los controles
         self.config_vars = {}
         
-        # ========== SECCIÓN 1: UMBRALES ==========
-        self._create_config_section(
-            scrollable_frame,
-            "📊 Umbrales de Análisis",
-            "Configura los límites para las reglas de análisis"
-        )
-        
-        # Frame para umbrales
-        thresholds_frame = tk.Frame(scrollable_frame, bg=BG_COLOR)
-        thresholds_frame.pack(padx=40, pady=10, fill=tk.X)
-        
-        # Umbral: Actividades máximas por Sequence
-        self._create_threshold_input(
-            thresholds_frame,
-            "max_activities_sequence",
-            "Máximo de actividades por Sequence:",
-            config.get("thresholds", {}).get("max_activities_sequence", 20),
-            "Número máximo de actividades permitidas en un Sequence"
-        )
-        
-        # Umbral: IFs anidados
-        self._create_threshold_input(
-            thresholds_frame,
-            "max_nested_ifs",
-            "Máximo de IFs anidados:",
-            config.get("thresholds", {}).get("max_nested_ifs", 3),
-            "Nivel máximo de anidamiento de IFs permitido"
-        )
-        
-        # Umbral: Código comentado
-        self._create_threshold_input(
-            thresholds_frame,
-            "max_commented_code_percent",
-            "Máximo % de código comentado:",
-            config.get("thresholds", {}).get("max_commented_code_percent", 5),
-            "Porcentaje máximo de código comentado permitido"
-        )
-        
-        # ========== SECCIÓN 2: VALIDACIONES ==========
+        # ========== SECCIÓN 1: VALIDACIONES ==========
         self._create_config_section(
             scrollable_frame,
             "✅ Opciones de Validación",
@@ -469,7 +431,7 @@ class MainWindow:
             config.get("validations", {}).get("validate_init_end_pattern", False)
         )
         
-        # ========== SECCIÓN 3: OPCIONES DE SALIDA ==========
+        # ========== SECCIÓN 2: OPCIONES DE SALIDA ==========
         self._create_config_section(
             scrollable_frame,
             "📄 Opciones de Reportes",
@@ -528,7 +490,7 @@ class MainWindow:
             config.get("output", {}).get("include_charts", True)
         )
         
-        # ========== SECCIÓN 4: LOGO PERSONALIZADO ==========
+        # ========== SECCIÓN 3: LOGO PERSONALIZADO ==========
         self._create_config_section(
             scrollable_frame,
             "🎨 Logo Personalizado",
@@ -583,7 +545,7 @@ class MainWindow:
         )
         reset_logo_btn.pack(side=tk.LEFT, padx=5)
         
-        # ========== SECCIÓN 5: CONFIGURACIÓN DE EMPRESA ==========
+        # ========== SECCIÓN 4: CONFIGURACIÓN DE EMPRESA ==========
         self._create_config_section(
             scrollable_frame,
             "🏢 Configuración de Empresa",
