@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.0] - 2025-11-25
+
+**Autor:** Carlos Vidal Castillejo  
+**Tipo de cambio:** Minor  
+
+Validaciones movidas a Gestión BBPP. Mejorada UI de reglas con columna Activa y botones funcionales.
+
 ## [0.10.4] - 2025-11-23
 
 **Autor:** Carlos Vidal Castillejo  

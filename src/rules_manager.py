@@ -272,6 +272,38 @@ class RulesManager:
             return {}
         
         return rule.get('parameters', {})
+    
+    def get_set_dependencies(self, set_name: str) -> Dict[str, str]:
+        """
+        Obtener dependencias configuradas para un conjunto
+        
+        Args:
+            set_name: Nombre del conjunto (ej: 'NTTData')
+            
+        Returns:
+            Diccionario con dependencias {paquete: version}
+        """
+        if set_name not in self.sets:
+            return {}
+        
+        return self.sets[set_name].get('dependencies', {})
+
+    def set_set_dependencies(self, set_name: str, dependencies: Dict[str, str]) -> bool:
+        """
+        Establecer dependencias para un conjunto
+        
+        Args:
+            set_name: Nombre del conjunto
+            dependencies: Diccionario de dependencias
+            
+        Returns:
+            True si se actualizó correctamente
+        """
+        if set_name not in self.sets:
+            return False
+            
+        self.sets[set_name]['dependencies'] = dependencies
+        return True
 
 
 # Función helper para obtener instancia global

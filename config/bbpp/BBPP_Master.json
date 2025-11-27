@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "name": "Configuración Maestra de Reglas BBPP",
+    "name": "Reglas Base BBPP",
     "description": "Catálogo unificado de todas las reglas de buenas prácticas",
     "version": "2.1.0",
     "author": "Carlos Vidal Castillejo",
@@ -13,12 +13,20 @@
     "UiPath": {
       "name": "Buenas Prácticas UiPath",
       "description": "Reglas oficiales de UiPath",
-      "enabled": true
+      "enabled": true,
+      "dependencies": {
+        "UiPath.Excel.Activities": "4.4.2",
+        "UiPath.System.Activities": "24.10.2",
+        "UiPath.Testing.Activities": "24.10.4",
+        "UiPath.UIAutomation.Activities": "25.12.10",
+        "UiPath.TestingApp.Activities": "25.12.10"
+      }
     },
     "NTTData": {
       "name": "Buenas Prácticas NTT Data",
       "description": "Estándares personalizados de NTT Data",
-      "enabled": true
+      "enabled": true,
+      "dependencies": {}
     }
   },
   "rules": [

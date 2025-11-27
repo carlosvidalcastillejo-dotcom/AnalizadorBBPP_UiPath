@@ -47,26 +47,25 @@ class Finding:
 class BBPPAnalyzer:
     """Analizador de Buenas Prácticas para UiPath - v0.3 con RulesManager"""
     
-    def __init__(self, config: Dict = None, rules: List[Dict] = None):
+    def __init__(self, config: Dict = None, rules: List[Dict] = None, active_sets: List[str] = None):
         """
         Inicializar analizador con configuración
         
         Args:
             config: Diccionario con configuración de umbrales y validaciones
             rules: Lista de reglas a aplicar (si None, carga desde RulesManager)
+            active_sets: Lista de conjuntos activos (ej: ['UiPath', 'NTTData'])
         """
         # Importar rules_manager
         from src.rules_manager import get_rules_manager
         
         self.rules_manager = get_rules_manager()
         self.config = config or {}
+        self.active_sets = active_sets or ['UiPath', 'NTTData']  # Default fallback
         
         # Cargar reglas activas desde BBPP_Master.json
         if rules is None:
-            # Obtener conjuntos activos (por ahora UiPath y NTTData)
-            # TODO: Obtener de configuración de usuario
-            active_sets = ['UiPath', 'NTTData']
-            self.rules = self.rules_manager.get_active_rules(active_sets)
+            self.rules = self.rules_manager.get_active_rules(self.active_sets)
         else:
             self.rules = rules
         
@@ -94,6 +93,22 @@ class BBPPAnalyzer:
         
         # Aplicar reglas dinámicamente según su tipo
         self._apply_rules(parsed_xaml)
+        
+        return self.findings
+    
+    def analyze_project(self, project_info: Dict) -> List[Finding]:
+        """
+        Analizar dependencias y configuración del proyecto
+        
+        Args:
+            project_info: Información extraída del project.json
+            
+        Returns:
+            Lista de hallazgos
+        """
+        # Usar conjuntos activos del constructor
+        # Verificar dependencias
+        self._check_dependencies(project_info, self.active_sets)
         
         return self.findings
     
@@ -798,6 +813,145 @@ class BBPPAnalyzer:
         if not rule or not rule.get('enabled'):
             return
         
+    def _check_dependencies(self, project_info: Dict, active_sets: List[str]):
+        """
+        Verificar dependencias del proyecto contra los conjuntos activos
+        y enriquecer la información del proyecto con el estado de cada una.
+        
+        Args:
+            project_info: Información del proyecto (se modifica in-place)
+            active_sets: Lista de conjuntos activos
+        """
+        # Crear una regla virtual para dependencias si no existe
+        rule_id = "DEPENDENCIAS_001"
+        rule = next((r for r in self.rules if r['id'] == rule_id), None)
+        
+        if not rule:
+            # Crear regla temporal si no está en BBPP_Master.json
+            rule = {
+                'id': rule_id,
+                'name': 'Dependencias Desactualizadas',
+                'description': 'Las dependencias deben cumplir con la versión mínima requerida',
+                'category': 'dependencias',
+                'severity': 'error',
+                'penalty': 10,
+                'enabled': True
+            }
+        
+        # 1. Obtener dependencias del proyecto
+        # Estructura actual: [{'name': 'UiPath.Excel.Activities', 'version': '2.12.3'}, ...]
+        current_deps_list = project_info.get('dependencies', [])
+        project_deps_map = {d['name']: d['version'] for d in current_deps_list}
+        
+        # 2. Obtener dependencias requeridas (BBPP)
+        required_deps_map = {}
+        for set_name in active_sets:
+            deps = self.rules_manager.get_set_dependencies(set_name)
+            for pkg, ver in deps.items():
+                # Si hay conflicto entre sets, nos quedamos con la versión mayor (simplificación)
+                if pkg in required_deps_map:
+                    if self._compare_versions(ver, required_deps_map[pkg]) > 0:
+                        required_deps_map[pkg] = ver
+                else:
+                    required_deps_map[pkg] = ver
+        
+        # 3. Construir lista unificada y comparada
+        enriched_dependencies = []
+        all_packages = set(project_deps_map.keys()) | set(required_deps_map.keys())
+        
+        for pkg in sorted(all_packages):
+            installed_ver = project_deps_map.get(pkg)
+            required_ver = required_deps_map.get(pkg)
+            
+            status = 'unknown'
+            status_label = 'Desconocido'
+            
+            if installed_ver and not required_ver:
+                # Caso: Dependencia Adicional (está en proyecto, no en BBPP)
+                status = 'additional'
+                status_label = 'N/A: Dependencia Adicional'
+                
+            elif not installed_ver and required_ver:
+                # Caso: No instalada (está en BBPP, no en proyecto)
+                status = 'missing'
+                status_label = 'N/A: Dependencia no instalada'
+                
+                # Generar hallazgo (Error)
+                self._add_finding(
+                    rule=rule,
+                    file_path="project.json",
+                    location=f"Dependencia: {pkg}",
+                    details={
+                        'package': pkg,
+                        'required_version': required_ver,
+                        'current_version': 'No instalado',
+                        'issue': 'Paquete requerido faltante'
+                    }
+                )
+                
+            elif installed_ver and required_ver:
+                # Caso: Comparar versiones
+                comparison = self._compare_versions(installed_ver, required_ver)
+                
+                if comparison < 0:
+                    status = 'outdated'
+                    status_label = 'Desactualizada'
+                    
+                    # Generar hallazgo (Error)
+                    self._add_finding(
+                        rule=rule,
+                        file_path="project.json",
+                        location=f"Dependencia: {pkg}",
+                        details={
+                            'package': pkg,
+                            'required_version': required_ver,
+                            'current_version': installed_ver,
+                            'issue': 'Versión desactualizada'
+                        }
+                    )
+                else:
+                    status = 'ok'
+                    status_label = 'Actualizada'
+            
+            enriched_dependencies.append({
+                'name': pkg,
+                'installed_version': installed_ver,
+                'required_version': required_ver,
+                'status': status,
+                'status_label': status_label
+            })
+            
+        # 4. Actualizar project_info con la lista enriquecida
+        project_info['dependencies'] = enriched_dependencies
+
+    def _compare_versions(self, v1: str, v2: str) -> int:
+        """
+        Comparar dos versiones semánticas (v1 vs v2)
+        
+        Returns:
+            1 si v1 > v2
+            0 si v1 == v2
+            -1 si v1 < v2
+        """
+        def parse_version(v):
+            # Eliminar caracteres no numéricos excepto puntos
+            v = re.sub(r'[^\d.]', '', v)
+            return [int(x) for x in v.split('.') if x.isdigit()]
+            
+        parts1 = parse_version(v1)
+        parts2 = parse_version(v2)
+        
+        # Igualar longitud con ceros
+        max_len = max(len(parts1), len(parts2))
+        parts1 += [0] * (max_len - len(parts1))
+        parts2 += [0] * (max_len - len(parts2))
+        
+        if parts1 > parts2:
+            return 1
+        elif parts1 < parts2:
+            return -1
+        else:
+            return 0
         file_path = data.get('file_path', '')
         
         # Solo aplicar a workflows principales

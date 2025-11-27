@@ -301,6 +301,20 @@ class HTMLReportGenerator:
             color: #28a745;
             font-size: 18px;
         }
+        
+        .dep-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            display: inline-block;
+        }
+        
+        .dep-ok { background: #d4edda; color: #155724; }
+        .dep-outdated { background: #f8d7da; color: #721c24; }
+        .dep-missing { background: #fff3cd; color: #856404; }
+        .dep-additional { background: #fff3cd; color: #856404; }
+        .dep-unknown { background: #fff3cd; color: #856404; }
         """
     
     def _build_header(self, project_info: Dict) -> str:
@@ -321,6 +335,24 @@ class HTMLReportGenerator:
     def _build_dependencies(self, project_info: Dict) -> str:
         """Construir sección de dependencias"""
         dependencies = project_info.get('dependencies', [])
+        error = project_info.get('error_reading_project_json')
+        
+        if error:
+            return f"""
+            <div class="section">
+                <h2>📦 Dependencias del Proyecto</h2>
+                <div class="finding-item finding-error">
+                    <div class="finding-header">
+                        <div class="finding-title">Error al leer project.json</div>
+                        <span class="severity-badge badge-error">ERROR</span>
+                    </div>
+                    <div class="finding-details">
+                        No se pudo leer el archivo de configuración del proyecto.<br>
+                        Detalle: {html.escape(error)}
+                    </div>
+                </div>
+            </div>
+            """
         
         if not dependencies:
             return ""
@@ -331,18 +363,32 @@ class HTMLReportGenerator:
             <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
                 <thead>
                     <tr style="background: #f8f9fa; border-bottom: 2px solid #0067B1;">
-                        <th style="padding: 12px; text-align: left; width: 60%;">Paquete</th>
-                        <th style="padding: 12px; text-align: left; width: 40%;">Versión Instalada</th>
+                        <th style="padding: 12px; text-align: left; width: 35%;">Paquete</th>
+                        <th style="padding: 12px; text-align: left; width: 20%;">Versión Instalada</th>
+                        <th style="padding: 12px; text-align: left; width: 20%;">Versión Requerida</th>
+                        <th style="padding: 12px; text-align: left; width: 25%;">Estado</th>
                     </tr>
                 </thead>
                 <tbody>
         """
         
         for dep in sorted(dependencies, key=lambda x: x['name']):
+            status = dep.get('status', 'unknown')
+            status_label = dep.get('status_label', 'Desconocido')
+            
+            badge_class = f"dep-{status}"
+            
+            installed = dep.get('installed_version') or '-'
+            required = dep.get('required_version') or '-'
+            
             deps_html += f"""
                 <tr>
                     <td style="padding: 10px; border-bottom: 1px solid #ddd;">{html.escape(dep['name'])}</td>
-                    <td style="padding: 10px; border-bottom: 1px solid #ddd; font-family: monospace;">{html.escape(dep['version'])}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd; font-family: monospace;">{html.escape(installed)}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd; font-family: monospace;">{html.escape(required)}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">
+                        <span class="dep-badge {badge_class}">{html.escape(status_label)}</span>
+                    </td>
                 </tr>
             """
         
@@ -350,7 +396,7 @@ class HTMLReportGenerator:
                 </tbody>
             </table>
             <p style="margin-top: 15px; color: #666; font-size: 14px;">
-                Total de paquetes instalados: {len(dependencies)}
+                Total de paquetes: {len(dependencies)}
             </p>
         </div>
         """
@@ -465,6 +511,11 @@ class HTMLReportGenerator:
         for finding in findings:
             severity = finding.get('severity', 'info')
             category = finding.get('category', 'unknown')
+            
+            # Omitir hallazgos de dependencias (ya se muestran en la tabla superior)
+            if category == 'dependencias':
+                continue
+                
             description = finding.get('description', '')
             file_path = Path(finding.get('file_path', '')).name
             location = finding.get('location', '')

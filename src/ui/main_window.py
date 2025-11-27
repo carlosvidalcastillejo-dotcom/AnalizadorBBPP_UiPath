@@ -302,7 +302,63 @@ class MainWindow:
             pady=15,
             padx=40
         )
-        analyze_btn.pack(pady=30)
+        analyze_btn.pack(pady=20)
+        
+        # Frame para selección de BBPP (NUEVO)
+        bbpp_frame = tk.LabelFrame(
+            self.main_area,
+            text="Reglas BBPP a Aplicar",
+            font=("Arial", 12, "bold"),
+            bg=BG_COLOR,
+            padx=20,
+            pady=10
+        )
+        bbpp_frame.pack(padx=20, pady=5, fill=tk.X)
+        
+        # Cargar conjuntos disponibles
+        from src.config import get_available_bbpp_sets, load_user_config
+        available_sets = get_available_bbpp_sets()
+        user_config = load_user_config()
+        active_sets_config = user_config.get('active_bbpp_sets', ['UiPath'])
+        
+        self.bbpp_vars = {}
+        
+        if not available_sets:
+            tk.Label(bbpp_frame, text="No se encontraron reglas BBPP", bg=BG_COLOR, fg="red").pack()
+        else:
+            # Grid para checkboxes
+            grid_frame = tk.Frame(bbpp_frame, bg=BG_COLOR)
+            grid_frame.pack(fill=tk.X)
+            
+            col = 0
+            row = 0
+            for bbpp_set in available_sets:
+                name = bbpp_set['name']
+                filename = bbpp_set['filename']
+                
+                # Extraer el nombre del set del filename (BBPP_UiPath.json -> UiPath)
+                set_name = filename.replace('BBPP_', '').replace('.json', '')
+                
+                # Estado inicial basado en config
+                is_active = set_name in active_sets_config or filename in active_sets_config
+                
+                var = tk.BooleanVar(value=is_active)
+                self.bbpp_vars[set_name] = var  # Usar set_name en lugar de filename
+                
+                cb = tk.Checkbutton(
+                    grid_frame,
+                    text=f"{name} (v{bbpp_set['version']})",
+                    variable=var,
+                    bg=BG_COLOR,
+                    font=("Arial", 10),
+                    cursor="hand2"
+                )
+                cb.grid(row=row, column=col, sticky="w", padx=10, pady=5)
+                
+                col += 1
+                if col > 2:  # 3 columnas
+                    col = 0
+                    row += 1
         
         # Frame para botones de reportes
         reports_frame = tk.Frame(self.main_area, bg=BG_COLOR)
@@ -1046,9 +1102,20 @@ class MainWindow:
         # Función para ejecutar análisis en thread separado
         def run_analysis():
             try:
-                # Cargar configuración del usuario (no DEFAULT_CONFIG)
+                # Cargar configuración del usuario
                 user_config = load_user_config()
-                scanner = ProjectScanner(self.project_path, user_config)
+                
+                # Obtener sets seleccionados de la UI
+                active_sets = [
+                    set_name for set_name, var in self.bbpp_vars.items()
+                    if var.get()
+                ]
+                
+                # Si no hay ninguno seleccionado, usar UiPath por defecto o advertir
+                if not active_sets:
+                    active_sets = ['UiPath']
+                
+                scanner = ProjectScanner(self.project_path, user_config, active_sets=active_sets)
                 results = scanner.scan(progress_callback)
                 
                 # Al terminar, actualizar UI en el thread principal
@@ -1301,32 +1368,7 @@ class MainWindow:
             )
             error_label.pack(fill=tk.BOTH, expand=True)
     
-    def _show_bbpp_management_screen(self):
-        """Mostrar pantalla de gestión de reglas BBPP"""
-        self._clear_main_area()
-        
-        # Importar y crear pantalla de gestión de reglas
-        try:
-            from src.ui.rules_management_screen import RulesManagementScreen
-            RulesManagementScreen(self.main_area)
-        except Exception as e:
-            # Si falla, mostrar mensaje de error
-            import traceback
-            error_frame = tk.Frame(self.main_area, bg=BG_COLOR)
-            error_frame.pack(fill=tk.BOTH, expand=True)
-            
-            error_text = f"❌ Error al cargar Gestión de Reglas:\n\n{str(e)}\n\n{traceback.format_exc()}"
-            error_label = tk.Label(
-                error_frame,
-                text=error_text,
-                font=("Arial", 10),
-                bg=BG_COLOR,
-                fg="red",
-                justify=tk.LEFT,
-                padx=20,
-                pady=20
-            )
-            error_label.pack(fill=tk.BOTH, expand=True)
+
     
     def _create_bbpp_set_card(self, parent, set_name, set_info, rules_mgr):
         """Crear tarjeta para un conjunto de BBPP"""

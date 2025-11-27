@@ -26,7 +26,7 @@ class ProjectScanner:
         """
         self.project_path = Path(project_path)
         self.config = config or DEFAULT_CONFIG
-        self.active_sets = active_sets
+        self.active_sets = active_sets if active_sets is not None else ['UiPath', 'NTTData']
         self.xaml_files = []
         self.parsed_files = []
         self.all_findings = []
@@ -66,7 +66,7 @@ class ProjectScanner:
             rm = get_rules_manager()
             rules = rm.get_active_rules(self.active_sets)
             
-        analyzer = BBPPAnalyzer(self.config, rules=rules)
+        analyzer = BBPPAnalyzer(self.config, rules=rules, active_sets=self.active_sets)
         total_files = len(self.xaml_files)
         
         for idx, xaml_file in enumerate(self.xaml_files):
@@ -85,6 +85,10 @@ class ProjectScanner:
                 # Analizar BBPP
                 findings = analyzer.analyze(parsed_data)
                 self.all_findings.extend(findings)
+        
+        # 3.5 Analizar dependencias y proyecto global
+        project_findings = analyzer.analyze_project(self.project_info)
+        self.all_findings.extend(project_findings)
         
         # 4. Calcular estadísticas
         stats = self._calculate_statistics()
@@ -200,9 +204,11 @@ class ProjectScanner:
                     # Extraer dependencias (solo información, sin juzgar)
                     dependencies = data.get('dependencies', {})
                     for package_name, version in dependencies.items():
+                        # Limpiar versión: UiPath usa formato "[2.12.3]"
+                        clean_version = version.strip('[]') if isinstance(version, str) else version
                         package_info = {
                             'name': package_name,
-                            'version': version
+                            'version': clean_version
                         }
                         info['dependencies'].append(package_info)
                     
@@ -425,11 +431,19 @@ class ProjectScanner:
         # Información de dependencias
         dependencies = self.project_info.get('dependencies', [])
         if dependencies:
-            summary += f"\n📦 DEPENDENCIAS ({len(dependencies)} paquetes instalados):\n"
+            summary += f"\n📦 DEPENDENCIAS ({len(dependencies)} paquetes):\n"
             
             # Mostrar primeros 10 paquetes
             for pkg in dependencies[:10]:
-                summary += f"   • {pkg['name']}: {pkg['version']}\n"
+                name = pkg.get('name', 'Unknown')
+                # Soporte para formato antiguo y nuevo
+                version = pkg.get('installed_version') or pkg.get('version') or 'No instalada'
+                status = pkg.get('status_label', '')
+                
+                if status:
+                    summary += f"   • {name}: {version} ({status})\n"
+                else:
+                    summary += f"   • {name}: {version}\n"
             
             if len(dependencies) > 10:
                 summary += f"   ... y {len(dependencies) - 10} paquetes más\n"

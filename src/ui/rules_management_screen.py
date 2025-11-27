@@ -13,6 +13,9 @@ current_dir = Path(__file__).parent.parent.parent
 if str(current_dir) not in sys.path:
     sys.path.insert(0, str(current_dir))
 
+import json
+
+
 try:
     from src.rules_manager import get_rules_manager
     from src.config import (
@@ -137,6 +140,46 @@ class RulesManagementScreen:
         )
         disable_all_btn.pack(side=tk.LEFT, padx=5)
         
+        # Frame de Gestión de Conjuntos
+        sets_mgmt_frame = tk.LabelFrame(
+            main_frame,
+            text="Gestión de Conjuntos y Dependencias",
+            font=("Arial", 10, "bold"),
+            bg=BG_COLOR,
+            padx=10,
+            pady=10
+        )
+        sets_mgmt_frame.pack(fill=tk.X, padx=20, pady=10)
+        
+        # Obtener conjuntos disponibles
+        sets_info = self.rules_manager.get_sets_info()
+        
+        for set_name, info in sets_info.items():
+            set_frame = tk.Frame(sets_mgmt_frame, bg=BG_COLOR)
+            set_frame.pack(fill=tk.X, pady=5)
+            
+            # Nombre del conjunto
+            tk.Label(
+                set_frame,
+                text=f"🔹 {info.get('name', set_name)}",
+                font=("Arial", 10, "bold"),
+                bg=BG_COLOR,
+                width=30,
+                anchor="w"
+            ).pack(side=tk.LEFT)
+            
+            # Botón Dependencias
+            tk.Button(
+                set_frame,
+                text="📦 Dependencias",
+                font=("Arial", 9),
+                bg="#E3F2FD",
+                fg=PRIMARY_COLOR,
+                relief=tk.FLAT,
+                cursor="hand2",
+                command=lambda s=set_name: self._show_dependency_dialog(s)
+            ).pack(side=tk.LEFT, padx=10)
+
         # Frame para tabla y panel de detalles
         content_frame = tk.Frame(main_frame, bg=BG_COLOR)
         content_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
@@ -730,6 +773,121 @@ class RulesManagementScreen:
 
 
 
+
+
+
+    def _show_dependency_dialog(self, set_name):
+        """Mostrar diálogo para editar dependencias de un conjunto"""
+        current_deps = self.rules_manager.get_set_dependencies(set_name)
+        
+        # Crear ventana modal
+        dialog = tk.Toplevel(self.parent)
+        dialog.title(f"Dependencias: {set_name}")
+        dialog.geometry("600x500")
+        dialog.transient(self.parent)
+        dialog.grab_set()
+        
+        # Centrar ventana
+        dialog.update_idletasks()
+        x = (dialog.winfo_screenwidth() // 2) - (600 // 2)
+        y = (dialog.winfo_screenheight() // 2) - (500 // 2)
+        dialog.geometry(f"600x500+{x}+{y}")
+        
+        # Contenido
+        main_frame = tk.Frame(dialog, bg="white", padx=20, pady=20)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        tk.Label(
+            main_frame,
+            text=f"Configuración de Dependencias para {set_name}",
+            font=("Arial", 12, "bold"),
+            bg="white",
+            fg=PRIMARY_COLOR
+        ).pack(anchor="w", pady=(0, 10))
+        
+        tk.Label(
+            main_frame,
+            text="Pega aquí el bloque 'dependencies' del project.json:",
+            font=("Arial", 10),
+            bg="white"
+        ).pack(anchor="w", pady=(0, 5))
+        
+        # Área de texto
+        text_area = tk.Text(
+            main_frame,
+            font=("Consolas", 10),
+            height=15,
+            relief=tk.SUNKEN
+        )
+        text_area.pack(fill=tk.BOTH, expand=True, pady=5)
+        
+        # Cargar valor actual formateado
+        if current_deps:
+            text_area.insert("1.0", json.dumps(current_deps, indent=4))
+        else:
+            text_area.insert("1.0", "{\n    \"UiPath.System.Activities\": \"22.10.3\",\n    \"UiPath.Excel.Activities\": \"2.12.3\"\n}")
+            
+        # Botones
+        buttons_frame = tk.Frame(main_frame, bg="white")
+        buttons_frame.pack(fill=tk.X, pady=10)
+        
+        def validate_and_save():
+            content = text_area.get("1.0", tk.END).strip()
+            if not content:
+                messagebox.showwarning("Advertencia", "El contenido no puede estar vacío", parent=dialog)
+                return
+                
+            try:
+                deps = json.loads(content)
+                if not isinstance(deps, dict):
+                    raise ValueError("El JSON debe ser un objeto (diccionario)")
+                
+                # Guardar
+                if self.rules_manager.set_set_dependencies(set_name, deps):
+                    self.rules_manager.save_rules()
+                    messagebox.showinfo("Éxito", "✅ Dependencias guardadas correctamente", parent=dialog)
+                    dialog.destroy()
+                else:
+                    messagebox.showerror("Error", "No se pudo guardar la configuración", parent=dialog)
+                    
+            except json.JSONDecodeError as e:
+                messagebox.showerror("JSON Inválido", f"Error de sintaxis JSON:\n{e}", parent=dialog)
+            except Exception as e:
+                messagebox.showerror("Error", f"Error al procesar:\n{e}", parent=dialog)
+        
+        tk.Button(
+            buttons_frame,
+            text="✅ Guardar",
+            bg=COLOR_SUCCESS,
+            fg="white",
+            font=("Arial", 10, "bold"),
+            command=validate_and_save
+        ).pack(side=tk.RIGHT, padx=5)
+        
+        tk.Button(
+            buttons_frame,
+            text="❌ Cancelar",
+            bg="#DC3545",
+            fg="white",
+            font=("Arial", 10),
+            command=dialog.destroy
+        ).pack(side=tk.RIGHT, padx=5)
+        
+        tk.Button(
+            buttons_frame,
+            text="🔍 Validar JSON",
+            bg=SECONDARY_COLOR,
+            fg="white",
+            font=("Arial", 10),
+            command=lambda: self._validate_json(text_area.get("1.0", tk.END), dialog)
+        ).pack(side=tk.LEFT, padx=5)
+
+    def _validate_json(self, content, parent):
+        try:
+            json.loads(content)
+            messagebox.showinfo("Validación", "✅ JSON Válido", parent=parent)
+        except Exception as e:
+            messagebox.showerror("Validación", f"❌ JSON Inválido:\n{e}", parent=parent)
 
 
 # Test standalone
