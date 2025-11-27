@@ -1225,45 +1225,171 @@ class MainWindow:
         )
     
     def _generate_report(self):
-        """Generar reporte HTML"""
+        """Generar reporte HTML con selección de tipo"""
         if not self.last_results:
             messagebox.showwarning(
                 "Advertencia",
                 "No hay resultados para generar reporte.\nPor favor, analiza un proyecto primero."
             )
             return
-        
+
+        # Mostrar diálogo de selección de tipo de reporte
+        self._show_report_type_dialog()
+
+    def _show_report_type_dialog(self):
+        """Mostrar diálogo para seleccionar tipo de reporte"""
+        # Crear ventana modal
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Seleccionar Tipo de Reporte HTML")
+        dialog.geometry("500x350")
+        dialog.transient(self.root)
+        dialog.grab_set()
+
+        # Centrar ventana
+        dialog.update_idletasks()
+        x = (dialog.winfo_screenwidth() // 2) - (500 // 2)
+        y = (dialog.winfo_screenheight() // 2) - (350 // 2)
+        dialog.geometry(f"500x350+{x}+{y}")
+
+        # Frame principal
+        main_frame = tk.Frame(dialog, bg="white", padx=30, pady=20)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        # Título
+        tk.Label(
+            main_frame,
+            text="Selecciona el tipo de reporte HTML",
+            font=("Arial", 14, "bold"),
+            bg="white",
+            fg=PRIMARY_COLOR
+        ).pack(pady=(0, 20))
+
+        # Variable para almacenar selección
+        report_type = tk.StringVar(value="detallado")
+
+        # Opción 1: Detallado
+        frame_detallado = tk.Frame(main_frame, bg="white", relief=tk.GROOVE, borderwidth=2)
+        frame_detallado.pack(fill=tk.X, pady=10)
+
+        rb_detallado = tk.Radiobutton(
+            frame_detallado,
+            text="📊 Detallado (Recomendado)",
+            variable=report_type,
+            value="detallado",
+            bg="white",
+            font=("Arial", 12, "bold"),
+            cursor="hand2",
+            activebackground="white"
+        )
+        rb_detallado.pack(anchor="w", padx=15, pady=(10, 5))
+
+        tk.Label(
+            frame_detallado,
+            text="✓ Sistema de pestañas (Resumen/Hallazgos/Archivos)\n"
+                 "✓ Hallazgos colapsables y filtros interactivos\n"
+                 "✓ Score individual por archivo\n"
+                 "✓ Visualización moderna y completa",
+            bg="white",
+            font=("Arial", 9),
+            justify=tk.LEFT,
+            fg="#555"
+        ).pack(anchor="w", padx=15, pady=(0, 10))
+
+        # Opción 2: Normal
+        frame_normal = tk.Frame(main_frame, bg="white", relief=tk.GROOVE, borderwidth=2)
+        frame_normal.pack(fill=tk.X, pady=10)
+
+        rb_normal = tk.Radiobutton(
+            frame_normal,
+            text="📄 Normal",
+            variable=report_type,
+            value="normal",
+            bg="white",
+            font=("Arial", 12, "bold"),
+            cursor="hand2",
+            activebackground="white"
+        )
+        rb_normal.pack(anchor="w", padx=15, pady=(10, 5))
+
+        tk.Label(
+            frame_normal,
+            text="✓ Vista simple y directa\n"
+                 "✓ Todas las secciones en una página\n"
+                 "✓ Ideal para reportes rápidos\n"
+                 "✓ Menos funcionalidades interactivas",
+            bg="white",
+            font=("Arial", 9),
+            justify=tk.LEFT,
+            fg="#555"
+        ).pack(anchor="w", padx=15, pady=(0, 10))
+
+        # Botones
+        buttons_frame = tk.Frame(main_frame, bg="white")
+        buttons_frame.pack(pady=20)
+
+        def on_generate():
+            selected_type = report_type.get()
+            dialog.destroy()
+            self._generate_html_report(selected_type)
+
+        tk.Button(
+            buttons_frame,
+            text="Generar Reporte",
+            command=on_generate,
+            bg=PRIMARY_COLOR,
+            fg="white",
+            font=("Arial", 11, "bold"),
+            cursor="hand2",
+            padx=20,
+            pady=10
+        ).pack(side=tk.LEFT, padx=5)
+
+        tk.Button(
+            buttons_frame,
+            text="Cancelar",
+            command=dialog.destroy,
+            bg="#6c757d",
+            fg="white",
+            font=("Arial", 11),
+            cursor="hand2",
+            padx=20,
+            pady=10
+        ).pack(side=tk.LEFT, padx=5)
+
+    def _generate_html_report(self, report_type="detallado"):
+        """Generar reporte HTML del tipo especificado"""
         try:
             from src.report_generator import HTMLReportGenerator
             from datetime import datetime
-            
+
             # Crear nombre de archivo con timestamp
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             project_name = self.last_results['project_info'].get('name', 'proyecto')
-            output_file = Path(f"output/reporte_{project_name}_{timestamp}.html")
-            
-            # Generar reporte
-            generator = HTMLReportGenerator(self.last_results, output_file)
+            type_suffix = "DETALLADO" if report_type == "detallado" else "NORMAL"
+            output_file = Path(f"output/reporte_{type_suffix}_{project_name}_{timestamp}.html")
+
+            # Generar reporte con el tipo especificado
+            generator = HTMLReportGenerator(self.last_results, output_file, report_type=report_type)
             report_path = generator.generate()
-            
+
             # Preguntar si abrir el reporte
             result = messagebox.askyesno(
                 "Reporte Generado",
-                f"Reporte HTML generado con éxito:\n\n{report_path}\n\n¿Deseas abrirlo ahora?"
+                f"Reporte HTML ({type_suffix}) generado con éxito:\n\n{report_path}\n\n¿Deseas abrirlo ahora?"
             )
-            
+
             if result:
                 import webbrowser
                 webbrowser.open(str(report_path.absolute()))
-            
+
             self.status_bar.config(text=f"Reporte generado: {report_path.name}")
-            
+
         except Exception as e:
             messagebox.showerror(
                 "Error",
                 f"Error al generar el reporte:\n\n{str(e)}"
             )
-    
+
     def _generate_excel_report(self):
         """Generar reporte Excel"""
         if not self.last_results:
