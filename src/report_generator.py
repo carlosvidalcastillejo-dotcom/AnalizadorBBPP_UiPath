@@ -66,6 +66,118 @@ class HTMLReportGenerator:
     <style>
         {self._get_css()}
     </style>
+    <script>
+        // Función para colapsar/expandir hallazgos
+        function toggleFinding(findingId) {{
+            const content = document.getElementById(findingId);
+            const icon = document.getElementById('icon-' + findingId);
+
+            if (content.style.display === 'none') {{
+                content.style.display = 'block';
+                icon.textContent = '▼';
+            }} else {{
+                content.style.display = 'none';
+                icon.textContent = '▶';
+            }}
+        }}
+
+        // Función para colapsar/expandir todos
+        function toggleAll(expand) {{
+            const allContents = document.querySelectorAll('.collapsible-content');
+            const allIcons = document.querySelectorAll('.toggle-icon');
+
+            allContents.forEach(content => {{
+                content.style.display = expand ? 'block' : 'none';
+            }});
+
+            allIcons.forEach(icon => {{
+                icon.textContent = expand ? '▼' : '▶';
+            }});
+        }}
+
+        // Función para aplicar filtros
+        function applyFilters() {{
+            // Obtener severidades seleccionadas
+            const selectedSeverities = Array.from(
+                document.querySelectorAll('.severity-filter:checked')
+            ).map(cb => cb.value);
+
+            // Obtener categorías seleccionadas
+            const selectedCategories = Array.from(
+                document.querySelectorAll('.category-filter:checked')
+            ).map(cb => cb.value);
+
+            // Filtrar hallazgos
+            const allFindings = document.querySelectorAll('.finding-item');
+            let visibleCount = 0;
+
+            allFindings.forEach(finding => {{
+                const severity = finding.getAttribute('data-severity');
+                const category = finding.getAttribute('data-category');
+
+                const severityMatch = selectedSeverities.includes(severity);
+                const categoryMatch = selectedCategories.includes(category);
+
+                if (severityMatch && categoryMatch) {{
+                    finding.style.display = 'block';
+                    visibleCount++;
+                }} else {{
+                    finding.style.display = 'none';
+                }}
+            }});
+
+            // Mostrar contador de hallazgos visibles
+            updateVisibleCount(visibleCount, allFindings.length);
+        }}
+
+        // Función para resetear filtros
+        function resetFilters() {{
+            // Marcar todos los checkboxes
+            document.querySelectorAll('.severity-filter, .category-filter').forEach(cb => {{
+                cb.checked = true;
+            }});
+
+            // Aplicar filtros (mostrar todos)
+            applyFilters();
+        }}
+
+        // Función para actualizar contador de hallazgos visibles
+        function updateVisibleCount(visible, total) {{
+            let countElement = document.getElementById('visible-count');
+            if (!countElement) {{
+                // Crear elemento si no existe
+                const filtersPanel = document.querySelector('.filters-panel');
+                if (filtersPanel) {{
+                    countElement = document.createElement('div');
+                    countElement.id = 'visible-count';
+                    countElement.style.cssText = 'text-align: center; padding: 10px; background: #e3f2fd; border-radius: 5px; margin-top: 10px; font-weight: bold; color: #0067B1;';
+                    filtersPanel.appendChild(countElement);
+                }}
+            }}
+
+            if (countElement) {{
+                if (visible === total) {{
+                    countElement.textContent = `Mostrando todos los hallazgos (${{total}})`;
+                }} else {{
+                    countElement.textContent = `Mostrando ${{visible}} de ${{total}} hallazgos`;
+                }}
+            }}
+        }}
+
+        // Función para colapsar/expandir el panel de filtros
+        function toggleFiltersPanel() {{
+            const content = document.getElementById('filters-content');
+            const icon = document.getElementById('icon-filters');
+
+            if (content.style.display === 'none') {{
+                content.style.display = 'grid';
+                icon.textContent = '▼';
+            }} else {{
+                content.style.display = 'none';
+                icon.textContent = '▶';
+            }}
+        }}
+    </script>
 </head>
 <body>
     <div class="container">
@@ -230,10 +342,42 @@ class HTMLReportGenerator:
             align-items: center;
             margin-bottom: 10px;
         }
-        
+
+        .finding-header.clickable {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .finding-header.clickable:hover {
+            background: #f8f9fa;
+            margin: -5px;
+            padding: 5px;
+            border-radius: 5px;
+        }
+
+        .finding-title-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .toggle-icon {
+            font-size: 14px;
+            color: #0067B1;
+            font-weight: bold;
+            min-width: 20px;
+            transition: transform 0.2s ease;
+        }
+
         .finding-title {
             font-weight: bold;
             font-size: 16px;
+        }
+
+        .collapsible-content {
+            display: block;
+            transition: all 0.3s ease;
         }
         
         .severity-badge {
@@ -264,14 +408,181 @@ class HTMLReportGenerator:
             font-size: 14px;
             line-height: 1.6;
         }
-        
+
         .finding-location {
             color: #999;
             font-size: 13px;
             margin-top: 10px;
             font-family: 'Courier New', monospace;
         }
-        
+
+        .occurrence-count {
+            color: #0067B1;
+            font-weight: bold;
+            font-size: 14px;
+            margin: 10px 0;
+            padding: 8px 12px;
+            background: #e3f2fd;
+            border-radius: 5px;
+            display: inline-block;
+        }
+
+        .occurrences-list {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+
+        .occurrence-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 4px;
+            border-left: 3px solid #0067B1;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+
+        .occurrence-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .file-group {
+            margin-bottom: 15px;
+            padding: 12px;
+            background: white;
+            border-radius: 6px;
+            border-left: 3px solid #0067B1;
+        }
+
+        .file-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .file-header {
+            font-size: 15px;
+            margin-bottom: 10px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .file-count {
+            font-size: 12px;
+            color: #666;
+            font-weight: normal;
+            background: #e9ecef;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .locations-list {
+            margin-left: 20px;
+            padding-left: 15px;
+            border-left: 2px solid #e9ecef;
+        }
+
+        .location-item {
+            padding: 6px 10px;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #555;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+
+        .location-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .filters-panel {
+            background: #f8f9fa;
+            border: 2px solid #0067B1;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .filters-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .filters-header.clickable {
+            cursor: pointer;
+            user-select: none;
+            padding: 10px;
+            margin: -10px -10px 15px -10px;
+            border-radius: 5px;
+        }
+
+        .filters-header.clickable:hover {
+            background: #e9ecef;
+        }
+
+        .filters-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .filter-group {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+        }
+
+        .filter-label {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .filter-options {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .filter-checkbox {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .filter-checkbox:hover {
+            background: #f8f9fa;
+        }
+
+        .filter-checkbox input[type="checkbox"] {
+            margin-right: 8px;
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+        }
+
+        .filter-checkbox span {
+            font-size: 14px;
+            user-select: none;
+        }
+
+        @media (max-width: 768px) {
+            .filters-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
         .footer {
             background: #f8f9fa;
             padding: 20px 40px;
@@ -491,7 +802,7 @@ class HTMLReportGenerator:
         return tags_html or '<div class="category-tag">Sin hallazgos</div>'
     
     def _build_findings(self, findings: list, stats: Dict) -> str:
-        """Construir sección de hallazgos"""
+        """Construir sección de hallazgos agrupados por regla"""
         if not findings:
             return """
             <div class="section">
@@ -501,57 +812,210 @@ class HTMLReportGenerator:
                 </div>
             </div>
             """
-        
-        findings_html = """
-        <div class="section">
-            <h2>🔍 Hallazgos Detallados</h2>
-            <div class="findings-list">
-        """
-        
+
+        # Agrupar hallazgos por (rule_id, category, description, severity)
+        # Esto agrupa todas las ocurrencias de la misma regla
+        from collections import defaultdict
+        grouped = defaultdict(list)
+
         for finding in findings:
-            severity = finding.get('severity', 'info')
             category = finding.get('category', 'unknown')
-            
+
             # Omitir hallazgos de dependencias (ya se muestran en la tabla superior)
             if category == 'dependencias':
                 continue
-                
-            description = finding.get('description', '')
-            file_path = Path(finding.get('file_path', '')).name
-            location = finding.get('location', '')
-            
+
+            # Clave de agrupación: (category, description, severity)
+            # Usamos esto para agrupar hallazgos de la misma regla
+            key = (
+                finding.get('category', 'unknown'),
+                finding.get('description', ''),
+                finding.get('severity', 'info')
+            )
+            grouped[key].append(finding)
+
+        # Construir HTML
+        findings_html = """
+        <div class="section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin: 0;">🔍 Hallazgos Detallados</h2>
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="toggleAll(true)" style="padding: 8px 16px; background: #0067B1; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
+                        ▼ Expandir Todos
+                    </button>
+                    <button onclick="toggleAll(false)" style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
+                        ▶ Colapsar Todos
+                    </button>
+                </div>
+            </div>
+            <div class="findings-list">
+        """
+
+        # Ordenar por severidad (error > warning > info)
+        severity_order = {'error': 0, 'warning': 1, 'info': 2}
+        sorted_groups = sorted(
+            grouped.items(),
+            key=lambda x: (severity_order.get(x[0][2], 3), x[0][0])
+        )
+
+        # Extraer categorías y severidades únicas para los filtros
+        categories = set()
+        severities = set()
+        for (category, description, severity), occurrences in sorted_groups:
+            categories.add(category)
+            severities.add(severity)
+
+        # Añadir panel de filtros
+        findings_html += self._build_filters_panel(categories, severities, stats)
+
+        for idx, ((category, description, severity), occurrences) in enumerate(sorted_groups):
+            count = len(occurrences)
             severity_class = f'finding-{severity}'
             badge_class = f'badge-{severity}'
-            
+
+            # ID único para este hallazgo (para collapsar)
+            finding_id = f'finding-{idx}'
+
+            # Agrupar ocurrencias por archivo
+            by_file = defaultdict(list)
+            for occ in occurrences:
+                file_path = Path(occ.get('file_path', '')).name
+                by_file[file_path].append(occ)
+
+            # Encabezado de la regla agrupada (con botón de toggle)
+            # Añadir atributos data- para filtrar
             findings_html += f"""
-            <div class="finding-item {severity_class}">
-                <div class="finding-header">
-                    <div class="finding-title">
-                        [{html.escape(category.upper())}] {html.escape(description)}
+            <div class="finding-item {severity_class}" data-severity="{severity}" data-category="{category}">
+                <div class="finding-header clickable" onclick="toggleFinding('{finding_id}')">
+                    <div class="finding-title-wrapper">
+                        <span class="toggle-icon" id="icon-{finding_id}">▼</span>
+                        <div class="finding-title">
+                            [{html.escape(category.upper())}] {html.escape(description)}
+                        </div>
                     </div>
                     <span class="severity-badge {badge_class}">{severity}</span>
                 </div>
-                <div class="finding-details">
-                    📄 Archivo: {html.escape(file_path)}
+                <div class="occurrence-count" onclick="toggleFinding('{finding_id}')" style="cursor: pointer;">
+                    📌 {count} ocurrencia{'s' if count > 1 else ''} encontrada{'s' if count > 1 else ''}
+                </div>
+                <div class="occurrences-list collapsible-content" id="{finding_id}">
             """
-            
-            if location:
+
+            # Listar por archivo
+            for file_name, file_occurrences in sorted(by_file.items()):
+                file_count = len(file_occurrences)
+
                 findings_html += f"""
-                    <br>📍 Ubicación: {html.escape(location)}
+                    <div class="file-group">
+                        <div class="file-header">
+                            📄 <strong>{html.escape(file_name)}</strong>
+                            <span class="file-count">({file_count} ocurrencia{'s' if file_count > 1 else ''})</span>
+                        </div>
+                        <div class="locations-list">
                 """
-            
+
+                # Listar ubicaciones dentro del archivo
+                for occurrence in file_occurrences:
+                    location = occurrence.get('location', '')
+
+                    if location:
+                        findings_html += f"""
+                            <div class="location-item">
+                                📍 {html.escape(location)}
+                            </div>
+                        """
+
+                findings_html += """
+                        </div>
+                    </div>
+                """
+
             findings_html += """
                 </div>
             </div>
             """
-        
+
         findings_html += """
             </div>
         </div>
         """
-        
+
         return findings_html
-    
+
+    def _build_filters_panel(self, categories: set, severities: set, stats: Dict) -> str:
+        """Construir panel de filtros interactivos"""
+
+        # Contadores por severidad
+        severity_counts = stats.get('by_severity', {})
+
+        # Contadores por categoría
+        category_counts = stats.get('by_category', {})
+
+        filters_html = """
+        <div class="filters-panel">
+            <div class="filters-header clickable" onclick="toggleFiltersPanel()">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span class="toggle-icon" id="icon-filters">▼</span>
+                    <span style="font-weight: bold; font-size: 16px;">🔍 Filtros</span>
+                </div>
+                <button onclick="event.stopPropagation(); resetFilters()" style="padding: 6px 12px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">
+                    ↺ Resetear
+                </button>
+            </div>
+
+            <div class="filters-content collapsible-content" id="filters-content">
+                <div class="filter-group">
+                    <div class="filter-label">Por Severidad:</div>
+                    <div class="filter-options">
+        """
+
+        # Filtros de severidad
+        severity_labels = {
+            'error': ('❌ Errores', '#dc3545'),
+            'warning': ('⚠️ Warnings', '#ffc107'),
+            'info': ('ℹ️ Info', '#17a2b8')
+        }
+
+        for sev in ['error', 'warning', 'info']:
+            if sev in severities:
+                label, color = severity_labels.get(sev, (sev, '#666'))
+                count = severity_counts.get(sev, 0)
+                filters_html += f"""
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="severity-filter" value="{sev}" checked onchange="applyFilters()">
+                            <span style="color: {color};">{label} ({count})</span>
+                        </label>
+                """
+
+        filters_html += """
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <div class="filter-label">Por Categoría:</div>
+                    <div class="filter-options">
+        """
+
+        # Filtros de categoría
+        for cat in sorted(categories):
+            count = category_counts.get(cat, 0)
+            cat_display = cat.capitalize()
+            filters_html += f"""
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="category-filter" value="{cat}" checked onchange="applyFilters()">
+                            <span>{cat_display} ({count})</span>
+                        </label>
+            """
+
+        filters_html += """
+                    </div>
+                </div>
+            </div>
+        </div>
+        """
+
+        return filters_html
+
     def _build_footer(self) -> str:
         """Construir pie de página"""
         from src.config import APP_VERSION, APP_VERSION_TYPE, APP_AUTHOR, BUILD_DATE
