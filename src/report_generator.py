@@ -75,6 +75,7 @@ class HTMLReportGenerator:
     <style>
         {self._get_css()}
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
         // Función para colapsar/expandir hallazgos
         function toggleFinding(findingId) {{
@@ -220,6 +221,7 @@ class HTMLReportGenerator:
                 <button class="tab-button active" onclick="switchTab('tab-resumen')">📊 Resumen</button>
                 <button class="tab-button" onclick="switchTab('tab-hallazgos')">📄 Hallazgos</button>
                 <button class="tab-button" onclick="switchTab('tab-archivos')">📂 Archivos</button>
+                <button class="tab-button" onclick="switchTab('tab-graficos')">📈 Gráficos</button>
             </div>
 
             <!-- Pestaña: Resumen -->
@@ -237,6 +239,11 @@ class HTMLReportGenerator:
             <!-- Pestaña: Archivos -->
             <div id="tab-archivos" class="tab-content" style="display: none;">
                 {self._build_files_scores(findings)}
+            </div>
+
+            <!-- Pestaña: Gráficos -->
+            <div id="tab-graficos" class="tab-content" style="display: none;">
+                {self._build_charts(findings, stats, score)}
             </div>
         </div>
 
@@ -895,6 +902,81 @@ class HTMLReportGenerator:
         .dep-missing { background: #fff3cd; color: #856404; }
         .dep-additional { background: #fff3cd; color: #856404; }
         .dep-unknown { background: #fff3cd; color: #856404; }
+
+        /* Estilos para Gráficos */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 25px;
+            margin-top: 20px;
+        }
+
+        .chart-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .chart-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+
+        .chart-card-wide {
+            grid-column: span 2;
+        }
+
+        .chart-title {
+            color: #0067B1;
+            font-size: 18px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 15px;
+        }
+
+        .chart-card-wide .chart-container {
+            height: 350px;
+        }
+
+        .score-info {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .score-big {
+            font-size: 36px;
+            font-weight: bold;
+            color: #0067B1;
+        }
+
+        .grade-big {
+            font-size: 18px;
+            color: #666;
+            font-weight: 600;
+        }
+
+        @media (max-width: 1024px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-card-wide {
+                grid-column: span 1;
+            }
+        }
         """
     
     def _build_header(self, project_info: Dict) -> str:
@@ -1414,6 +1496,269 @@ class HTMLReportGenerator:
         """
 
         return files_html
+
+    def _build_charts(self, findings: list, stats: Dict, score: Dict) -> str:
+        """Construir pestaña de gráficos con visualizaciones interactivas"""
+        from collections import defaultdict
+        from pathlib import Path
+        import json
+
+        # Preparar datos para gráficos
+        severity_data = {
+            'errors': stats.get('errors', 0),
+            'warnings': stats.get('warnings', 0),
+            'infos': stats.get('infos', 0)
+        }
+
+        category_data = stats.get('by_category', {})
+        # Filtrar dependencias de las categorías
+        category_data = {k: v for k, v in category_data.items() if k != 'dependencias'}
+
+        # Top 10 archivos con más hallazgos
+        by_file = defaultdict(int)
+        for finding in findings:
+            if finding.get('category') != 'dependencias':
+                file_path = Path(finding.get('file_path', '')).name
+                by_file[file_path] += 1
+        
+        top_files = sorted(by_file.items(), key=lambda x: x[1], reverse=True)[:10]
+        
+        score_value = score.get('score', 0)
+        grade = score.get('grade', 'N/A')
+
+        # Convertir datos a JSON para JavaScript
+        severity_labels = json.dumps(['Errores', 'Warnings', 'Info'])
+        severity_values = json.dumps([severity_data['errors'], severity_data['warnings'], severity_data['infos']])
+        
+        category_labels = json.dumps(list(category_data.keys()))
+        category_values = json.dumps(list(category_data.values()))
+        
+        file_labels = json.dumps([f[0] for f in top_files])
+        file_values = json.dumps([f[1] for f in top_files])
+
+        charts_html = f"""
+        <div class="section">
+            <h2>📈 Visualizaciones del Análisis</h2>
+            <p style="color: #666; margin-bottom: 30px;">
+                Gráficos interactivos para facilitar el análisis visual de los hallazgos del proyecto.
+            </p>
+
+            <div class="charts-grid">
+                <!-- Gráfico 1: Distribución por Severidad (Dona) -->
+                <div class="chart-card">
+                    <h3 class="chart-title">📊 Distribución por Severidad</h3>
+                    <div class="chart-container">
+                        <canvas id="severityChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Gráfico 2: Score Global (Gauge) -->
+                <div class="chart-card">
+                    <h3 class="chart-title">🎯 Score Global del Proyecto</h3>
+                    <div class="chart-container">
+                        <canvas id="scoreChart"></canvas>
+                    </div>
+                    <div class="score-info">
+                        <span class="score-big">{score_value}/100</span>
+                        <span class="grade-big">Calificación: {html.escape(grade)}</span>
+                    </div>
+                </div>
+
+                <!-- Gráfico 3: Hallazgos por Categoría (Barras Horizontales) -->
+                <div class="chart-card chart-card-wide">
+                    <h3 class="chart-title">📂 Hallazgos por Categoría</h3>
+                    <div class="chart-container">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Gráfico 4: Top 10 Archivos (Barras) -->
+                <div class="chart-card chart-card-wide">
+                    <h3 class="chart-title">📄 Top 10 Archivos con Más Hallazgos</h3>
+                    <div class="chart-container">
+                        <canvas id="filesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            // Esperar a que Chart.js esté cargado
+            document.addEventListener('DOMContentLoaded', function() {{
+                // Gráfico 1: Distribución por Severidad (Dona)
+                const severityCtx = document.getElementById('severityChart').getContext('2d');
+                new Chart(severityCtx, {{
+                    type: 'doughnut',
+                    data: {{
+                        labels: {severity_labels},
+                        datasets: [{{
+                            data: {severity_values},
+                            backgroundColor: [
+                                '#dc3545',  // Rojo para errores
+                                '#ffc107',  // Amarillo para warnings
+                                '#17a2b8'   // Azul para info
+                            ],
+                            borderWidth: 2,
+                            borderColor: '#fff'
+                        }}]
+                    }},
+                    options: {{
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {{
+                            legend: {{
+                                position: 'bottom',
+                                labels: {{
+                                    padding: 15,
+                                    font: {{
+                                        size: 12
+                                    }}
+                                }}
+                            }},
+                            tooltip: {{
+                                callbacks: {{
+                                    label: function(context) {{
+                                        const label = context.label || '';
+                                        const value = context.parsed || 0;
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                        return label + ': ' + value + ' (' + percentage + '%)';
+                                    }}
+                                }}
+                            }}
+                        }}
+                    }}
+                }});
+
+                // Gráfico 2: Score Global (Dona como gauge)
+                const scoreCtx = document.getElementById('scoreChart').getContext('2d');
+                const scoreValue = {score_value};
+                const scoreRemaining = 100 - scoreValue;
+                
+                // Determinar color según score
+                let scoreColor = '#dc3545';  // Rojo por defecto
+                if (scoreValue >= 90) scoreColor = '#28a745';      // Verde
+                else if (scoreValue >= 80) scoreColor = '#90ee90'; // Verde claro
+                else if (scoreValue >= 70) scoreColor = '#ffc107'; // Amarillo
+                else if (scoreValue >= 60) scoreColor = '#ff9800'; // Naranja
+
+                new Chart(scoreCtx, {{
+                    type: 'doughnut',
+                    data: {{
+                        datasets: [{{
+                            data: [scoreValue, scoreRemaining],
+                            backgroundColor: [scoreColor, '#e9ecef'],
+                            borderWidth: 0
+                        }}]
+                    }},
+                    options: {{
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        circumference: 180,
+                        rotation: 270,
+                        cutout: '75%',
+                        plugins: {{
+                            legend: {{
+                                display: false
+                            }},
+                            tooltip: {{
+                                enabled: false
+                            }}
+                        }}
+                    }}
+                }});
+
+                // Gráfico 3: Hallazgos por Categoría (Barras Horizontales)
+                const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+                new Chart(categoryCtx, {{
+                    type: 'bar',
+                    data: {{
+                        labels: {category_labels},
+                        datasets: [{{
+                            label: 'Número de Hallazgos',
+                            data: {category_values},
+                            backgroundColor: '#0067B1',
+                            borderColor: '#00A3E0',
+                            borderWidth: 1
+                        }}]
+                    }},
+                    options: {{
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {{
+                            legend: {{
+                                display: false
+                            }},
+                            tooltip: {{
+                                callbacks: {{
+                                    label: function(context) {{
+                                        return 'Hallazgos: ' + context.parsed.x;
+                                    }}
+                                }}
+                            }}
+                        }},
+                        scales: {{
+                            x: {{
+                                beginAtZero: true,
+                                ticks: {{
+                                    stepSize: 1
+                                }}
+                            }}
+                        }}
+                    }}
+                }});
+
+                // Gráfico 4: Top 10 Archivos (Barras)
+                const filesCtx = document.getElementById('filesChart').getContext('2d');
+                new Chart(filesCtx, {{
+                    type: 'bar',
+                    data: {{
+                        labels: {file_labels},
+                        datasets: [{{
+                            label: 'Número de Hallazgos',
+                            data: {file_values},
+                            backgroundColor: '#dc3545',
+                            borderColor: '#c82333',
+                            borderWidth: 1
+                        }}]
+                    }},
+                    options: {{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {{
+                            legend: {{
+                                display: false
+                            }},
+                            tooltip: {{
+                                callbacks: {{
+                                    label: function(context) {{
+                                        return 'Hallazgos: ' + context.parsed.y;
+                                    }}
+                                }}
+                            }}
+                        }},
+                        scales: {{
+                            y: {{
+                                beginAtZero: true,
+                                ticks: {{
+                                    stepSize: 1
+                                }}
+                            }},
+                            x: {{
+                                ticks: {{
+                                    maxRotation: 45,
+                                    minRotation: 45
+                                }}
+                            }}
+                        }}
+                    }}
+                }});
+            }});
+        </script>
+        """
+
+        return charts_html
 
     def _build_footer(self) -> str:
         """Construir pie de página"""
