@@ -1,0 +1,8 @@
+{
+  "scoring": {
+    "scaling_factor": 5,
+    "error_weight": -10,
+    "warning_weight": -3,
+    "info_weight": -0.5
+  }
+}

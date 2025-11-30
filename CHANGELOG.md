@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.0] - 2025-11-30
+
+**Autor:** Carlos Vidal Castillejo  
+**Tipo de cambio:** Minor  
+
+FIX CRITICO: Panel izquierdo desaparecia. Sistema de Excepciones REFramework (50 excepciones). Sistema de Penalizacion Personalizable (3 modos). Prefijos de Tipo (13 prefijos). Graficos en Reportes HTML (Chart.js). Gestion de Conjuntos mejorada. Validacion de Dependencias. Documentacion completa actualizada.
+
 ## [0.11.0] - 2025-11-25
 
 **Autor:** Carlos Vidal Castillejo  

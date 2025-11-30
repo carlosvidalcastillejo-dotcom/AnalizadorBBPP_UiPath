@@ -40,20 +40,28 @@ class MainWindow:
         
     def _setup_ui(self):
         """Configurar la interfaz de usuario"""
-        # Barra de estado (primero para que quede abajo)
-        self._create_status_bar()
+        # IMPORTANTE: Crear sidebar PRIMERO para evitar conflictos de empaquetado
+        # El orden correcto es: sidebar (LEFT) -> main_area (RIGHT) -> status_bar (BOTTOM)
         
-        # Menú lateral
+        # Menú lateral (PRIMERO)
         self._create_sidebar()
         
         # Área principal
         self._create_main_area()
         
+        # Barra de estado (ÚLTIMO para que quede abajo)
+        self._create_status_bar()
+        
+        # Verificar que el sidebar está correctamente empaquetado
+        self._ensure_sidebar_visible()
+        
     def _create_sidebar(self):
         """Crear menú lateral"""
+        print("🔧 DEBUG: Creando sidebar...")
         self.sidebar = tk.Frame(self.root, bg=PRIMARY_COLOR, width=200)
         self.sidebar.pack(side=tk.LEFT, fill=tk.Y)
         self.sidebar.pack_propagate(False)
+        print(f"✅ DEBUG: Sidebar creado - Existe: {self.sidebar.winfo_exists()}, Visible: {self.sidebar.winfo_viewable()}")
         
         # Título de la aplicación
         title_label = tk.Label(
@@ -173,9 +181,17 @@ class MainWindow:
     
     def refresh_sidebar(self):
         """Refrescar sidebar para mostrar cambios de branding"""
+        print("🔄 DEBUG: Iniciando refresh_sidebar...")
+        print(f"   - Sidebar existe: {hasattr(self, 'sidebar') and self.sidebar.winfo_exists()}")
+        
         try:
             from src.branding_manager import get_branding_manager
             branding = get_branding_manager()
+            
+            # Verificar estado del sidebar ANTES de actualizar
+            if hasattr(self, 'sidebar'):
+                print(f"   - Sidebar visible ANTES: {self.sidebar.winfo_viewable()}")
+                print(f"   - Sidebar manager: {self.sidebar.winfo_manager()}")
             
             # Solo actualizar el texto del label de empresa si existe
             if hasattr(self, 'company_label') and self.company_label.winfo_exists():
@@ -184,6 +200,15 @@ class MainWindow:
                 print(f"✅ Nombre de empresa actualizado a: {new_company_name}")
             else:
                 print("⚠️ No se encontró el label de empresa para actualizar")
+            
+            # Verificar estado del sidebar DESPUÉS de actualizar
+            if hasattr(self, 'sidebar'):
+                print(f"   - Sidebar visible DESPUÉS: {self.sidebar.winfo_viewable()}")
+                print(f"   - Sidebar manager DESPUÉS: {self.sidebar.winfo_manager()}")
+            
+            # IMPORTANTE: Asegurar que el sidebar sigue visible
+            self._ensure_sidebar_visible()
+                
         except Exception as e:
             print(f"⚠️ Error al refrescar sidebar: {e}")
             import traceback
@@ -232,6 +257,33 @@ class MainWindow:
             pady=5
         )
         self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
+    
+    def _ensure_sidebar_visible(self):
+        """
+        Verificar que el sidebar está visible y correctamente empaquetado.
+        Si no lo está, re-empaquetarlo.
+        """
+        if not hasattr(self, 'sidebar'):
+            print("⚠️ WARNING: Sidebar no existe en _ensure_sidebar_visible()")
+            return
+        
+        if not self.sidebar.winfo_exists():
+            print("⚠️ WARNING: Sidebar fue destruido - esto no debería pasar")
+            return
+        
+        # Verificar si está empaquetado
+        manager = self.sidebar.winfo_manager()
+        if not manager or manager == '':
+            print("🔧 DEBUG: Sidebar no está empaquetado - re-empaquetando...")
+            self.sidebar.pack(side=tk.LEFT, fill=tk.Y)
+            self.sidebar.pack_propagate(False)
+            print("✅ DEBUG: Sidebar re-empaquetado")
+        
+        # Verificar visibilidad
+        if not self.sidebar.winfo_viewable():
+            print(f"⚠️ DEBUG: Sidebar no visible - Manager: {manager}, Geometry: {self.sidebar.winfo_geometry()}")
+        else:
+            print(f"✅ DEBUG: Sidebar visible - Manager: {manager}, Width: {self.sidebar.winfo_width()}px")
     
     def _clear_main_area(self):
         """Limpiar área principal"""
@@ -1119,10 +1171,11 @@ class MainWindow:
                 results = scanner.scan(progress_callback)
                 
                 # Al terminar, actualizar UI en el thread principal
-                self.root.after(0, lambda: self._show_results(results, scanner))
+                self.root.after(0, lambda r=results, s=scanner: self._show_results(r, s))
                 
             except Exception as e:
-                self.root.after(0, lambda: self._show_error(str(e)))
+                error_msg = str(e)
+                self.root.after(0, lambda msg=error_msg: self._show_error(msg))
         
         # Iniciar análisis en thread separado
         analysis_thread = threading.Thread(target=run_analysis, daemon=True)

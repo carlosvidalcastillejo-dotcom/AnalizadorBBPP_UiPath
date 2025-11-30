@@ -2,12 +2,12 @@
   "metadata": {
     "name": "Reglas Base BBPP",
     "description": "Catálogo unificado de todas las reglas de buenas prácticas",
-    "version": "2.1.0",
+    "version": "2.3.0",
     "author": "Carlos Vidal Castillejo",
     "company": "Your Company",
     "created": "2025-11-22",
-    "last_updated": "2025-11-23",
-    "changelog": "v2.1.0: IDs reorganizados por categorías lógicas, código limpio 100%"
+    "last_updated": "2025-11-29",
+    "changelog": "v2.3.0: Sistema de excepciones para reglas de nomenclatura (REFramework)"
   },
   "sets": {
     "UiPath": {
@@ -36,14 +36,74 @@
       "description": "Las variables deben seguir el patrón camelCase (primera letra minúscula, resto PascalCase)",
       "category": "nomenclatura",
       "severity": "warning",
-      "penalty": 2,
-      "enabled": true,
+      "penalty": 0.0,
+      "enabled": false,
       "sets": [
         "UiPath",
         "NTTData"
       ],
       "implementation_status": "implemented",
-      "rule_type": "variable_naming"
+      "rule_type": "variable_naming",
+      "parameters": {
+        "allow_type_prefixes": true,
+        "type_prefixes": [],
+        "exceptions": [
+          "Config",
+          "TransactionItem",
+          "TransactionData",
+          "TransactionNumber",
+          "TransactionField1",
+          "TransactionField2",
+          "TransactionID",
+          "RetryNumber",
+          "SystemException",
+          "BusinessException",
+          "QueueRetry",
+          "ConsecutiveSystemExceptions",
+          "ConfigFile",
+          "ConfigSheets",
+          "Folder",
+          "OrchestratorQueueFolder",
+          "OrchestratorQueueName",
+          "FilePath",
+          "in_Config",
+          "in_TransactionItem",
+          "in_TransactionData",
+          "in_TransactionNumber",
+          "in_TransactionField1",
+          "in_TransactionField2",
+          "in_TransactionID",
+          "in_SystemException",
+          "in_BusinessException",
+          "in_QueueRetry",
+          "in_ConfigFile",
+          "in_ConfigSheets",
+          "in_Folder",
+          "in_OrchestratorQueueFolder",
+          "in_OrchestratorQueueName",
+          "out_Config",
+          "out_TransactionItem",
+          "out_TransactionData",
+          "out_TransactionNumber",
+          "out_TransactionField1",
+          "out_TransactionField2",
+          "out_TransactionID",
+          "io_TransactionItem",
+          "io_TransactionData",
+          "io_TransactionNumber",
+          "io_RetryNumber",
+          "io_SystemException",
+          "io_BusinessException",
+          "io_QueueRetry",
+          "io_ConsecutiveSystemExceptions",
+          "io_FilePath",
+          "io_dt_TransactionData"
+        ],
+        "penalty_mode": "global",
+        "penalty_value": 0.0,
+        "use_penalty_cap": false,
+        "penalty_cap": 10.0
+      }
     },
     {
       "id": "NOMENCLATURA_002",
@@ -51,22 +111,110 @@
       "description": "Evitar nombres de variables genéricos que no indican su propósito (var, temp, data, etc.)",
       "category": "nomenclatura",
       "severity": "warning",
-      "penalty": 2,
+      "penalty": 0.0,
       "enabled": true,
       "sets": [
         "UiPath",
         "NTTData"
       ],
       "implementation_status": "implemented",
-      "rule_type": "generic_names"
+      "rule_type": "generic_names",
+      "parameters": {
+        "forbidden_names": [
+          "var",
+          "variable",
+          "temp",
+          "test",
+          "data",
+          "value",
+          "result",
+          "output",
+          "input",
+          "item",
+          "str",
+          "int",
+          "obj"
+        ],
+        "generic_patterns": [
+          "^var[_]?\\d+$",
+          "^variable[_]?\\d+$",
+          "^temp[_]?\\d+$",
+          "^test[_]?\\d+$",
+          "^data[_]?\\d+$",
+          "^value[_]?\\d+$",
+          "^result[_]?\\d+$",
+          "^output[_]?\\d+$",
+          "^input[_]?\\d+$",
+          "^item[_]?\\d+$",
+          "^str[_]?\\d+$",
+          "^int[_]?\\d+$",
+          "^obj[_]?\\d+$"
+        ],
+        "exceptions": [
+          "Config",
+          "TransactionItem",
+          "TransactionData",
+          "TransactionNumber",
+          "TransactionField1",
+          "TransactionField2",
+          "TransactionID",
+          "RetryNumber",
+          "SystemException",
+          "BusinessException",
+          "QueueRetry",
+          "ConsecutiveSystemExceptions",
+          "ConfigFile",
+          "ConfigSheets",
+          "Folder",
+          "OrchestratorQueueFolder",
+          "OrchestratorQueueName",
+          "FilePath",
+          "in_Config",
+          "in_TransactionItem",
+          "in_TransactionData",
+          "in_TransactionNumber",
+          "in_TransactionField1",
+          "in_TransactionField2",
+          "in_TransactionID",
+          "in_SystemException",
+          "in_BusinessException",
+          "in_QueueRetry",
+          "in_ConfigFile",
+          "in_ConfigSheets",
+          "in_Folder",
+          "in_OrchestratorQueueFolder",
+          "in_OrchestratorQueueName",
+          "out_Config",
+          "out_TransactionItem",
+          "out_TransactionData",
+          "out_TransactionNumber",
+          "out_TransactionField1",
+          "out_TransactionField2",
+          "out_TransactionID",
+          "io_TransactionItem",
+          "io_TransactionData",
+          "io_TransactionNumber",
+          "io_RetryNumber",
+          "io_SystemException",
+          "io_BusinessException",
+          "io_QueueRetry",
+          "io_ConsecutiveSystemExceptions",
+          "io_FilePath",
+          "io_dt_TransactionData"
+        ],
+        "penalty_mode": "global",
+        "penalty_value": 0.0,
+        "use_penalty_cap": false,
+        "penalty_cap": 10.0
+      }
     },
     {
       "id": "NOMENCLATURA_003",
       "name": "Argumentos con prefijos",
-      "description": "Los argumentos deben tener prefijos según su dirección (in_, out_, io_)",
+      "description": "Los argumentos deben tener prefijos según su dirección (in_, out_, io_) y seguir el formato especificado después del prefijo",
       "category": "nomenclatura",
       "severity": "warning",
-      "penalty": 2,
+      "penalty": 0.0,
       "enabled": true,
       "sets": [
         "UiPath",
@@ -78,7 +226,67 @@
         "check_prefixes": true,
         "prefix_in": "in_",
         "prefix_out": "out_",
-        "prefix_inout": "io_"
+        "prefix_inout": "io_",
+        "validate_format_after_prefix": true,
+        "format_after_prefix": "camelCase",
+        "allow_type_prefixes": true,
+        "type_prefixes": [],
+        "exceptions": [
+          "Config",
+          "TransactionItem",
+          "TransactionData",
+          "TransactionNumber",
+          "TransactionField1",
+          "TransactionField2",
+          "TransactionID",
+          "RetryNumber",
+          "SystemException",
+          "BusinessException",
+          "QueueRetry",
+          "ConsecutiveSystemExceptions",
+          "ConfigFile",
+          "ConfigSheets",
+          "Folder",
+          "OrchestratorQueueFolder",
+          "OrchestratorQueueName",
+          "FilePath",
+          "in_Config",
+          "in_TransactionItem",
+          "in_TransactionData",
+          "in_TransactionNumber",
+          "in_TransactionField1",
+          "in_TransactionField2",
+          "in_TransactionID",
+          "in_SystemException",
+          "in_BusinessException",
+          "in_QueueRetry",
+          "in_ConfigFile",
+          "in_ConfigSheets",
+          "in_Folder",
+          "in_OrchestratorQueueFolder",
+          "in_OrchestratorQueueName",
+          "out_Config",
+          "out_TransactionItem",
+          "out_TransactionData",
+          "out_TransactionNumber",
+          "out_TransactionField1",
+          "out_TransactionField2",
+          "out_TransactionID",
+          "io_TransactionItem",
+          "io_TransactionData",
+          "io_TransactionNumber",
+          "io_RetryNumber",
+          "io_SystemException",
+          "io_BusinessException",
+          "io_QueueRetry",
+          "io_ConsecutiveSystemExceptions",
+          "io_FilePath",
+          "io_dt_TransactionData"
+        ],
+        "penalty_mode": "global",
+        "penalty_value": 0.0,
+        "use_penalty_cap": false,
+        "penalty_cap": 10.0
       }
     },
     {
@@ -87,7 +295,7 @@
       "description": "Todos los argumentos deben tener una descripción clara",
       "category": "nomenclatura",
       "severity": "info",
-      "penalty": 1,
+      "penalty": 0.0,
       "enabled": true,
       "sets": [
         "UiPath"
@@ -96,7 +304,138 @@
       "rule_type": "argument_description",
       "parameters": {
         "require_description": true,
-        "min_description_length": 5
+        "min_description_length": 5,
+        "exceptions": [
+          "Config",
+          "TransactionItem",
+          "TransactionData",
+          "TransactionNumber",
+          "TransactionField1",
+          "TransactionField2",
+          "TransactionID",
+          "RetryNumber",
+          "SystemException",
+          "BusinessException",
+          "QueueRetry",
+          "ConsecutiveSystemExceptions",
+          "ConfigFile",
+          "ConfigSheets",
+          "Folder",
+          "OrchestratorQueueFolder",
+          "OrchestratorQueueName",
+          "FilePath",
+          "in_Config",
+          "in_TransactionItem",
+          "in_TransactionData",
+          "in_TransactionNumber",
+          "in_TransactionField1",
+          "in_TransactionField2",
+          "in_TransactionID",
+          "in_SystemException",
+          "in_BusinessException",
+          "in_QueueRetry",
+          "in_ConfigFile",
+          "in_ConfigSheets",
+          "in_Folder",
+          "in_OrchestratorQueueFolder",
+          "in_OrchestratorQueueName",
+          "out_Config",
+          "out_TransactionItem",
+          "out_TransactionData",
+          "out_TransactionNumber",
+          "out_TransactionField1",
+          "out_TransactionField2",
+          "out_TransactionID",
+          "io_TransactionItem",
+          "io_TransactionData",
+          "io_TransactionNumber",
+          "io_RetryNumber",
+          "io_SystemException",
+          "io_BusinessException",
+          "io_QueueRetry",
+          "io_ConsecutiveSystemExceptions",
+          "io_FilePath",
+          "io_dt_TransactionData"
+        ],
+        "penalty_mode": "global",
+        "penalty_value": 0.0,
+        "use_penalty_cap": false,
+        "penalty_cap": 10.0
+      }
+    },
+    {
+      "id": "NOMENCLATURA_005",
+      "name": "Variables en PascalCase",
+      "description": "Las variables deben seguir el patrón PascalCase (primera letra mayúscula, cada palabra inicia con mayúscula)",
+      "category": "nomenclatura",
+      "severity": "warning",
+      "penalty": 0.0,
+      "enabled": true,
+      "sets": [
+        "UiPath",
+        "NTTData"
+      ],
+      "implementation_status": "implemented",
+      "rule_type": "variable_naming_pascal",
+      "parameters": {
+        "allow_type_prefixes": true,
+        "type_prefixes": [],
+        "exceptions": [
+          "Config",
+          "TransactionItem",
+          "TransactionData",
+          "TransactionNumber",
+          "TransactionField1",
+          "TransactionField2",
+          "TransactionID",
+          "RetryNumber",
+          "SystemException",
+          "BusinessException",
+          "QueueRetry",
+          "ConsecutiveSystemExceptions",
+          "ConfigFile",
+          "ConfigSheets",
+          "Folder",
+          "OrchestratorQueueFolder",
+          "OrchestratorQueueName",
+          "FilePath",
+          "in_Config",
+          "in_TransactionItem",
+          "in_TransactionData",
+          "in_TransactionNumber",
+          "in_TransactionField1",
+          "in_TransactionField2",
+          "in_TransactionID",
+          "in_SystemException",
+          "in_BusinessException",
+          "in_QueueRetry",
+          "in_ConfigFile",
+          "in_ConfigSheets",
+          "in_Folder",
+          "in_OrchestratorQueueFolder",
+          "in_OrchestratorQueueName",
+          "out_Config",
+          "out_TransactionItem",
+          "out_TransactionData",
+          "out_TransactionNumber",
+          "out_TransactionField1",
+          "out_TransactionField2",
+          "out_TransactionID",
+          "io_TransactionItem",
+          "io_TransactionData",
+          "io_TransactionNumber",
+          "io_RetryNumber",
+          "io_SystemException",
+          "io_BusinessException",
+          "io_QueueRetry",
+          "io_ConsecutiveSystemExceptions",
+          "io_FilePath",
+          "io_dt_TransactionData"
+        ],
+        "penalty_mode": "global",
+        "penalty_value": 0.0,
+        "use_penalty_cap": false,
+        "penalty_cap": 10.0
       }
     },
     {
@@ -105,7 +444,7 @@
       "description": "Evitar más de 3 niveles de anidamiento de IFs (configurable)",
       "category": "estructura",
       "severity": "warning",
-      "penalty": 3,
+      "penalty": 0.0,
       "enabled": true,
       "sets": [
         "UiPath",
@@ -121,7 +460,11 @@
           "min": 1,
           "max": 10,
           "description": "Máximo número de niveles de anidamiento permitidos"
-        }
+        },
+        "penalty_mode": "global",
+        "penalty_value": 0.0,
+        "use_penalty_cap": false,
+        "penalty_cap": 10.0
       }
     },
     {
@@ -129,8 +472,8 @@
       "name": "Try-Catch vacíos",
       "description": "Los bloques Try-Catch no deben estar vacíos",
       "category": "estructura",
-      "severity": "error",
-      "penalty": 5,
+      "severity": "info",
+      "penalty": 0.0,
       "enabled": true,
       "sets": [
         "UiPath",
@@ -138,7 +481,13 @@
       ],
       "implementation_status": "implemented",
       "rule_type": "empty_catch",
-      "old_id": "TRY_CATCH_001"
+      "old_id": "TRY_CATCH_001",
+      "parameters": {
+        "penalty_mode": "global",
+        "penalty_value": 0.0,
+        "use_penalty_cap": false,
+        "penalty_cap": 10.0
+      }
     },
     {
       "id": "ESTRUCTURA_003",
@@ -146,7 +495,7 @@
       "description": "Todas las actividades críticas deben estar dentro de Try-Catch",
       "category": "estructura",
       "severity": "error",
-      "penalty": 5,
+      "penalty": 0.0,
       "enabled": true,
       "sets": [
         "UiPath",
@@ -154,7 +503,26 @@
       ],
       "implementation_status": "implemented",
       "rule_type": "critical_in_try_catch",
-      "old_id": "EXCEL_002"
+      "old_id": "EXCEL_002",
+      "parameters": {
+        "critical_activities": [
+          "InvokeWorkflowFile",
+          "InvokeMethod",
+          "InvokeCode",
+          "ReadRange",
+          "WriteRange",
+          "OpenBrowser",
+          "Click",
+          "TypeInto",
+          "GetText",
+          "Attach",
+          "AttachWindow"
+        ],
+        "penalty_mode": "global",
+        "penalty_value": 0.0,
+        "use_penalty_cap": false,
+        "penalty_cap": 10.0
+      }
     },
     {
       "id": "MODULARIZACION_001",
@@ -162,7 +530,7 @@
       "description": "Los Sequences no deben tener más de N actividades (configurable, default: 20). Cuenta recursivamente hasta encontrar Invoke.",
       "category": "modularizacion",
       "severity": "info",
-      "penalty": 2,
+      "penalty": 0.0,
       "enabled": true,
       "sets": [
         "UiPath",
@@ -177,7 +545,11 @@
           "min": 5,
           "max": 200,
           "description": "Máximo número de actividades permitidas en un Sequence (cuenta recursivamente)"
-        }
+        },
+        "penalty_mode": "global",
+        "penalty_value": 0.0,
+        "use_penalty_cap": false,
+        "penalty_cap": 10.0
       }
     },
     {
@@ -203,15 +575,10 @@
           "max": 200,
           "description": "Mínimo de actividades para sugerir modularización"
         },
-        "penalty_mode": {
-          "type": "string",
-          "value": "total",
-          "options": [
-            "total",
-            "individual"
-          ],
-          "description": "Modo de penalización: 'total' (fija) o 'individual' (multiplicada por casos)"
-        }
+        "penalty_mode": "total",
+        "penalty_value": 0,
+        "use_penalty_cap": false,
+        "penalty_cap": 10
       }
     },
     {
@@ -220,7 +587,7 @@
       "description": "Las State Machines deben tener estados Init (primero) y End (último)",
       "category": "modularizacion",
       "severity": "warning",
-      "penalty": 3,
+      "penalty": 0.0,
       "enabled": true,
       "sets": [
         "UiPath",
@@ -228,7 +595,13 @@
       ],
       "implementation_status": "implemented",
       "rule_type": "init_end_pattern",
-      "old_id": "STATE_MACHINE_001"
+      "old_id": "STATE_MACHINE_001",
+      "parameters": {
+        "penalty_mode": "global",
+        "penalty_value": 0.0,
+        "use_penalty_cap": false,
+        "penalty_cap": 10.0
+      }
     },
     {
       "id": "CODIGO_001",
@@ -236,7 +609,7 @@
       "description": "No debe haber más del 5% de código comentado (CommentOut)",
       "category": "codigo_limpio",
       "severity": "warning",
-      "penalty": 3,
+      "penalty": 0.0,
       "enabled": true,
       "sets": [
         "UiPath",
@@ -252,7 +625,11 @@
           "min": 0,
           "max": 50,
           "description": "Porcentaje máximo de código comentado permitido"
-        }
+        },
+        "penalty_mode": "global",
+        "penalty_value": 0.0,
+        "use_penalty_cap": false,
+        "penalty_cap": 10.0
       }
     },
     {
@@ -261,9 +638,10 @@
       "description": "Debe haber al menos 1 LogMessage cada N actividades (configurable). Por defecto: 10 actividades por log.",
       "category": "logging",
       "severity": "info",
-      "penalty": 1,
+      "penalty": 0.0,
       "enabled": true,
       "sets": [
+        "UiPath",
         "NTTData"
       ],
       "implementation_status": "implemented",
@@ -276,7 +654,11 @@
           "min": 1,
           "max": 50,
           "description": "Máximo número de actividades permitidas por cada LogMessage"
-        }
+        },
+        "penalty_mode": "global",
+        "penalty_value": 0.0,
+        "use_penalty_cap": false,
+        "penalty_cap": 10.0
       }
     },
     {
@@ -285,9 +667,10 @@
       "description": "Usar Log Message al inicio y fin de workflows principales. Por defecto: primeras/últimas 5 actividades.",
       "category": "logging",
       "severity": "info",
-      "penalty": 1,
+      "penalty": 0.0,
       "enabled": true,
       "sets": [
+        "UiPath",
         "NTTData"
       ],
       "implementation_status": "implemented",
@@ -307,7 +690,11 @@
           "min": 1,
           "max": 20,
           "description": "Número de actividades finales donde debe haber al menos un LogMessage"
-        }
+        },
+        "penalty_mode": "global",
+        "penalty_value": 0.0,
+        "use_penalty_cap": false,
+        "penalty_cap": 10.0
       }
     },
     {
@@ -316,14 +703,21 @@
       "description": "Usar Assets para credenciales y configuración en lugar de valores hardcodeados",
       "category": "configuracion",
       "severity": "error",
-      "penalty": 10,
+      "penalty": 0.0,
       "enabled": true,
       "sets": [
+        "UiPath",
         "NTTData"
       ],
       "implementation_status": "implemented",
       "rule_type": "orchestrator_assets",
-      "old_id": "EXCEL_003"
+      "old_id": "EXCEL_003",
+      "parameters": {
+        "penalty_mode": "severity_default",
+        "penalty_value": 0.0,
+        "use_penalty_cap": false,
+        "penalty_cap": 10.0
+      }
     },
     {
       "id": "RENDIMIENTO_001",
@@ -331,9 +725,10 @@
       "description": "No usar timeouts por defecto (30000ms) en actividades críticas. Penalización configurable: Total (fija) o Individual (x casos encontrados).",
       "category": "rendimiento",
       "severity": "info",
-      "penalty": 2,
+      "penalty": 0.0,
       "enabled": true,
       "sets": [
+        "UiPath",
         "NTTData"
       ],
       "implementation_status": "implemented",
@@ -347,15 +742,19 @@
           "max": 300000,
           "description": "Timeout por defecto de UiPath en milisegundos"
         },
-        "penalty_mode": {
-          "type": "string",
-          "value": "individual",
-          "options": [
-            "total",
-            "individual"
-          ],
-          "description": "Modo de penalización: 'total' (fija) o 'individual' (multiplicada por casos)"
-        }
+        "timeout_required_activities": [
+          "Click",
+          "TypeInto",
+          "GetText",
+          "ElementExists",
+          "Find",
+          "Attach",
+          "AttachWindow"
+        ],
+        "penalty_mode": "global",
+        "penalty_value": 0.0,
+        "use_penalty_cap": false,
+        "penalty_cap": 10.0
       }
     },
     {
@@ -364,14 +763,21 @@
       "description": "Evitar selectores con índices (idx) o atributos volátiles",
       "category": "selectores",
       "severity": "warning",
-      "penalty": 3,
+      "penalty": 0.0,
       "enabled": true,
       "sets": [
+        "UiPath",
         "NTTData"
       ],
       "implementation_status": "implemented",
       "rule_type": "stable_selectors",
-      "old_id": "EXCEL_008"
+      "old_id": "EXCEL_008",
+      "parameters": {
+        "penalty_mode": "global",
+        "penalty_value": 0.0,
+        "use_penalty_cap": false,
+        "penalty_cap": 10.0
+      }
     }
   ]
 }
