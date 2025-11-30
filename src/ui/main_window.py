@@ -57,11 +57,11 @@ class MainWindow:
         
     def _create_sidebar(self):
         """Crear menú lateral"""
-        print("🔧 DEBUG: Creando sidebar...")
+        print("DEBUG: Creando sidebar...")
         self.sidebar = tk.Frame(self.root, bg=PRIMARY_COLOR, width=200)
         self.sidebar.pack(side=tk.LEFT, fill=tk.Y)
         self.sidebar.pack_propagate(False)
-        print(f"✅ DEBUG: Sidebar creado - Existe: {self.sidebar.winfo_exists()}, Visible: {self.sidebar.winfo_viewable()}")
+        print(f"DEBUG: Sidebar creado - Existe: {self.sidebar.winfo_exists()}, Visible: {self.sidebar.winfo_viewable()}")
         
         # Título de la aplicación
         title_label = tk.Label(
@@ -153,7 +153,7 @@ class MainWindow:
                     logo_label.pack(pady=(0, 5))
                     
                 except Exception as e:
-                    print(f"⚠️ No se pudo cargar el logo: {e}")
+                    print(f"WARNING: No se pudo cargar el logo: {e}")
                     # Continuar sin logo
             
             # Nombre de empresa (siempre se muestra)
@@ -168,7 +168,7 @@ class MainWindow:
             self.company_label.pack()
             
         except Exception as e:
-            print(f"⚠️ Error al cargar branding: {e}")
+            print(f"WARNING: Error al cargar branding: {e}")
             # Fallback: mostrar solo el nombre de empresa por defecto
             self.company_label = tk.Label(
                 self.sidebar,
@@ -197,9 +197,9 @@ class MainWindow:
             if hasattr(self, 'company_label') and self.company_label.winfo_exists():
                 new_company_name = branding.get_company_name()
                 self.company_label.config(text=new_company_name)
-                print(f"✅ Nombre de empresa actualizado a: {new_company_name}")
+                print(f"OK: Nombre de empresa actualizado a: {new_company_name}")
             else:
-                print("⚠️ No se encontró el label de empresa para actualizar")
+                print("WARNING: No se encontró el label de empresa para actualizar")
             
             # Verificar estado del sidebar DESPUÉS de actualizar
             if hasattr(self, 'sidebar'):
@@ -210,7 +210,7 @@ class MainWindow:
             self._ensure_sidebar_visible()
                 
         except Exception as e:
-            print(f"⚠️ Error al refrescar sidebar: {e}")
+            print(f"WARNING: Error al refrescar sidebar: {e}")
             import traceback
             traceback.print_exc()
         
@@ -230,12 +230,35 @@ class MainWindow:
             padx=20
         )
         btn.pack(fill=tk.X, padx=10, pady=5)
-        
+
         # Efecto hover
         btn.bind("<Enter>", lambda e: btn.config(bg="#0090D1"))
         btn.bind("<Leave>", lambda e: btn.config(bg=SECONDARY_COLOR))
-        
-        return btn
+
+    def _add_back_button(self, parent):
+        """Añadir botón 'Volver al Menú Principal' en la parte superior"""
+        btn_frame = tk.Frame(parent, bg=BG_COLOR)
+        btn_frame.pack(fill=tk.X, padx=20, pady=(10, 0))
+
+        back_btn = tk.Button(
+            btn_frame,
+            text="← Volver al Menú Principal",
+            command=self._show_analysis_screen,
+            bg=SECONDARY_COLOR,
+            fg="white",
+            font=("Arial", 10),
+            relief=tk.FLAT,
+            cursor="hand2",
+            padx=15,
+            pady=8
+        )
+        back_btn.pack(side=tk.LEFT)
+
+        # Efecto hover
+        back_btn.bind("<Enter>", lambda e: back_btn.config(bg="#0090D1"))
+        back_btn.bind("<Leave>", lambda e: back_btn.config(bg=SECONDARY_COLOR))
+
+        return back_btn
     
     def _create_main_area(self):
         """Crear área principal"""
@@ -264,26 +287,26 @@ class MainWindow:
         Si no lo está, re-empaquetarlo.
         """
         if not hasattr(self, 'sidebar'):
-            print("⚠️ WARNING: Sidebar no existe en _ensure_sidebar_visible()")
+            print("WARNING: WARNING: Sidebar no existe en _ensure_sidebar_visible()")
             return
         
         if not self.sidebar.winfo_exists():
-            print("⚠️ WARNING: Sidebar fue destruido - esto no debería pasar")
+            print("WARNING: WARNING: Sidebar fue destruido - esto no debería pasar")
             return
         
         # Verificar si está empaquetado
         manager = self.sidebar.winfo_manager()
         if not manager or manager == '':
-            print("🔧 DEBUG: Sidebar no está empaquetado - re-empaquetando...")
+            print("DEBUG: Sidebar no está empaquetado - re-empaquetando...")
             self.sidebar.pack(side=tk.LEFT, fill=tk.Y)
             self.sidebar.pack_propagate(False)
-            print("✅ DEBUG: Sidebar re-empaquetado")
+            print("OK: DEBUG: Sidebar re-empaquetado")
         
         # Verificar visibilidad
         if not self.sidebar.winfo_viewable():
-            print(f"⚠️ DEBUG: Sidebar no visible - Manager: {manager}, Geometry: {self.sidebar.winfo_geometry()}")
+            print(f"WARNING: DEBUG: Sidebar no visible - Manager: {manager}, Geometry: {self.sidebar.winfo_geometry()}")
         else:
-            print(f"✅ DEBUG: Sidebar visible - Manager: {manager}, Width: {self.sidebar.winfo_width()}px")
+            print(f"OK: DEBUG: Sidebar visible - Manager: {manager}, Width: {self.sidebar.winfo_width()}px")
     
     def _clear_main_area(self):
         """Limpiar área principal"""
@@ -372,45 +395,66 @@ class MainWindow:
         available_sets = get_available_bbpp_sets()
         user_config = load_user_config()
         active_sets_config = user_config.get('active_bbpp_sets', ['UiPath'])
-        
+
         self.bbpp_vars = {}
-        
+
         if not available_sets:
             tk.Label(bbpp_frame, text="No se encontraron reglas BBPP", bg=BG_COLOR, fg="red").pack()
         else:
-            # Grid para checkboxes
-            grid_frame = tk.Frame(bbpp_frame, bg=BG_COLOR)
-            grid_frame.pack(fill=tk.X)
-            
-            col = 0
-            row = 0
-            for bbpp_set in available_sets:
+            # Nuevo diseño: Listbox con selección múltiple
+            listbox_frame = tk.Frame(bbpp_frame, bg=BG_COLOR)
+            listbox_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+            # Etiqueta informativa
+            info_label = tk.Label(
+                listbox_frame,
+                text="Seleccione uno o más conjuntos de BBPP (Ctrl/Shift para selección múltiple):",
+                bg=BG_COLOR,
+                fg=TEXT_COLOR,
+                font=("Arial", 9, "italic")
+            )
+            info_label.pack(anchor=tk.W, pady=(0, 5))
+
+            # Frame para Listbox + Scrollbar
+            list_container = tk.Frame(listbox_frame, bg=BG_COLOR)
+            list_container.pack(fill=tk.BOTH, expand=True)
+
+            # Scrollbar
+            scrollbar = tk.Scrollbar(list_container, orient=tk.VERTICAL)
+            scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+            # Listbox con selección múltiple
+            self.bbpp_listbox = tk.Listbox(
+                list_container,
+                selectmode=tk.MULTIPLE,
+                height=6,
+                font=("Arial", 10),
+                yscrollcommand=scrollbar.set,
+                exportselection=False
+            )
+            self.bbpp_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            scrollbar.config(command=self.bbpp_listbox.yview)
+
+            # Mapeo de índice a set_name para facilitar acceso
+            self.bbpp_set_names = []
+
+            # Llenar Listbox
+            for idx, bbpp_set in enumerate(available_sets):
                 name = bbpp_set['name']
                 filename = bbpp_set['filename']
-                
-                # Extraer el nombre del set del filename (BBPP_UiPath.json -> UiPath)
+                version = bbpp_set['version']
+
+                # Extraer el nombre del set del filename
                 set_name = filename.replace('BBPP_', '').replace('.json', '')
-                
-                # Estado inicial basado en config
+                self.bbpp_set_names.append(set_name)
+
+                # Añadir a Listbox
+                self.bbpp_listbox.insert(tk.END, f"{name} (v{version})")
+
+                # Seleccionar si está activo
                 is_active = set_name in active_sets_config or filename in active_sets_config
-                
-                var = tk.BooleanVar(value=is_active)
-                self.bbpp_vars[set_name] = var  # Usar set_name en lugar de filename
-                
-                cb = tk.Checkbutton(
-                    grid_frame,
-                    text=f"{name} (v{bbpp_set['version']})",
-                    variable=var,
-                    bg=BG_COLOR,
-                    font=("Arial", 10),
-                    cursor="hand2"
-                )
-                cb.grid(row=row, column=col, sticky="w", padx=10, pady=5)
-                
-                col += 1
-                if col > 2:  # 3 columnas
-                    col = 0
-                    row += 1
+                if is_active:
+                    self.bbpp_listbox.selection_set(idx)
         
         # Frame para botones de reportes
         reports_frame = tk.Frame(self.main_area, bg=BG_COLOR)
@@ -476,20 +520,23 @@ class MainWindow:
     def _show_config_screen(self):
         """Mostrar pantalla de configuración"""
         self._clear_main_area()
-        
+
+        # Botón Volver
+        self._add_back_button(self.main_area)
+
         # Contenedor principal con scroll
         canvas = tk.Canvas(self.main_area, bg=BG_COLOR, highlightthickness=0)
         scrollbar = ttk.Scrollbar(self.main_area, orient="vertical", command=canvas.yview)
         scrollable_frame = tk.Frame(canvas, bg=BG_COLOR)
-        
+
         scrollable_frame.bind(
             "<Configure>",
             lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
         )
-        
+
         canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
-        
+
         # Título
         title = tk.Label(
             scrollable_frame,
@@ -531,7 +578,7 @@ class MainWindow:
         
         info_label = tk.Label(
             info_frame,
-            text="ℹ️  Recomendable dejarlo activado para poder acceder siempre al reporte.\n"
+            text="INFO: Recomendable dejarlo activado para poder acceder siempre al reporte.\n"
                  "   En caso contrario, pulsar 'Generar Reporte' en el análisis.",
             font=("Arial", 8),
             bg="#E3F2FD",
@@ -698,7 +745,7 @@ class MainWindow:
         except Exception as e:
             error_label = tk.Label(
                 company_frame,
-                text=f"⚠️ Error al cargar configuración de empresa: {e}",
+                text=f"WARNING: Error al cargar configuración de empresa: {e}",
                 font=("Arial", 9),
                 bg=BG_COLOR,
                 fg="red"
@@ -806,7 +853,7 @@ class MainWindow:
         # Tooltip
         tooltip_label = tk.Label(
             row_frame,
-            text=f"ℹ️ {tooltip}",
+            text=f"INFO: {tooltip}",
             font=("Arial", 8),
             bg=BG_COLOR,
             fg="#666",
@@ -889,17 +936,17 @@ class MainWindow:
                 if hasattr(self, 'sidebar'):
                     self.sidebar.destroy()
                 self._create_sidebar()
-                print("✅ Sidebar recreado sin logo")
+                print("OK: Sidebar recreado sin logo")
             except Exception as e:
-                print(f"⚠️ Error al refrescar sidebar: {e}")
+                print(f"WARNING: Error al refrescar sidebar: {e}")
             
             messagebox.showinfo(
-                "✅ Logo Restaurado",
+                "OK: Logo Restaurado",
                 "Logo restaurado al valor por defecto.\n\nEl logo ha sido eliminado del sidebar."
             )
         except Exception as e:
             messagebox.showerror(
-                "❌ Error",
+                "ERROR: Error",
                 f"Error al restaurar logo:\n{str(e)}"
             )
             import traceback
@@ -933,12 +980,12 @@ class MainWindow:
                 branding = get_branding_manager()
                 from pathlib import Path
                 branding.set_logo_path(Path(self.custom_logo_path))
-                print(f"✅ Logo guardado en branding: {self.custom_logo_path}")
+                print(f"OK: Logo guardado en branding: {self.custom_logo_path}")
             
             # Guardar user config
             if save_user_config(config):
                 messagebox.showinfo(
-                    "✅ Configuración Guardada",
+                    "OK: Configuración Guardada",
                     "La configuración se ha guardado correctamente.\n\nReinicia la aplicación para ver el logo."
                 )
                 
@@ -949,18 +996,18 @@ class MainWindow:
                         if hasattr(self, 'sidebar'):
                             self.sidebar.destroy()
                         self._create_sidebar()
-                        print("✅ Sidebar recreado con nuevo logo")
+                        print("OK: Sidebar recreado con nuevo logo")
                     except Exception as e:
-                        print(f"⚠️ Error al refrescar sidebar: {e}")
+                        print(f"WARNING: Error al refrescar sidebar: {e}")
             else:
                 messagebox.showerror(
-                    "❌ Error",
+                    "ERROR: Error",
                     "No se pudo guardar la configuración."
                 )
                 
         except Exception as e:
             messagebox.showerror(
-                "❌ Error",
+                "ERROR: Error",
                 f"Error al guardar la configuración:\n{str(e)}"
             )
             import traceback
@@ -969,21 +1016,21 @@ class MainWindow:
     def _reset_configuration(self):
         """Restaurar configuración a valores por defecto"""
         confirm = messagebox.askyesno(
-            "⚠️ Confirmar Restauración",
+            "WARNING: Confirmar Restauración",
             "¿Estás seguro de que quieres restaurar todos los valores por defecto?\n\nEsta acción no se puede deshacer."
         )
         
         if confirm:
             if reset_to_defaults():
                 messagebox.showinfo(
-                    "✅ Restaurado",
+                    "OK: Restaurado",
                     "La configuración ha sido restaurada a los valores por defecto.\n\nRecarga la pantalla para ver los cambios."
                 )
                 # Recargar pantalla
                 self._show_config_screen()
             else:
                 messagebox.showerror(
-                    "❌ Error",
+                    "ERROR: Error",
                     "No se pudo restaurar la configuración."
                 )
         
@@ -1012,7 +1059,7 @@ class MainWindow:
             
             if success_name and success_short:
                 messagebox.showinfo(
-                    "✅ Configuración Guardada",
+                    "OK: Configuración Guardada",
                     f"La configuración de empresa se ha guardado correctamente:\n\n"
                     f"Nombre: {company_name}\n"
                     f"Nombre Corto: {company_short_name}\n\n"
@@ -1022,39 +1069,45 @@ class MainWindow:
                 # Refrescar sidebar para mostrar cambios inmediatamente
                 try:
                     self.refresh_sidebar()
-                    print("✅ Sidebar refrescado correctamente")
+                    print("OK: Sidebar refrescado correctamente")
                 except Exception as e:
-                    print(f"⚠️ Error al refrescar sidebar: {e}")
+                    print(f"WARNING: Error al refrescar sidebar: {e}")
                     import traceback
                     traceback.print_exc()
             else:
                 messagebox.showerror(
-                    "❌ Error",
+                    "ERROR: Error",
                     "No se pudo guardar la configuración de empresa."
                 )
         except Exception as e:
             messagebox.showerror(
-                "❌ Error",
+                "ERROR: Error",
                 f"Error al guardar la configuración:\n{str(e)}"
             )
         
     def _show_version_notes(self):
         """Mostrar notas de versión desde CHANGELOG.md"""
         self._clear_main_area()
-        
+
+        # Botón Volver
+        self._add_back_button(self.main_area)
+
         # Importar y mostrar pantalla de release notes
         from src.ui.release_notes_screen import ReleaseNotesScreen
-        
+
         release_notes = ReleaseNotesScreen(self.main_area)
         release_notes.pack(fill=tk.BOTH, expand=True)
     
     def _show_metrics_dashboard(self):
         """Mostrar dashboard de métricas"""
         self._clear_main_area()
-        
+
+        # Botón Volver
+        self._add_back_button(self.main_area)
+
         # Importar y mostrar dashboard de métricas
         from src.ui.metrics_dashboard import show_metrics_dashboard
-        
+
         dashboard = show_metrics_dashboard(self.main_area, self.project_path)
         dashboard.pack(fill=tk.BOTH, expand=True)
         
@@ -1156,13 +1209,19 @@ class MainWindow:
             try:
                 # Cargar configuración del usuario
                 user_config = load_user_config()
-                
-                # Obtener sets seleccionados de la UI
-                active_sets = [
-                    set_name for set_name, var in self.bbpp_vars.items()
-                    if var.get()
-                ]
-                
+
+                # Obtener sets seleccionados de la UI (Listbox)
+                if hasattr(self, 'bbpp_listbox'):
+                    # Nuevo sistema: Listbox
+                    selected_indices = self.bbpp_listbox.curselection()
+                    active_sets = [self.bbpp_set_names[idx] for idx in selected_indices]
+                else:
+                    # Fallback: sistema antiguo de checkboxes
+                    active_sets = [
+                        set_name for set_name, var in self.bbpp_vars.items()
+                        if var.get()
+                    ]
+
                 # Si no hay ninguno seleccionado, usar UiPath por defecto o advertir
                 if not active_sets:
                     active_sets = ['UiPath']
@@ -1233,10 +1292,10 @@ class MainWindow:
             
             for idx, finding in enumerate(findings[:50], 1):  # Limitar a 50
                 severity_symbol = {
-                    'error': '❌',
-                    'warning': '⚠️',
-                    'info': 'ℹ️'
-                }.get(finding['severity'], '•')
+                    'error': 'ERROR:',
+                    'warning': 'WARNING:',
+                    'info': 'INFO:'
+                }.get(finding['severity'], '-')
                 
                 self.results_text.insert(
                     tk.END,
@@ -1523,7 +1582,10 @@ class MainWindow:
         # Limpiar área principal
         for widget in self.main_area.winfo_children():
             widget.destroy()
-        
+
+        # Botón Volver
+        self._add_back_button(self.main_area)
+
         # Importar y crear pantalla de gestión de reglas
         try:
             from src.ui.rules_management_screen import RulesManagementScreen
@@ -1534,7 +1596,7 @@ class MainWindow:
             error_frame = tk.Frame(self.main_area, bg=BG_COLOR)
             error_frame.pack(fill=tk.BOTH, expand=True)
             
-            error_text = f"❌ Error al cargar Gestión de Reglas:\n\n{str(e)}\n\n{traceback.format_exc()}"
+            error_text = f"ERROR: Error al cargar Gestión de Reglas:\n\n{str(e)}\n\n{traceback.format_exc()}"
             error_label = tk.Label(
                 error_frame,
                 text=error_text,
@@ -1572,7 +1634,7 @@ class MainWindow:
         if not available_sets:
             no_sets_label = tk.Label(
                 list_frame,
-                text="⚠️ No se encontraron conjuntos de BBPP en config/bbpp/",
+                text="WARNING: No se encontraron conjuntos de BBPP en config/bbpp/",
                 font=("Arial", 11),
                 bg=BG_COLOR,
                 fg="#FFC107"
@@ -1771,14 +1833,14 @@ class MainWindow:
         if set_active_bbpp_sets(active_sets):
             messagebox.showinfo(
                 "Configuración Guardada",
-                f"✅ Se han activado {len(active_sets)} conjunto(s) de BBPP.\n\n"
+                f"OK: Se han activado {len(active_sets)} conjunto(s) de BBPP.\n\n"
                 "Los cambios se aplicarán en el próximo análisis."
             )
             self.status_bar.config(text=f"Configuración guardada: {len(active_sets)} conjunto(s) activo(s)")
         else:
             messagebox.showerror(
                 "Error",
-                "❌ No se pudo guardar la configuración.\n\n"
+                "ERROR: No se pudo guardar la configuración.\n\n"
                 "Verifica los permisos de escritura en config/user_config.json"
             )
     
@@ -1864,12 +1926,12 @@ class MainWindow:
                     select_window.destroy()
                     messagebox.showinfo(
                         "Exportación Exitosa",
-                        f"✅ Conjunto exportado correctamente a:\n{filename}"
+                        f"OK: Conjunto exportado correctamente a:\n{filename}"
                     )
                 else:
                     messagebox.showerror(
                         "Error",
-                        "❌ No se pudo exportar el conjunto"
+                        "ERROR: No se pudo exportar el conjunto"
                     )
         
         # Botones
@@ -1927,7 +1989,7 @@ class MainWindow:
         if import_bbpp_set(Path(filename)):
             messagebox.showinfo(
                 "Importación Exitosa",
-                f"✅ Conjunto importado correctamente.\n\n"
+                f"OK: Conjunto importado correctamente.\n\n"
                 "El nuevo conjunto ya está disponible en config/bbpp/\n"
                 "Recarga esta pantalla para verlo en la lista."
             )
@@ -1936,7 +1998,7 @@ class MainWindow:
         else:
             messagebox.showerror(
                 "Error",
-                "❌ No se pudo importar el conjunto.\n\n"
+                "ERROR: No se pudo importar el conjunto.\n\n"
                 "Verifica que el archivo JSON tenga el formato correcto."
             )
     
@@ -1965,13 +2027,13 @@ class MainWindow:
         if export_all_active_bbpp(Path(filename)):
             messagebox.showinfo(
                 "Exportación Exitosa",
-                f"✅ Configuración completa exportada a:\n{Path(filename).name}\n\n"
+                f"OK: Configuración completa exportada a:\n{Path(filename).name}\n\n"
                 "Incluye todos los conjuntos activos y sus reglas."
             )
         else:
             messagebox.showerror(
                 "Error",
-                "❌ No se pudo exportar la configuración.\n\n"
+                "ERROR: No se pudo exportar la configuración.\n\n"
                 "Verifica que haya al menos un conjunto activo."
             )
     

@@ -206,13 +206,13 @@ def load_bbpp_file(filepath: Path) -> Dict:
             data = json.load(f)
         return data
     except FileNotFoundError:
-        print(f"⚠️ Archivo no encontrado: {filepath}")
+        print(f"WARNING: Archivo no encontrado: {filepath}")
         return {"metadata": {}, "rules": []}
     except json.JSONDecodeError as e:
-        print(f"❌ Error al parsear JSON {filepath}: {e}")
+        print(f"ERROR: Error al parsear JSON {filepath}: {e}")
         return {"metadata": {}, "rules": []}
     except Exception as e:
-        print(f"❌ Error al cargar {filepath}: {e}")
+        print(f"ERROR: Error al cargar {filepath}: {e}")
         return {"metadata": {}, "rules": []}
 
 
@@ -226,14 +226,14 @@ def load_all_bbpp_sets() -> List[Dict]:
     bbpp_sets = []
     
     if not BBPP_DIR.exists():
-        print(f"⚠️ Directorio de BBPP no encontrado: {BBPP_DIR}")
+        print(f"WARNING: Directorio de BBPP no encontrado: {BBPP_DIR}")
         return bbpp_sets
     
     # Buscar todos los archivos .json en el directorio
     json_files = list(BBPP_DIR.glob("*.json"))
     
     if not json_files:
-        print(f"⚠️ No se encontraron archivos JSON en {BBPP_DIR}")
+        print(f"WARNING: No se encontraron archivos JSON en {BBPP_DIR}")
         return bbpp_sets
     
     for json_file in json_files:
@@ -241,7 +241,7 @@ def load_all_bbpp_sets() -> List[Dict]:
         if bbpp_data and bbpp_data.get("rules"):
             bbpp_data["_filepath"] = str(json_file)  # Guardar ruta para referencia
             bbpp_sets.append(bbpp_data)
-            print(f"✅ Cargado: {bbpp_data['metadata'].get('name', json_file.name)}")
+            print(f"OK: Cargado: {bbpp_data['metadata'].get('name', json_file.name)}")
     
     return bbpp_sets
 
@@ -334,7 +334,7 @@ def load_user_config() -> Dict:
         with open(USER_CONFIG_FILE, 'r', encoding='utf-8') as f:
             return json.load(f)
     except Exception as e:
-        print(f"⚠️ Error al cargar user_config.json: {e}")
+        print(f"WARNING: Error al cargar user_config.json: {e}")
         return {
             "version": "1.0.0",
             "active_bbpp_sets": [],
@@ -359,7 +359,7 @@ def save_user_config(config: Dict) -> bool:
             json.dump(config, f, indent=2, ensure_ascii=False)
         return True
     except Exception as e:
-        print(f"❌ Error al guardar user_config.json: {e}")
+        print(f"ERROR: Error al guardar user_config.json: {e}")
         return False
 
 
@@ -479,7 +479,7 @@ def export_bbpp_set(source_filepath: Path, destination_filepath: Path) -> bool:
         bbpp_data = load_bbpp_file(source_filepath)
         
         if not bbpp_data or not bbpp_data.get('rules'):
-            print(f"⚠️ No hay datos válidos para exportar en {source_filepath}")
+            print(f"WARNING: No hay datos válidos para exportar en {source_filepath}")
             return False
         
         # Agregar metadata de exportación
@@ -493,11 +493,11 @@ def export_bbpp_set(source_filepath: Path, destination_filepath: Path) -> bool:
         with open(destination_filepath, 'w', encoding='utf-8') as f:
             json.dump(bbpp_data, f, indent=2, ensure_ascii=False)
         
-        print(f"✅ Conjunto exportado: {destination_filepath}")
+        print(f"OK: Conjunto exportado: {destination_filepath}")
         return True
         
     except Exception as e:
-        print(f"❌ Error al exportar conjunto: {e}")
+        print(f"ERROR: Error al exportar conjunto: {e}")
         return False
 
 
@@ -518,30 +518,30 @@ def import_bbpp_set(source_filepath: Path, destination_filename: str = None) -> 
         
         # Validar que el archivo existe
         if not source_filepath.exists():
-            print(f"❌ Archivo no encontrado: {source_filepath}")
+            print(f"ERROR: Archivo no encontrado: {source_filepath}")
             return False
         
         # Leer y validar el archivo
         bbpp_data = load_bbpp_file(source_filepath)
         
         if not bbpp_data:
-            print(f"❌ Archivo JSON inválido o vacío")
+            print(f"ERROR: Archivo JSON inválido o vacío")
             return False
         
         # Validar estructura básica
         if 'rules' not in bbpp_data:
-            print(f"❌ El archivo no tiene estructura de conjunto de BBPP (falta 'rules')")
+            print(f"ERROR: El archivo no tiene estructura de conjunto de BBPP (falta 'rules')")
             return False
         
         # Validar estructura completa
         is_valid, error_msg = validate_bbpp_structure(bbpp_data)
         if not is_valid:
-            print(f"❌ Estructura de BBPP inválida: {error_msg}")
+            print(f"ERROR: Estructura de BBPP inválida: {error_msg}")
             return False
         
         # Validar que tiene al menos metadata básica
         if 'metadata' not in bbpp_data:
-            print(f"⚠️ El archivo no tiene metadata, se agregará metadata básica")
+            print(f"WARNING: El archivo no tiene metadata, se agregará metadata básica")
             bbpp_data['metadata'] = {
                 'name': 'Conjunto Importado',
                 'version': '1.0.0',
@@ -572,11 +572,11 @@ def import_bbpp_set(source_filepath: Path, destination_filename: str = None) -> 
         with open(destination_path, 'w', encoding='utf-8') as f:
             json.dump(bbpp_data, f, indent=2, ensure_ascii=False)
         
-        print(f"✅ Conjunto importado: {destination_path.name}")
+        print(f"OK: Conjunto importado: {destination_path.name}")
         return True
         
     except Exception as e:
-        print(f"❌ Error al importar conjunto: {e}")
+        print(f"ERROR: Error al importar conjunto: {e}")
         return False
 
 
@@ -628,7 +628,7 @@ def export_all_active_bbpp(destination_filepath: Path) -> bool:
         active_sets = [s for s in all_sets if Path(s.get("_filepath", "")).name in active_set_names]
         
         if not active_sets:
-            print("⚠️ No hay conjuntos activos para exportar")
+            print("WARNING: No hay conjuntos activos para exportar")
             return False
         
         # Crear estructura consolidada
@@ -656,11 +656,11 @@ def export_all_active_bbpp(destination_filepath: Path) -> bool:
         with open(destination_filepath, 'w', encoding='utf-8') as f:
             json.dump(consolidated, f, indent=2, ensure_ascii=False)
         
-        print(f"✅ Configuración consolidada exportada: {destination_filepath}")
+        print(f"OK: Configuración consolidada exportada: {destination_filepath}")
         return True
         
     except Exception as e:
-        print(f"❌ Error al exportar configuración consolidada: {e}")
+        print(f"ERROR: Error al exportar configuración consolidada: {e}")
         return False
 
 
@@ -698,7 +698,7 @@ def load_user_config() -> dict:
             save_user_config(default_config)
             return default_config
     except Exception as e:
-        print(f"❌ Error al cargar configuración de usuario: {e}")
+        print(f"ERROR: Error al cargar configuración de usuario: {e}")
         return {}
 
 
@@ -722,11 +722,11 @@ def save_user_config(config: dict) -> bool:
         with open(USER_CONFIG_FILE, 'w', encoding='utf-8') as f:
             json.dump(config, f, indent=2, ensure_ascii=False)
         
-        print(f"✅ Configuración guardada correctamente")
+        print(f"OK: Configuración guardada correctamente")
         return True
         
     except Exception as e:
-        print(f"❌ Error al guardar configuración: {e}")
+        print(f"ERROR: Error al guardar configuración: {e}")
         return False
 
 
@@ -881,5 +881,5 @@ def reset_to_defaults() -> bool:
         }
         return save_user_config(default_config)
     except Exception as e:
-        print(f"❌ Error al restaurar configuración: {e}")
+        print(f"ERROR: Error al restaurar configuración: {e}")
         return False

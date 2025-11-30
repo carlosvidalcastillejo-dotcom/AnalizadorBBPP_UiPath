@@ -1,5 +1,36 @@
 # Changelog
 
+## [1.1.0] - 2024-11-30
+
+**Autor:** Carlos Vidal Castillejo
+**Tipo de cambio:** Minor - Mejoras de UI/UX
+
+### ✨ Nuevas Funcionalidades
+
+#### 🎯 Selector de Conjuntos BBPP Mejorado
+- ✅ Reemplazado checkboxes por **Listbox con selección múltiple**
+- ✅ Scrollbar vertical para navegación
+- ✅ Soporte para Ctrl/Shift para selección múltiple
+- ✅ Mejor experiencia de usuario y más escalable
+
+#### 🔙 Navegación Mejorada
+- ✅ Botón "← Volver al Menú Principal" en todas las pantallas secundarias
+- ✅ Presente en: Configuración, Gestión BBPP, Métricas, Notas de Versión
+- ✅ Diseño consistente con colores corporativos
+- ✅ Efecto hover para mejor feedback visual
+
+#### 🐛 Correcciones
+- ✅ Eliminados todos los emojis de prints (compatibilidad Windows)
+- ✅ Arreglados errores UnicodeEncodeError en consola
+- ✅ Mejorada retrocompatibilidad del selector de conjuntos
+
+**ARCHIVOS MODIFICADOS:**
+- src/ui/main_window.py: Listbox multiselect, botón Volver, fix emojis
+- src/config.py: Fix emojis en prints
+- src/branding_manager.py: Fix emojis en prints
+
+---
+
 ## [1.0.0] - 2024-11-30 🎉
 
 **Autor:** Carlos Vidal Castillejo

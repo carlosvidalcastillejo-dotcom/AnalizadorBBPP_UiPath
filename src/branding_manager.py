@@ -34,7 +34,7 @@ class BrandingManager:
                 self._config = self._get_default_config()
                 self._save_config()
         except Exception as e:
-            print(f"⚠️ Error cargando branding: {e}")
+            print(f"WARNING: Error cargando branding: {e}")
             self._config = self._get_default_config()
     
     def _get_default_config(self) -> Dict:
@@ -90,7 +90,7 @@ class BrandingManager:
             
             return True
         except Exception as e:
-            print(f"❌ Error guardando branding: {e}")
+            print(f"ERROR: Error guardando branding: {e}")
             return False
     
     # ========== COMPANY ==========
@@ -208,7 +208,7 @@ class BrandingManager:
                 json.dump(self._config, f, indent=4, ensure_ascii=False)
             return True
         except Exception as e:
-            print(f"❌ Error exportando configuración: {e}")
+            print(f"ERROR: Error exportando configuración: {e}")
             return False
     
     def import_config(self, import_path: Path) -> bool:
@@ -223,10 +223,10 @@ class BrandingManager:
                 self._config = imported_config
                 return self._save_config()
             else:
-                print("❌ Configuración importada no válida")
+                print("ERROR: Configuración importada no válida")
                 return False
         except Exception as e:
-            print(f"❌ Error importando configuración: {e}")
+            print(f"ERROR: Error importando configuración: {e}")
             return False
     
     def reset_to_defaults(self) -> bool:
