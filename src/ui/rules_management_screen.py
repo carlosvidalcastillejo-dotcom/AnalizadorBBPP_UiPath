@@ -156,42 +156,61 @@ class RulesManagementScreen:
         # Frame de Gestión de Conjuntos
         sets_mgmt_frame = tk.LabelFrame(
             main_frame,
-            text="Gestión de Conjuntos y Dependencias",
+            text="Gestión de Dependencias por Conjunto",
             font=("Arial", 10, "bold"),
             bg=BG_COLOR,
             padx=10,
             pady=10
         )
         sets_mgmt_frame.pack(fill=tk.X, padx=20, pady=10)
-        
+
         # Obtener conjuntos disponibles
         sets_info = self.rules_manager.get_sets_info()
-        
-        for set_name, info in sets_info.items():
-            set_frame = tk.Frame(sets_mgmt_frame, bg=BG_COLOR)
-            set_frame.pack(fill=tk.X, pady=5)
-            
-            # Nombre del conjunto
-            tk.Label(
-                set_frame,
-                text=f"🔹 {info.get('name', set_name)}",
-                font=("Arial", 10, "bold"),
-                bg=BG_COLOR,
-                width=30,
-                anchor="w"
-            ).pack(side=tk.LEFT)
-            
-            # Botón Dependencias
-            tk.Button(
-                set_frame,
-                text="📦 Dependencias",
-                font=("Arial", 9),
-                bg="#E3F2FD",
-                fg=PRIMARY_COLOR,
-                relief=tk.FLAT,
-                cursor="hand2",
-                command=lambda s=set_name: self._show_dependency_dialog(s)
-            ).pack(side=tk.LEFT, padx=10)
+        set_names = list(sets_info.keys())
+
+        # Dropdown frame
+        dropdown_frame = tk.Frame(sets_mgmt_frame, bg=BG_COLOR)
+        dropdown_frame.pack(fill=tk.X, pady=5)
+
+        # Label
+        tk.Label(
+            dropdown_frame,
+            text="Selecciona conjunto para gestionar dependencias:",
+            font=("Arial", 9),
+            bg=BG_COLOR,
+            fg="gray"
+        ).pack(side=tk.LEFT, padx=(0, 10))
+
+        # Dropdown de conjuntos
+        selected_set_var = tk.StringVar(value=set_names[0] if set_names else "")
+        sets_dropdown = ttk.Combobox(
+            dropdown_frame,
+            textvariable=selected_set_var,
+            values=set_names,
+            state="readonly",
+            width=30,
+            font=("Arial", 10)
+        )
+        sets_dropdown.pack(side=tk.LEFT, padx=5)
+
+        # Botón para editar dependencias del conjunto seleccionado
+        def open_dependencies():
+            selected = selected_set_var.get()
+            if selected:
+                self._show_dependency_dialog(selected)
+
+        tk.Button(
+            dropdown_frame,
+            text="📝 Editar Dependencias",
+            font=("Arial", 9, "bold"),
+            bg=SECONDARY_COLOR,
+            fg="white",
+            relief=tk.FLAT,
+            cursor="hand2",
+            command=open_dependencies,
+            padx=15,
+            pady=5
+        ).pack(side=tk.LEFT, padx=10)
 
         # Frame para tabla y panel de detalles
         content_frame = tk.Frame(main_frame, bg=BG_COLOR)

@@ -1,5 +1,30 @@
 # Changelog
 
+## [1.1.4] - 2024-11-30
+
+**Autor:** Carlos Vidal Castillejo
+**Tipo de cambio:** Patch - Mejora UX Gestión de Dependencias
+
+### ✨ Mejoras
+
+#### Conversión de Botones a Dropdown (Gestión de Dependencias)
+- ✅ **Gestión de Dependencias:** Cambiado de múltiples botones (uno por conjunto) a dropdown único + botón
+  - UI más limpia y compacta
+  - Dropdown para seleccionar el conjunto
+  - Botón único "📝 Editar Dependencias" para el conjunto seleccionado
+  - Mejor escalabilidad para proyectos con muchos conjuntos
+
+### 🎯 Beneficios
+- Menos espacio horizontal ocupado
+- Interfaz más organizada y profesional
+- Mejor UX para gestionar dependencias
+
+**ARCHIVOS MODIFICADOS:**
+- src/ui/rules_management_screen.py:
+  - Líneas 156-213: Dropdown + botón para gestión de dependencias
+
+---
+
 ## [1.1.3] - 2024-11-30
 
 **Autor:** Carlos Vidal Castillejo
