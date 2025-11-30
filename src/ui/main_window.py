@@ -390,71 +390,78 @@ class MainWindow:
         )
         bbpp_frame.pack(padx=20, pady=5, fill=tk.X)
         
-        # Cargar conjuntos disponibles
+        # Cargar conjuntos disponibles (solo los activos)
         from src.config import get_available_bbpp_sets, load_user_config
-        available_sets = get_available_bbpp_sets()
+        from src.rules_manager import get_rules_manager
+
+        all_sets = get_available_bbpp_sets()
+        rules_manager = get_rules_manager()
         user_config = load_user_config()
-        active_sets_config = user_config.get('active_bbpp_sets', ['UiPath'])
+
+        # Filtrar solo conjuntos ACTIVOS desde rules_manager
+        active_sets_only = []
+        for bbpp_set in all_sets:
+            filename = bbpp_set['filename']
+            set_name = filename.replace('BBPP_', '').replace('.json', '')
+
+            # Verificar si el conjunto está activo en BBPP_Master.json
+            bbpp_data = rules_manager.sets.get(set_name, {})
+            metadata = bbpp_data.get('metadata', {})
+            is_enabled = metadata.get('enabled', True)
+
+            if is_enabled:
+                active_sets_only.append({
+                    'name': bbpp_set['name'],
+                    'version': bbpp_set['version'],
+                    'set_name': set_name
+                })
 
         self.bbpp_vars = {}
 
-        if not available_sets:
-            tk.Label(bbpp_frame, text="No se encontraron reglas BBPP", bg=BG_COLOR, fg="red").pack()
+        if not active_sets_only:
+            tk.Label(
+                bbpp_frame,
+                text="No hay conjuntos ACTIVOS disponibles.\nActive al menos un conjunto en 'Gestión de BBPP'.",
+                bg=BG_COLOR,
+                fg="orange",
+                justify=tk.LEFT
+            ).pack(pady=10)
         else:
-            # Nuevo diseño: Listbox con selección múltiple
-            listbox_frame = tk.Frame(bbpp_frame, bg=BG_COLOR)
-            listbox_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+            # Diseño: Combobox (dropdown) simple
+            combo_frame = tk.Frame(bbpp_frame, bg=BG_COLOR)
+            combo_frame.pack(fill=tk.X, padx=10, pady=10)
 
-            # Etiqueta informativa
+            # Etiqueta
             info_label = tk.Label(
-                listbox_frame,
-                text="Seleccione uno o más conjuntos de BBPP (Ctrl/Shift para selección múltiple):",
+                combo_frame,
+                text="Seleccione un conjunto de BBPP:",
                 bg=BG_COLOR,
                 fg=TEXT_COLOR,
-                font=("Arial", 9, "italic")
+                font=("Arial", 10)
             )
             info_label.pack(anchor=tk.W, pady=(0, 5))
 
-            # Frame para Listbox + Scrollbar
-            list_container = tk.Frame(listbox_frame, bg=BG_COLOR)
-            list_container.pack(fill=tk.BOTH, expand=True)
-
-            # Scrollbar
-            scrollbar = tk.Scrollbar(list_container, orient=tk.VERTICAL)
-            scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-
-            # Listbox con selección múltiple
-            self.bbpp_listbox = tk.Listbox(
-                list_container,
-                selectmode=tk.MULTIPLE,
-                height=6,
+            # Combobox
+            conjunto_values = [f"{s['name']} (v{s['version']})" for s in active_sets_only]
+            self.conjunto_combo = ttk.Combobox(
+                combo_frame,
+                values=conjunto_values,
+                state='readonly',
                 font=("Arial", 10),
-                yscrollcommand=scrollbar.set,
-                exportselection=False
+                width=50
             )
-            self.bbpp_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-            scrollbar.config(command=self.bbpp_listbox.yview)
+            self.conjunto_combo.pack(fill=tk.X, pady=5)
 
-            # Mapeo de índice a set_name para facilitar acceso
-            self.bbpp_set_names = []
+            # Mapeo de índice a set_name
+            self.bbpp_set_names = [s['set_name'] for s in active_sets_only]
 
-            # Llenar Listbox
-            for idx, bbpp_set in enumerate(available_sets):
-                name = bbpp_set['name']
-                filename = bbpp_set['filename']
-                version = bbpp_set['version']
-
-                # Extraer el nombre del set del filename
-                set_name = filename.replace('BBPP_', '').replace('.json', '')
-                self.bbpp_set_names.append(set_name)
-
-                # Añadir a Listbox
-                self.bbpp_listbox.insert(tk.END, f"{name} (v{version})")
-
-                # Seleccionar si está activo
-                is_active = set_name in active_sets_config or filename in active_sets_config
-                if is_active:
-                    self.bbpp_listbox.selection_set(idx)
+            # Seleccionar el primer conjunto activo por defecto
+            last_selected = user_config.get('last_selected_bbpp_set', None)
+            if last_selected and last_selected in self.bbpp_set_names:
+                idx = self.bbpp_set_names.index(last_selected)
+                self.conjunto_combo.current(idx)
+            else:
+                self.conjunto_combo.current(0)
         
         # Frame para botones de reportes
         reports_frame = tk.Frame(self.main_area, bg=BG_COLOR)
@@ -1210,21 +1217,29 @@ class MainWindow:
                 # Cargar configuración del usuario
                 user_config = load_user_config()
 
-                # Obtener sets seleccionados de la UI (Listbox)
-                if hasattr(self, 'bbpp_listbox'):
-                    # Nuevo sistema: Listbox
-                    selected_indices = self.bbpp_listbox.curselection()
-                    active_sets = [self.bbpp_set_names[idx] for idx in selected_indices]
+                # Obtener conjunto seleccionado de la UI (Combobox)
+                if hasattr(self, 'conjunto_combo'):
+                    # Nuevo sistema: Combobox (selección simple)
+                    selected_idx = self.conjunto_combo.current()
+                    if selected_idx >= 0:
+                        active_sets = [self.bbpp_set_names[selected_idx]]
+                    else:
+                        active_sets = []
                 else:
-                    # Fallback: sistema antiguo de checkboxes
-                    active_sets = [
-                        set_name for set_name, var in self.bbpp_vars.items()
-                        if var.get()
-                    ]
+                    # Fallback: sistema antiguo
+                    active_sets = []
 
-                # Si no hay ninguno seleccionado, usar UiPath por defecto o advertir
+                # Si no hay ninguno seleccionado, mostrar error
                 if not active_sets:
-                    active_sets = ['UiPath']
+                    messagebox.showerror(
+                        "Error",
+                        "Por favor, seleccione un conjunto de BBPP antes de analizar."
+                    )
+                    return
+
+                # Guardar último conjunto seleccionado
+                user_config['last_selected_bbpp_set'] = active_sets[0]
+                save_user_config(user_config)
                 
                 scanner = ProjectScanner(self.project_path, user_config, active_sets=active_sets)
                 results = scanner.scan(progress_callback)

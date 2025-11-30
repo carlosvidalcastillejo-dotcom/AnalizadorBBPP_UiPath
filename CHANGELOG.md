@@ -1,5 +1,32 @@
 # Changelog
 
+## [1.1.1] - 2024-11-30
+
+**Autor:** Carlos Vidal Castillejo
+**Tipo de cambio:** Patch - Mejora UX selector de conjuntos
+
+### 🎯 Mejoras
+
+#### Selector de Conjuntos Simplificado
+- ✅ Cambiado de Listbox multiselect a **Combobox (dropdown) simple**
+- ✅ Selección más intuitiva sin necesidad de Ctrl/Shift
+- ✅ Solo se muestran conjuntos **ACTIVOS** (filtro desde Gestión BBPP)
+- ✅ Si un conjunto está desactivado en Gestión, NO aparece en análisis
+
+#### Aplicación Correcta de Reglas
+- ✅ Solo se aplican reglas del conjunto seleccionado en análisis
+- ✅ Sistema verifica que el conjunto esté habilitado antes de mostrarlo
+- ✅ Guardar último conjunto seleccionado en preferencias
+
+### 🐛 Correcciones
+- ✅ Fix AttributeError: Corrección de `bbpp_sets` → `sets`
+- ✅ Validación de selección antes de iniciar análisis
+
+**ARCHIVOS MODIFICADOS:**
+- src/ui/main_window.py: Combobox + filtro de conjuntos activos
+
+---
+
 ## [1.1.0] - 2024-11-30
 
 **Autor:** Carlos Vidal Castillejo
