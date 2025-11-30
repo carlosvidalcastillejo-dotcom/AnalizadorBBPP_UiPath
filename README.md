@@ -1,9 +1,7 @@
 # 🚀 Analizador de Buenas Prácticas para UiPath
 
 **Versión:** 1.0.0
-**Autor:** Carlos Vidal Castillejo + Claude AI
-**Empresa:** NTT Data
-
+**Autor:** Carlos Vidal Castillejo
 ---
 
 ## 📋 Descripción
@@ -15,7 +13,7 @@ Aplicación de escritorio profesional desarrollada en Python con Tkinter que per
 - ✅ **17 Reglas BBPP implementadas** (Nomenclatura, Estructura, Modularización, Código Limpio, Rendimiento)
 - ✅ **Sistema de penalización personalizable** con 3 modos (severity_default, individual, global)
 - ✅ **Sistema de excepciones** para REFramework (50 variables/argumentos predefinidos)
-- ✅ **Gestión de conjuntos de BBPP** (UiPath, NTT Data, Custom)
+- ✅ **Gestión de conjuntos de BBPP** (UiPath, Custom)
 - ✅ **Reportes profesionales** (HTML Normal, HTML Detallado con gráficos Chart.js, Excel)
 - ✅ **Dashboard de métricas** con histórico de análisis y filtros
 - ✅ **Sistema de branding personalizable** (logo, empresa, colores)
@@ -192,7 +190,6 @@ dt_Config, str_TransactionID, Exception, BusinessRuleException,
 
 Permite organizar reglas en **conjuntos** como:
 - **UiPath**: Reglas oficiales de UiPath
-- **NTTData**: Reglas personalizadas de NTT Data
 - **Custom**: Conjuntos personalizados
 
 ### Funcionalidades:
@@ -300,12 +297,6 @@ Uso interno NTT Data.
 
 **Desarrollador Principal:** Carlos Vidal Castillejo
 **Colaborador AI:** Claude (Anthropic)
-
----
-
-## 📞 Contacto
-
-Para soporte o consultas, contactar al equipo de Automation de NTT Data.
 
 ---
 
