@@ -1,295 +1,313 @@
 # 🚀 Analizador de Buenas Prácticas para UiPath
 
-**Versión:** 0.1.0 Beta  
-**Autor:** Carlos + Claude  
+**Versión:** 1.0.0
+**Autor:** Carlos Vidal Castillejo + Claude AI
 **Empresa:** NTT Data
 
 ---
 
-## 📋 Estado del Proyecto
+## 📋 Descripción
 
-### ✅ Completado v0.1 Beta (FUNCIONAL AL 100%)
+Aplicación de escritorio profesional desarrollada en Python con Tkinter que permite analizar proyectos UiPath y verificar el cumplimiento de Buenas Prácticas (BBPP) tanto oficiales de UiPath como personalizadas de la empresa.
 
-1. **Arquitectura Base**
-   - ✅ Estructura de carpetas profesional
-   - ✅ Configuración centralizada
-   - ✅ Colores corporativos NTT Data
+### ✨ Características Principales
 
-2. **Parser de XAML** (`src/xaml_parser.py`)
-   - ✅ Parseo completo de archivos .xaml
-   - ✅ Extracción de variables y argumentos
-   - ✅ Detección de actividades
-   - ✅ Identificación de InvokeWorkflowFile
-   - ✅ Detección de LogMessage
-   - ✅ Análisis de Try-Catch
-   - ✅ Detección de código comentado
-   - ✅ Conteo de líneas
-
-3. **Analizador de BBPP** (`src/analyzer.py`)
-   - ✅ Sistema de Finding (hallazgos)
-   - ✅ Reglas de nomenclatura (camelCase, nombres genéricos)
-   - ✅ Validación de descripciones en argumentos
-   - ✅ Detección de anidamiento excesivo de IFs
-   - ✅ Verificación de Try-Catch vacíos
-   - ✅ Análisis de modularización (Sequences largos)
-   - ✅ Detección de código comentado con porcentajes
-   - ✅ Análisis de logs
-
-4. **Escáner de Proyectos** (`src/project_scanner.py`)
-   - ✅ Escaneo recursivo de todos los XAML
-   - ✅ Detección de tipo de proyecto (REFramework)
-   - ✅ Estadísticas completas del proyecto
-   - ✅ Sistema de scoring (0-100)
-   - ✅ Callback de progreso en tiempo real
-
-5. **Interfaz Gráfica** (`src/ui/main_window.py`)
-   - ✅ Ventana principal con Tkinter
-   - ✅ Menú lateral con colores NTT Data
-   - ✅ Pantalla de análisis FUNCIONAL
-   - ✅ Selector de carpeta de proyecto
-   - ✅ Barra de progreso en ventana modal
-   - ✅ Visualización de resultados en tiempo real
-   - ✅ Análisis en thread separado (no congela UI)
-   - ✅ Botón cancelar análisis
-   - ✅ Botón generar reporte HTML
-   - ✅ Pantalla de configuración (placeholder)
-   - ✅ Notas de versión
-
-6. **Generador de Reportes** (`src/report_generator.py`)
-   - ✅ Reporte HTML profesional
-   - ✅ Diseño responsive con CSS
-   - ✅ Resumen ejecutivo con score visual
-   - ✅ Estadísticas del proyecto
-   - ✅ Listado detallado de hallazgos
-   - ✅ Colores por severidad
-   - ✅ Exportación automática con timestamp
-
-### 🔄 Pendiente (Próximas sesiones)
-
-**v0.2 Beta:**
-- [ ] Sistema de BBPP en JSON
-- [ ] Editor de reglas personalizadas
-- [ ] Múltiples conjuntos de BBPP
-- [ ] Configuración de umbrales
-- [ ] Exportar/Importar BBPP
-
-**v0.3 Beta:**
-- [ ] Módulo de entrenamiento con PDF/Word
-- [ ] Reporte HTML avanzado con gráficos
-- [ ] Reporte Excel
-- [ ] Historial de análisis
-- [ ] Actualización vía internet
+- ✅ **17 Reglas BBPP implementadas** (Nomenclatura, Estructura, Modularización, Código Limpio, Rendimiento)
+- ✅ **Sistema de penalización personalizable** con 3 modos (severity_default, individual, global)
+- ✅ **Sistema de excepciones** para REFramework (50 variables/argumentos predefinidos)
+- ✅ **Gestión de conjuntos de BBPP** (UiPath, NTT Data, Custom)
+- ✅ **Reportes profesionales** (HTML Normal, HTML Detallado con gráficos Chart.js, Excel)
+- ✅ **Dashboard de métricas** con histórico de análisis y filtros
+- ✅ **Sistema de branding personalizable** (logo, empresa, colores)
+- ✅ **Base de datos SQLite** para métricas históricas
+- ✅ **Validación de dependencias** de paquetes NuGet configurables por conjunto
+- ✅ **Ejecutable .exe** compilado con PyInstaller
 
 ---
 
 ## 🗂️ Estructura del Proyecto
 
 ```
-analizador_bbpp_uipath/
+AnalizadorBBPP_UiPath/
 ├── src/
-│   ├── main.py                 # Punto de entrada
-│   ├── config.py               # Configuración global
-│   ├── xaml_parser.py          # Parser de XAML
-│   ├── analyzer.py             # Analizador de BBPP
-│   └── ui/
-│       ├── __init__.py
-│       └── main_window.py      # Interfaz gráfica
-├── assets/                     # Logos, imágenes
-├── config/                     # Archivos de configuración
-│   └── bbpp/                   # Conjuntos de BBPP
-├── output/                     # Reportes generados
-├── tests/                      # Tests unitarios
-└── docs/                       # Documentación
+│   ├── main.py                          # Punto de entrada
+│   ├── config.py                        # Configuración global
+│   ├── xaml_parser.py                   # Parser de XAML
+│   ├── analyzer.py                      # Analizador de BBPP (17 reglas)
+│   ├── project_scanner.py               # Escáner de proyectos
+│   ├── rules_manager.py                 # Gestor de reglas BBPP
+│   ├── report_generator.py              # Generador de reportes HTML
+│   ├── excel_report_generator.py        # Generador de reportes Excel
+│   ├── branding_manager.py              # Gestor de branding
+│   ├── version_manager.py               # Gestor de versiones
+│   ├── ui/
+│   │   ├── main_window.py               # Ventana principal
+│   │   ├── rules_management_screen.py   # Pantalla de gestión de reglas
+│   │   ├── metrics_dashboard.py         # Dashboard de métricas
+│   │   └── release_notes_screen.py      # Pantalla de notas de versión
+│   ├── database/
+│   │   └── metrics_db.py                # Base de datos de métricas
+│   └── metrics/
+│       ├── metrics_calculator.py        # Calculador de métricas
+│       └── chart_generator.py           # Generador de gráficos
+├── config/
+│   ├── bbpp/
+│   │   └── BBPP_Master.json            # Reglas BBPP maestras
+│   ├── config.json                      # Configuración de scoring
+│   ├── branding.json                    # Configuración de branding
+│   └── user_config.json                 # Configuración de usuario
+├── assets/                              # Logos, imágenes
+├── output/                              # Reportes generados
+│   ├── HTML/                            # Reportes HTML
+│   └── Excel/                           # Reportes Excel
+├── dist/
+│   └── AnalizadorBBPP_UiPath.exe       # Ejecutable compilado
+├── AnalizadorBBPP_UiPath.spec          # Configuración PyInstaller
+├── CHANGELOG.md                         # Registro de cambios
+├── ROADMAP.md                           # Hoja de ruta
+└── README.md                            # Este archivo
 ```
 
 ---
 
-## 🧪 Pruebas Realizadas
+## 🚀 Instalación y Uso
 
-### Test 1: Parser XAML ✅
-**Archivo:** `RoboticEnterpriseFramework/Main.xaml`
+### Opción 1: Ejecutar el .exe (Recomendado)
 
-**Resultados:**
-- ✅ Tipo de workflow detectado: State Machine
-- ✅ Display Name: "General Business Process"
-- ✅ 2 argumentos extraídos
-- ✅ 92 actividades detectadas
-- ✅ 20 InvokeWorkflowFile encontrados
-- ✅ 10 LogMessage detectados
-- ✅ 7 bloques Try-Catch analizados
-- ✅ 0 líneas comentadas (proyecto limpio)
+1. Descargar el proyecto desde el repositorio
+2. Navegar a la carpeta `dist/`
+3. Ejecutar `AnalizadorBBPP_UiPath.exe`
 
-### Test 2: Analizador de BBPP ✅
-**Archivo:** `RoboticEnterpriseFramework/Main.xaml`
+### Opción 2: Ejecutar con Python
 
-**Resultados:**
-- ✅ 0 hallazgos (el REFramework oficial está muy bien hecho)
-- ✅ Sistema de severidades funcionando
-- ✅ Categorización correcta
+**Requisitos:**
+- Python 3.8 o superior
+- Tkinter (incluido en Python por defecto)
 
-### Test 3: Escáner Completo ✅
-**Proyecto:** `RoboticEnterpriseFramework` (completo)
-
-**Resultados:**
-- ✅ 16 archivos XAML escaneados recursivamente
-- ✅ Tipo de proyecto detectado: REFramework
-- ✅ Estadísticas completas generadas
-- ✅ Score calculado: 100/100 (proyecto limpio)
-- ✅ Reporte HTML generado correctamente
-
-### Test 4: Interfaz Gráfica ✅
-**Funcionalidad probada:**
-- ✅ Selección de proyecto funcional
-- ✅ Análisis completo ejecutado
-- ✅ Barra de progreso en tiempo real
-- ✅ Resultados mostrados correctamente
-- ✅ Generación de reporte HTML
-- ✅ Apertura automática del reporte en navegador
-
----
-
-## 🎉 v0.1 Beta - ¡COMPLETADA AL 100%!
-
----
-
-## 🚀 Cómo Ejecutar
-
-### Opción 1: Directamente con Python
+**Instalación de dependencias:**
 ```bash
-cd analizador_bbpp_uipath
-python3 src/main.py
+pip install -r requirements.txt
 ```
 
-### Opción 2: Probar el parser manualmente
-```python
-from src.xaml_parser import parse_xaml_file
-
-# Parsear un XAML
-data = parse_xaml_file('/ruta/al/archivo.xaml')
-print(data)
+**Ejecutar:**
+```bash
+python src/main.py
 ```
-
-### Opción 3: Probar el analizador
-```python
-from src.xaml_parser import parse_xaml_file
-from src.analyzer import BBPPAnalyzer
-from src.config import DEFAULT_CONFIG
-
-# Parsear y analizar
-parsed = parse_xaml_file('/ruta/al/archivo.xaml')
-analyzer = BBPPAnalyzer(DEFAULT_CONFIG)
-findings = analyzer.analyze(parsed)
-
-# Ver hallazgos
-for finding in findings:
-    print(finding.to_dict())
-```
-
----
-
-## 🎨 Colores Corporativos NTT Data
-
-- **Azul Principal:** `#0067B1`
-- **Azul Claro:** `#00A3E0`
-- **Azul Oscuro:** `#003D7A`
-- **Gris:** `#E5E5E5`
-- **Gris Oscuro:** `#58595B`
 
 ---
 
 ## 📊 Reglas BBPP Implementadas
 
-### Nomenclatura
-- ✅ Variables deben usar camelCase
-- ✅ Detectar nombres genéricos (var1, temp, test)
-- ✅ Argumentos deben tener descripción
-- ✅ Argumentos deben tener prefijos (in_, out_, io_)
+### 📝 Nomenclatura (6 reglas)
 
-### Anidamiento
-- ✅ Máximo 3 niveles de IFs anidados (configurable)
+| ID | Nombre | Descripción |
+|---|---|---|
+| **NOMENCLATURA_001** | Variables en camelCase | Variables deben usar camelCase (ej: `miVariable`) |
+| **NOMENCLATURA_002** | Evitar nombres genéricos | Detecta nombres como `var1`, `temp`, `test` |
+| **NOMENCLATURA_003** | Argumentos con prefijos | Argumentos deben tener `in_`, `out_`, `io_` |
+| **NOMENCLATURA_004** | Comentarios en workflows | Workflows deben tener comentarios descriptivos |
+| **NOMENCLATURA_005** | Variables en PascalCase | Variables de tipo especial en PascalCase |
+| **NOMENCLATURA_006** | Argumentos con descripción | Argumentos deben tener descripción clara |
 
-### Try-Catch
-- ✅ Detectar bloques Catch vacíos (severidad: Info)
+### 🏗️ Estructura (3 reglas)
 
-### Modularización
-- ✅ Sequences con >20 actividades (configurable)
-- ✅ Sugerencia de usar State Machine
+| ID | Nombre | Descripción |
+|---|---|---|
+| **ESTRUCTURA_001** | IFs anidados excesivos | Máximo 3 niveles de IFs (configurable) |
+| **ESTRUCTURA_002** | Try-Catch vacíos | Detecta bloques Catch sin manejo de errores |
+| **ESTRUCTURA_003** | Actividades críticas protegidas | Actividades críticas deben estar en Try-Catch |
 
-### Código Comentado
-- ✅ Detección con porcentaje
-- ✅ Warning si >5% (configurable)
+### 🔧 Modularización (3 reglas)
 
-### Logs
-- ✅ Detectar workflows sin logs (Info)
+| ID | Nombre | Descripción |
+|---|---|---|
+| **MODULARIZACION_001** | Sequences largos | Sequences con >20 actividades (configurable) |
+| **MODULARIZACION_002** | Uso de Invoke Workflow | Promover reutilización con Invoke Workflow |
+| **MODULARIZACION_003** | Patrón Init/End | State Machines deben tener patrón Init/End |
+
+### 🧹 Código Limpio (2 reglas)
+
+| ID | Nombre | Descripción |
+|---|---|---|
+| **CODIGO_001** | Código comentado excesivo | Máximo 5% de código comentado (configurable) |
+| **LOGGING_001** | Logging insuficiente | Workflows deben tener logs adecuados |
+
+### ⚡ Rendimiento y Configuración (3 reglas)
+
+| ID | Nombre | Descripción |
+|---|---|---|
+| **RENDIMIENTO_001** | Timeouts explícitos | Actividades UI deben tener timeout explícito |
+| **SELECTORES_001** | Selectores dinámicos | Evitar selectores con índices o fechas |
+| **CONFIGURACION_001** | Orchestrator Assets | Evitar credenciales hardcodeadas |
+
+---
+
+## ⚙️ Sistema de Penalización Personalizable
+
+Cada regla puede configurarse con uno de estos **3 modos**:
+
+### 1. **Severity Default** (Predeterminado)
+Usa pesos globales según severidad:
+- ERROR: 10 puntos por hallazgo
+- WARNING: 3 puntos por hallazgo
+- INFO: 0.5 puntos por hallazgo
+
+### 2. **Individual**
+Cada hallazgo penaliza por el porcentaje configurado.
+- Ejemplo: Si `penalty_value = 2%` y hay 20 hallazgos → Penalización = 40%
+
+### 3. **Global**
+Penalización fija total, sin importar la cantidad de hallazgos.
+- Ejemplo: Si `penalty_value = 5%` y hay 1 o 100 hallazgos → Penalización = 5%
+
+### Límite Máximo
+Opcionalmente se puede activar un **límite máximo** (cap) para limitar la penalización máxima de una regla.
+- Solo aplica a modos **Severity Default** e **Individual**
+
+---
+
+## 🔧 Sistema de Excepciones
+
+Las reglas de nomenclatura soportan **excepciones** para variables/argumentos estándar del REFramework:
+
+### Excepciones Predefinidas (50 total):
+```
+Config, TransactionItem, SystemException, BusinessException,
+in_Config, out_Config, io_Config, in_TransactionItem,
+out_TransactionItem, io_TransactionItem, TransactionNumber,
+TransactionField1, TransactionField2, TransactionID,
+RetryNumber, QueueRetry, TransactionData, dt_TransactionData,
+dt_Config, str_TransactionID, Exception, BusinessRuleException,
+...
+```
+
+### Gestión desde UI:
+- ➕ Agregar nuevas excepciones
+- ➖ Eliminar excepciones
+- ✅ Persistencia en BBPP_Master.json
+
+---
+
+## 📦 Gestión de Conjuntos de BBPP
+
+Permite organizar reglas en **conjuntos** como:
+- **UiPath**: Reglas oficiales de UiPath
+- **NTTData**: Reglas personalizadas de NTT Data
+- **Custom**: Conjuntos personalizados
+
+### Funcionalidades:
+- ✅ Activar/desactivar conjuntos completos
+- ✅ Asignar reglas a conjuntos
+- ✅ Gestionar dependencias de paquetes NuGet por conjunto
+- ✅ Validar que el proyecto tenga las dependencias necesarias
+
+---
+
+## 📈 Reportes Generados
+
+### 1. **Reporte HTML Normal**
+- Resumen ejecutivo con score visual
+- Estadísticas del proyecto
+- Listado de hallazgos agrupados por categoría
+
+### 2. **Reporte HTML Detallado**
+- Todo lo del reporte normal +
+- **Gráficos interactivos** con Chart.js:
+  - Distribución por severidad (Pie)
+  - Hallazgos por categoría (Bar)
+  - Top 5 reglas con más hallazgos (Bar)
+- **Hallazgos colapsables** para mejor navegación
+- **Filtros interactivos** por severidad y categoría
+
+### 3. **Reporte Excel**
+- Hoja "Resumen" con estadísticas
+- Hoja "Hallazgos" con tabla detallada
+- Formato profesional con colores por severidad
+
+---
+
+## 📊 Dashboard de Métricas
+
+Visualiza el **histórico de análisis** con:
+- ✅ Tabla con todos los análisis realizados
+- ✅ Filtro por proyecto
+- ✅ Ordenamiento por fecha
+- ✅ Botones para abrir reportes HTML/Excel directamente
+- ✅ Ventana de detalles con todos los hallazgos
+
+---
+
+## 🎨 Sistema de Branding
+
+Personaliza la aplicación con:
+- 🖼️ **Logo personalizado** (PNG, JPG)
+- 🏢 **Nombre de empresa**
+- 🎨 **Colores corporativos** (Primary, Secondary, Accent)
+- ✅ Cambios se reflejan en reportes HTML
 
 ---
 
 ## 🔧 Configuración
 
-Editar `src/config.py` para ajustar:
-
-```python
-DEFAULT_CONFIG = {
-    "thresholds": {
-        "max_activities_sequence": 20,
-        "max_nested_ifs": 3,
-        "max_commented_code_percent": 5,
-    },
-    "validations": {
-        "validate_init_end_pattern": False,
-        "validate_variable_prefixes": True,
-        "validate_argument_descriptions": True,
-    },
-    "scoring": {
-        "error_weight": -10,
-        "warning_weight": -3,
-        "info_weight": -0.5,
-    }
+### Archivo: `config/config.json`
+```json
+{
+  "scoring": {
+    "error_weight": -10,
+    "warning_weight": -3,
+    "info_weight": -0.5,
+    "scaling_factor": 5
+  }
 }
 ```
 
----
-
-## 📈 Próximos Pasos
-
-1. **Completar v0.1 Beta:**
-   - Integrar análisis completo en la UI
-   - Escaneo de todos los XAML del proyecto
-   - Sistema de scoring
-   - Reporte HTML básico
-
-2. **Testing:**
-   - Probar con más proyectos UiPath
-   - Validar detección de problemas reales
-   - Ajustar umbrales
-
-3. **Documentación:**
-   - Manual de usuario
-   - Ejemplos de uso
-   - Guía de contribución
+### Archivo: `config/bbpp/BBPP_Master.json`
+Contiene todas las reglas con sus parámetros configurables.
 
 ---
 
-## 🐛 Problemas Conocidos
+## 🛠️ Compilación a .exe
 
-- **UI:** Botón "Analizar" es placeholder (falta integración completa)
-- **Parser:** Detección de hardcodeo pendiente (requiere análisis más profundo del XML)
-- **Anidamiento:** Cálculo de niveles de IF puede mejorarse
+El proyecto incluye configuración de PyInstaller:
+
+```bash
+pyinstaller AnalizadorBBPP_UiPath.spec
+```
+
+El ejecutable se generará en `dist/AnalizadorBBPP_UiPath.exe`.
+
+---
+
+## 📜 Changelog
+
+Ver [CHANGELOG.md](CHANGELOG.md) para historial completo de cambios.
+
+---
+
+## 🗺️ Roadmap
+
+Ver [ROADMAP.md](ROADMAP.md) para próximas funcionalidades planificadas.
+
+---
+
+## 📝 Licencia
+
+Uso interno NTT Data.
+
+---
+
+## 👥 Contribuciones
+
+**Desarrollador Principal:** Carlos Vidal Castillejo
+**Colaborador AI:** Claude (Anthropic)
 
 ---
 
 ## 📞 Contacto
 
-**Desarrollador:** Carlos (Automation Specialist - NTT Data)  
-**Colaborador:** Claude (AI Assistant)
+Para soporte o consultas, contactar al equipo de Automation de NTT Data.
 
 ---
 
-## 📜 Licencia
-
-Uso interno NTT Data (por definir)
-
----
-
-**Última actualización:** 2024-11-20  
-**Commit:** Arquitectura base + Parser + Analyzer + UI básica
+**Última actualización:** 30 de Noviembre de 2024
+**Versión:** 1.0.0

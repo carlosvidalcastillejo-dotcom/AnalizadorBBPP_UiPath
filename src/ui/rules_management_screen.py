@@ -13,6 +13,9 @@ current_dir = Path(__file__).parent.parent.parent
 if str(current_dir) not in sys.path:
     sys.path.insert(0, str(current_dir))
 
+import json
+
+
 try:
     from src.rules_manager import get_rules_manager
     from src.config import (
@@ -136,7 +139,60 @@ class RulesManagementScreen:
             command=self._disable_all_rules
         )
         disable_all_btn.pack(side=tk.LEFT, padx=5)
+
+        # Botón Gestión de Conjuntos
+        sets_mgmt_btn = tk.Button(
+            buttons_frame,
+            text="🔧 Gestión de Conjuntos",
+            font=("Arial", 10),
+            bg=ACCENT_COLOR,
+            fg="white",
+            relief=tk.FLAT,
+            cursor="hand2",
+            command=self._show_sets_management_dialog
+        )
+        sets_mgmt_btn.pack(side=tk.LEFT, padx=5)
         
+        # Frame de Gestión de Conjuntos
+        sets_mgmt_frame = tk.LabelFrame(
+            main_frame,
+            text="Gestión de Conjuntos y Dependencias",
+            font=("Arial", 10, "bold"),
+            bg=BG_COLOR,
+            padx=10,
+            pady=10
+        )
+        sets_mgmt_frame.pack(fill=tk.X, padx=20, pady=10)
+        
+        # Obtener conjuntos disponibles
+        sets_info = self.rules_manager.get_sets_info()
+        
+        for set_name, info in sets_info.items():
+            set_frame = tk.Frame(sets_mgmt_frame, bg=BG_COLOR)
+            set_frame.pack(fill=tk.X, pady=5)
+            
+            # Nombre del conjunto
+            tk.Label(
+                set_frame,
+                text=f"🔹 {info.get('name', set_name)}",
+                font=("Arial", 10, "bold"),
+                bg=BG_COLOR,
+                width=30,
+                anchor="w"
+            ).pack(side=tk.LEFT)
+            
+            # Botón Dependencias
+            tk.Button(
+                set_frame,
+                text="📦 Dependencias",
+                font=("Arial", 9),
+                bg="#E3F2FD",
+                fg=PRIMARY_COLOR,
+                relief=tk.FLAT,
+                cursor="hand2",
+                command=lambda s=set_name: self._show_dependency_dialog(s)
+            ).pack(side=tk.LEFT, padx=10)
+
         # Frame para tabla y panel de detalles
         content_frame = tk.Frame(main_frame, bg=BG_COLOR)
         content_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
@@ -146,33 +202,31 @@ class RulesManagementScreen:
         table_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
         # Crear Treeview
-        columns = ("id", "name", "category", "severity", "penalty", "uipath", "nttdata", "status")
+        columns = ("id", "name", "category", "severity", "penalty", "enabled", "status")
         self.tree = ttk.Treeview(
             table_frame,
             columns=columns,
             show="headings",
             height=20
         )
-        
+
         # Configurar columnas
         self.tree.heading("id", text="ID")
         self.tree.heading("name", text="Nombre de la Regla")
         self.tree.heading("category", text="Categoría")
         self.tree.heading("severity", text="Severidad")
         self.tree.heading("penalty", text="Penalización")
-        self.tree.heading("uipath", text="UiPath")
-        self.tree.heading("nttdata", text="NTTData")
+        self.tree.heading("enabled", text="Activa")
         self.tree.heading("status", text="Estado")
-        
+
         # Anchos de columna
-        self.tree.column("id", width=100, anchor="w")
-        self.tree.column("name", width=250, anchor="w")
-        self.tree.column("category", width=120, anchor="center")
+        self.tree.column("id", width=120, anchor="w")
+        self.tree.column("name", width=300, anchor="w")
+        self.tree.column("category", width=130, anchor="center")
         self.tree.column("severity", width=100, anchor="center")
-        self.tree.column("penalty", width=100, anchor="center")
-        self.tree.column("uipath", width=80, anchor="center")
-        self.tree.column("nttdata", width=80, anchor="center")
-        self.tree.column("status", width=120, anchor="center")
+        self.tree.column("penalty", width=110, anchor="center")
+        self.tree.column("enabled", width=80, anchor="center")
+        self.tree.column("status", width=150, anchor="center")
         
         # Scrollbar
         scrollbar = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=self.tree.yview)
@@ -202,10 +256,9 @@ class RulesManagementScreen:
             severity = rule.get('severity', 'warning').upper()
             penalty = f"{rule.get('penalty', 0)}%"
             
-            # Checkmarks para conjuntos
-            uipath = "✅" if "UiPath" in rule.get('sets', []) else "❌"
-            nttdata = "✅" if "NTTData" in rule.get('sets', []) else "❌"
-            
+            # Estado enabled/disabled
+            enabled = "✅" if rule.get('enabled', True) else "❌"
+
             # Estado de implementación
             status = rule.get('implementation_status', 'pending')
             status_text = {
@@ -214,14 +267,14 @@ class RulesManagementScreen:
                 'duplicate': '🔄 Duplicada',
                 'manual': '👤 Manual'
             }.get(status, status)
-            
+
             # Color según severidad
             tag = severity.lower()
-            
+
             self.tree.insert(
                 "",
                 tk.END,
-                values=(rule_id, name, category, severity, penalty, uipath, nttdata, status_text),
+                values=(rule_id, name, category, severity, penalty, enabled, status_text),
                 tags=(tag,)
             )
         
@@ -268,19 +321,24 @@ class RulesManagementScreen:
         # Crear ventana modal
         dialog = tk.Toplevel(self.parent)
         dialog.title(f"Editar Regla: {rule.get('name', '')}")
-        dialog.geometry("600x700")
+        dialog.geometry("600x800")
         dialog.transient(self.parent)
         dialog.grab_set()
         
         # Centrar ventana
         dialog.update_idletasks()
         x = (dialog.winfo_screenwidth() // 2) - (600 // 2)
-        y = (dialog.winfo_screenheight() // 2) - (700 // 2)
-        dialog.geometry(f"600x700+{x}+{y}")
+        y = (dialog.winfo_screenheight() // 2) - (800 // 2)
+        dialog.geometry(f"600x800+{x}+{y}")
         
         # Frame principal con scroll
         main_frame = tk.Frame(dialog, bg="white")
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
+        
+        # Botones Aceptar/Cancelar (PRIMERO, para que queden abajo)
+        buttons_frame = tk.Frame(dialog, bg="white", height=60)
+        buttons_frame.pack(fill=tk.X, side=tk.BOTTOM)
+        buttons_frame.pack_propagate(False)
         
         # Canvas para scroll
         canvas = tk.Canvas(main_frame, bg="white", highlightthickness=0)
@@ -294,6 +352,11 @@ class RulesManagementScreen:
         
         canvas.create_window((0, 0), window=content_frame, anchor="nw", width=580)
         canvas.configure(yscrollcommand=scrollbar.set)
+        
+        # Habilitar scroll con rueda del mouse
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        canvas.bind_all("<MouseWheel>", _on_mousewheel)
         
         canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
@@ -382,30 +445,135 @@ class RulesManagementScreen:
             )
             rb.pack(anchor="w", pady=2)
         
-        # Penalización
+        # Penalización (Sistema Personalizable)
         penalty_frame = tk.LabelFrame(
             content_frame,
-            text="Penalización (%)",
+            text="Configuración de Penalización",
             font=("Arial", 10, "bold"),
             bg="white",
             padx=10,
             pady=10
         )
         penalty_frame.pack(fill=tk.X, padx=padding, pady=10)
-        
-        penalty_var = tk.IntVar(value=rule.get('penalty', 0))
-        penalty_spinbox = tk.Spinbox(
+
+        # Obtener parámetros de penalización actuales
+        penalty_params = self.rules_manager.get_rule_parameters(rule_id)
+        penalty_mode = penalty_params.get('penalty_mode', 'severity_default')
+        penalty_value = penalty_params.get('penalty_value', rule.get('penalty', 2))
+        use_penalty_cap = penalty_params.get('use_penalty_cap', False)
+        penalty_cap = penalty_params.get('penalty_cap', 10)
+
+        # Modo de penalización
+        mode_label = tk.Label(
             penalty_frame,
+            text="Modo de Penalización:",
+            font=("Arial", 10, "bold"),
+            bg="white"
+        )
+        mode_label.pack(anchor="w", pady=(0, 5))
+
+        penalty_mode_var = tk.StringVar(value=penalty_mode)
+
+        modes = [
+            ("Usar predeterminado de severidad (ERROR=10pts, WARNING=3pts, INFO=0.5pts)", "severity_default"),
+            ("Individual (cada hallazgo penaliza)", "individual"),
+            ("Global (penalización fija total)", "global")
+        ]
+
+        for text, value in modes:
+            rb = tk.Radiobutton(
+                penalty_frame,
+                text=text,
+                variable=penalty_mode_var,
+                value=value,
+                font=("Arial", 9),
+                bg="white",
+                wraplength=520,
+                justify=tk.LEFT
+            )
+            rb.pack(anchor="w", pady=2)
+
+        # Valor de penalización
+        value_frame = tk.Frame(penalty_frame, bg="white")
+        value_frame.pack(fill=tk.X, pady=(10, 5))
+
+        value_label = tk.Label(
+            value_frame,
+            text="Valor de Penalización (%):",
+            font=("Arial", 10, "bold"),
+            bg="white"
+        )
+        value_label.pack(side=tk.LEFT, padx=(0, 10))
+
+        penalty_value_var = tk.DoubleVar(value=penalty_value)
+        penalty_value_spinbox = tk.Spinbox(
+            value_frame,
             from_=0,
             to=100,
-            textvariable=penalty_var,
+            increment=0.5,
+            textvariable=penalty_value_var,
             font=("Arial", 11),
             width=10
         )
-        penalty_spinbox.pack(anchor="w")
+        penalty_value_spinbox.pack(side=tk.LEFT)
+
+        # Límite máximo
+        cap_frame = tk.Frame(penalty_frame, bg="white")
+        cap_frame.pack(fill=tk.X, pady=(10, 0))
+
+        use_cap_var = tk.BooleanVar(value=use_penalty_cap)
+        cap_check = tk.Checkbutton(
+            cap_frame,
+            text="Límite máximo de penalización:",
+            variable=use_cap_var,
+            font=("Arial", 10, "bold"),
+            bg="white"
+        )
+        cap_check.pack(side=tk.LEFT, padx=(0, 10))
+
+        penalty_cap_var = tk.DoubleVar(value=penalty_cap)
+        penalty_cap_spinbox = tk.Spinbox(
+            cap_frame,
+            from_=0,
+            to=100,
+            increment=0.5,
+            textvariable=penalty_cap_var,
+            font=("Arial", 11),
+            width=10,
+            state='normal' if use_penalty_cap else 'disabled'
+        )
+        penalty_cap_spinbox.pack(side=tk.LEFT, padx=(0, 5))
+
+        cap_percent_label = tk.Label(
+            cap_frame,
+            text="%",
+            font=("Arial", 10),
+            bg="white"
+        )
+        cap_percent_label.pack(side=tk.LEFT)
+
+        # Habilitar/deshabilitar cap spinbox según checkbox
+        def toggle_cap():
+            penalty_cap_spinbox.config(state='normal' if use_cap_var.get() else 'disabled')
+
+        cap_check.config(command=toggle_cap)
+
+        # Descripción explicativa
+        desc_label = tk.Label(
+            penalty_frame,
+            text="• Predeterminado: Usa pesos globales según severidad\n• Individual: Cada hallazgo suma el valor especificado\n• Global: Penalización fija sin importar cantidad de hallazgos\n• Límite máximo: Solo aplica a modos Predeterminado e Individual",
+            font=("Arial", 8),
+            bg="white",
+            fg="gray",
+            justify=tk.LEFT
+        )
+        desc_label.pack(anchor="w", pady=(10, 0))
         
         # Parámetros (si tiene)
         param_vars = {}
+        type_prefixes_list = []  # Para almacenar la lista de prefijos
+        allow_type_prefixes_var = None  # Para el checkbox
+
         parameters = self.rules_manager.get_rule_parameters(rule_id)
         if parameters:
             params_frame = tk.LabelFrame(
@@ -417,8 +585,14 @@ class RulesManagementScreen:
                 pady=10
             )
             params_frame.pack(fill=tk.X, padx=padding, pady=10)
-            
+
+            # Verificar si esta regla soporta prefijos de tipo (NOMENCLATURA_001, 003, 005)
+            supports_type_prefixes = rule_id in ['NOMENCLATURA_001', 'NOMENCLATURA_003', 'NOMENCLATURA_005']
+
             for param_name, param_data in parameters.items():
+                # Solo procesar parámetros que son diccionarios con 'type'
+                if not isinstance(param_data, dict):
+                    continue
                 if param_data.get('type') == 'number':
                     # Descripción del parámetro
                     param_desc = tk.Label(
@@ -430,11 +604,11 @@ class RulesManagementScreen:
                         justify=tk.LEFT
                     )
                     param_desc.pack(anchor="w", pady=(5, 3))
-                    
+
                     # Frame para valor
                     value_frame = tk.Frame(params_frame, bg="white")
                     value_frame.pack(fill=tk.X, pady=(0, 10))
-                    
+
                     value_label = tk.Label(
                         value_frame,
                         text="Valor:",
@@ -442,10 +616,10 @@ class RulesManagementScreen:
                         bg="white"
                     )
                     value_label.pack(side=tk.LEFT, padx=(0, 5))
-                    
+
                     param_var = tk.IntVar(value=param_data.get('value', 0))
                     param_vars[param_name] = param_var
-                    
+
                     param_spinbox = tk.Spinbox(
                         value_frame,
                         from_=param_data.get('min', 0),
@@ -455,7 +629,7 @@ class RulesManagementScreen:
                         width=10
                     )
                     param_spinbox.pack(side=tk.LEFT)
-                    
+
                     range_label = tk.Label(
                         value_frame,
                         text=f"  (rango: {param_data.get('min', 0)}-{param_data.get('max', 100)})",
@@ -464,6 +638,336 @@ class RulesManagementScreen:
                         fg="gray"
                     )
                     range_label.pack(side=tk.LEFT)
+
+            # Agregar controles para prefijos de tipo (si aplica)
+            if supports_type_prefixes:
+                # Separador
+                ttk.Separator(params_frame, orient='horizontal').pack(fill=tk.X, pady=10)
+
+                # Checkbox para permitir prefijos de tipo
+                allow_type_prefixes_var = tk.BooleanVar(value=parameters.get('allow_type_prefixes', False))
+
+                allow_check_frame = tk.Frame(params_frame, bg="white")
+                allow_check_frame.pack(fill=tk.X, pady=5)
+
+                allow_check = tk.Checkbutton(
+                    allow_check_frame,
+                    text="☑ Permitir prefijos de tipo de variable",
+                    variable=allow_type_prefixes_var,
+                    font=("Arial", 10, "bold"),
+                    bg="white",
+                    fg=PRIMARY_COLOR
+                )
+                allow_check.pack(side=tk.LEFT)
+
+                # Botón para gestionar prefijos
+                def show_prefixes_dialog():
+                    """Mostrar diálogo para editar lista de prefijos"""
+                    prefix_dialog = tk.Toplevel(dialog)
+                    prefix_dialog.title("Gestionar Prefijos de Tipo")
+                    prefix_dialog.geometry("400x500")
+                    prefix_dialog.transient(dialog)
+                    prefix_dialog.grab_set()
+
+                    # Centrar ventana
+                    prefix_dialog.update_idletasks()
+                    px = (prefix_dialog.winfo_screenwidth() // 2) - (200)
+                    py = (prefix_dialog.winfo_screenheight() // 2) - (250)
+                    prefix_dialog.geometry(f"400x500+{px}+{py}")
+
+                    # Título
+                    title_label = tk.Label(
+                        prefix_dialog,
+                        text="Prefijos de Tipo de Variable",
+                        font=("Arial", 12, "bold"),
+                        bg="white",
+                        fg=PRIMARY_COLOR
+                    )
+                    title_label.pack(pady=10)
+
+                    # Descripción
+                    desc_label = tk.Label(
+                        prefix_dialog,
+                        text="Ejemplos: dt_Excel, int_contador, str_nombre",
+                        font=("Arial", 9),
+                        bg="white",
+                        fg="gray",
+                        wraplength=360
+                    )
+                    desc_label.pack(pady=(0, 10))
+
+                    # Frame para lista
+                    list_frame = tk.Frame(prefix_dialog, bg="white")
+                    list_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+
+                    # Listbox con scrollbar
+                    scrollbar = tk.Scrollbar(list_frame)
+                    scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+                    listbox = tk.Listbox(
+                        list_frame,
+                        font=("Arial", 10),
+                        yscrollcommand=scrollbar.set,
+                        selectmode=tk.SINGLE
+                    )
+                    listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+                    scrollbar.config(command=listbox.yview)
+
+                    # Cargar prefijos actuales
+                    current_prefixes = parameters.get('type_prefixes', [])
+                    type_prefixes_list.clear()
+                    type_prefixes_list.extend(current_prefixes)
+
+                    for prefix in type_prefixes_list:
+                        listbox.insert(tk.END, prefix)
+
+                    # Frame para botones de gestión
+                    btn_frame = tk.Frame(prefix_dialog, bg="white")
+                    btn_frame.pack(fill=tk.X, padx=20, pady=10)
+
+                    # Entry para nuevo prefijo
+                    entry_frame = tk.Frame(btn_frame, bg="white")
+                    entry_frame.pack(fill=tk.X, pady=5)
+
+                    new_prefix_var = tk.StringVar()
+                    entry = tk.Entry(
+                        entry_frame,
+                        textvariable=new_prefix_var,
+                        font=("Arial", 10),
+                        width=15
+                    )
+                    entry.pack(side=tk.LEFT, padx=(0, 10))
+
+                    def add_prefix():
+                        prefix = new_prefix_var.get().strip()
+                        if prefix and prefix not in type_prefixes_list:
+                            if not prefix.endswith('_'):
+                                prefix += '_'
+                            type_prefixes_list.append(prefix)
+                            listbox.insert(tk.END, prefix)
+                            new_prefix_var.set('')
+
+                    add_btn = tk.Button(
+                        entry_frame,
+                        text="➕ Agregar",
+                        command=add_prefix,
+                        bg=PRIMARY_COLOR,
+                        fg="white",
+                        font=("Arial", 9, "bold"),
+                        padx=10
+                    )
+                    add_btn.pack(side=tk.LEFT)
+
+                    def remove_prefix():
+                        selection = listbox.curselection()
+                        if selection:
+                            index = selection[0]
+                            prefix = listbox.get(index)
+                            type_prefixes_list.remove(prefix)
+                            listbox.delete(index)
+
+                    remove_btn = tk.Button(
+                        btn_frame,
+                        text="➖ Eliminar Seleccionado",
+                        command=remove_prefix,
+                        bg="#DC3545",
+                        fg="white",
+                        font=("Arial", 9, "bold"),
+                        padx=10
+                    )
+                    remove_btn.pack(pady=5)
+
+                    # Botón cerrar
+                    close_btn = tk.Button(
+                        prefix_dialog,
+                        text="✓ Aceptar",
+                        command=prefix_dialog.destroy,
+                        bg=COLOR_SUCCESS,
+                        fg="white",
+                        font=("Arial", 10, "bold"),
+                        padx=20
+                    )
+                    close_btn.pack(pady=10)
+
+                prefixes_btn = tk.Button(
+                    allow_check_frame,
+                    text="⚙ Prefijos",
+                    command=show_prefixes_dialog,
+                    bg="#6C757D",
+                    fg="white",
+                    font=("Arial", 9, "bold"),
+                    padx=15,
+                    pady=5
+                )
+                prefixes_btn.pack(side=tk.LEFT, padx=10)
+
+                # Descripción de la funcionalidad
+                prefix_desc = tk.Label(
+                    params_frame,
+                    text="Al activar esta opción, el analizador reconocerá prefijos de tipo como dt_, str_, int_, etc. antes del nombre de la variable. Ejemplo: dt_Excel (dt_ + Excel), io_dt_TransactionData (io_ + dt_ + TransactionData).",
+                    font=("Arial", 9),
+                    bg="white",
+                    fg="gray",
+                    wraplength=520,
+                    justify=tk.LEFT
+                )
+                prefix_desc.pack(anchor="w", pady=(5, 10))
+            
+            # NUEVA SECCIÓN: Excepciones (REFramework)
+            # Verificar si esta regla soporta excepciones
+            supports_exceptions = rule_id in [
+                'NOMENCLATURA_001',
+                'NOMENCLATURA_002',
+                'NOMENCLATURA_003',
+                'NOMENCLATURA_004',
+                'NOMENCLATURA_005'
+            ]
+            
+            exceptions_list = []  # Lista mutable para excepciones
+            
+            if supports_exceptions:
+                # Separador
+                ttk.Separator(params_frame, orient='horizontal').pack(fill=tk.X, pady=15)
+                
+                # Título de la sección
+                tk.Label(
+                    params_frame,
+                    text="Excepciones de la Regla (REFramework)",
+                    font=("Arial", 11, "bold"),
+                    bg="white",
+                    fg=PRIMARY_COLOR
+                ).pack(anchor="w", pady=(10, 5))
+                
+                # Descripción
+                tk.Label(
+                    params_frame,
+                    text="Variables o argumentos que deben ignorarse durante la validación de esta regla. Útil para nombres estándar del REFramework como Config, TransactionItem, etc.",
+                    font=("Arial", 9),
+                    bg="white",
+                    fg="gray",
+                    wraplength=520,
+                    justify=tk.LEFT
+                ).pack(anchor="w", pady=(0, 10))
+                
+                # Frame para la lista de excepciones
+                exceptions_frame = tk.Frame(params_frame, bg="white")
+                exceptions_frame.pack(fill=tk.BOTH, expand=True, pady=10)
+                
+                # Listbox con scrollbar
+                exceptions_list_frame = tk.Frame(exceptions_frame, bg="white")
+                exceptions_list_frame.pack(fill=tk.BOTH, expand=True)
+                
+                exceptions_scrollbar = tk.Scrollbar(exceptions_list_frame)
+                exceptions_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+                
+                exceptions_listbox = tk.Listbox(
+                    exceptions_list_frame,
+                    font=("Arial", 10),
+                    yscrollcommand=exceptions_scrollbar.set,
+                    selectmode=tk.SINGLE,
+                    height=8,
+                    bg="#F9F9F9"
+                )
+                exceptions_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+                exceptions_scrollbar.config(command=exceptions_listbox.yview)
+                
+                # Cargar excepciones actuales
+                current_exceptions = parameters.get('exceptions', [])
+                exceptions_list = list(current_exceptions)  # Copia mutable
+                
+                for exc in exceptions_list:
+                    exceptions_listbox.insert(tk.END, exc)
+                
+                # Frame para botones de gestión
+                exceptions_buttons_frame = tk.Frame(params_frame, bg="white")
+                exceptions_buttons_frame.pack(fill=tk.X, pady=10)
+                
+                # Entry para nueva excepción
+                new_exception_var = tk.StringVar()
+                new_exception_entry = tk.Entry(
+                    exceptions_buttons_frame,
+                    textvariable=new_exception_var,
+                    font=("Arial", 10),
+                    width=30
+                )
+                new_exception_entry.pack(side=tk.LEFT, padx=(0, 10))
+                
+                def add_exception():
+                    """Agregar nueva excepción a la lista"""
+                    exception_name = new_exception_var.get().strip()
+                    
+                    if not exception_name:
+                        messagebox.showwarning(
+                            "Campo Vacío",
+                            "Por favor ingrese un nombre de excepción",
+                            parent=dialog
+                        )
+                        return
+                    
+                    if exception_name in exceptions_list:
+                        messagebox.showwarning(
+                            "Duplicado",
+                            f"La excepción '{exception_name}' ya existe en la lista",
+                            parent=dialog
+                        )
+                        return
+                    
+                    # Agregar a lista y listbox
+                    exceptions_list.append(exception_name)
+                    exceptions_listbox.insert(tk.END, exception_name)
+                    new_exception_var.set('')  # Limpiar campo
+                
+                def remove_exception():
+                    """Eliminar excepción seleccionada"""
+                    selection = exceptions_listbox.curselection()
+                    if not selection:
+                        messagebox.showwarning(
+                            "Sin Selección",
+                            "Por favor seleccione una excepción para eliminar",
+                            parent=dialog
+                        )
+                        return
+                    
+                    index = selection[0]
+                    exception_name = exceptions_listbox.get(index)
+                    
+                    # Confirmar eliminación
+                    if messagebox.askyesno(
+                        "Confirmar Eliminación",
+                        f"¿Eliminar la excepción '{exception_name}'?",
+                        parent=dialog
+                    ):
+                        exceptions_list.remove(exception_name)
+                        exceptions_listbox.delete(index)
+                
+                # Botón Agregar
+                add_exception_btn = tk.Button(
+                    exceptions_buttons_frame,
+                    text="➕ Agregar",
+                    command=add_exception,
+                    bg=PRIMARY_COLOR,
+                    fg="white",
+                    font=("Arial", 9, "bold"),
+                    padx=15,
+                    pady=5
+                )
+                add_exception_btn.pack(side=tk.LEFT, padx=5)
+                
+                # Botón Eliminar
+                remove_exception_btn = tk.Button(
+                    exceptions_buttons_frame,
+                    text="➖ Eliminar Seleccionado",
+                    command=remove_exception,
+                    bg="#DC3545",
+                    fg="white",
+                    font=("Arial", 9, "bold"),
+                    padx=15,
+                    pady=5
+                )
+                remove_exception_btn.pack(side=tk.LEFT, padx=5)
+                
+                # Permitir agregar con Enter
+                new_exception_entry.bind('<Return>', lambda e: add_exception())
         
         # Conjuntos
         sets_frame = tk.LabelFrame(
@@ -525,19 +1029,16 @@ class RulesManagementScreen:
         )
         status_label.pack(anchor="w")
         
-        # Botones Aceptar/Cancelar
-        buttons_frame = tk.Frame(dialog, bg="white", height=60)
-        buttons_frame.pack(fill=tk.X, side=tk.BOTTOM)
-        buttons_frame.pack_propagate(False)
+        # Definir funciones de botones
         
         def on_accept():
             # Actualizar regla
             updates = {
                 'enabled': active_var.get(),
                 'severity': severity_var.get(),
-                'penalty': penalty_var.get()
+                'penalty': penalty_value_var.get()  # Usar penalty_value en lugar del antiguo penalty_var
             }
-            
+
             # Actualizar conjuntos
             sets = []
             if uipath_var.get():
@@ -545,13 +1046,36 @@ class RulesManagementScreen:
             if nttdata_var.get():
                 sets.append("NTTData")
             updates['sets'] = sets
-            
+
             self.rules_manager.update_rule(rule_id, updates)
-            
-            # Actualizar parámetros
+
+            # Actualizar parámetros de penalización personalizada
+            rule_obj = self.rules_manager.get_rule_by_id(rule_id)
+            if rule_obj and 'parameters' in rule_obj:
+                rule_obj['parameters']['penalty_mode'] = penalty_mode_var.get()
+                rule_obj['parameters']['penalty_value'] = penalty_value_var.get()
+                rule_obj['parameters']['use_penalty_cap'] = use_cap_var.get()
+                rule_obj['parameters']['penalty_cap'] = penalty_cap_var.get()
+
+            # Actualizar parámetros numéricos
             for param_name, param_var in param_vars.items():
                 self.rules_manager.update_rule_parameter(rule_id, param_name, param_var.get())
-            
+
+            # Actualizar parámetros de prefijos de tipo (si aplica)
+            if allow_type_prefixes_var is not None:
+                # Actualizar allow_type_prefixes
+                if rule_obj and 'parameters' in rule_obj:
+                    rule_obj['parameters']['allow_type_prefixes'] = allow_type_prefixes_var.get()
+                    rule_obj['parameters']['type_prefixes'] = type_prefixes_list.copy()
+
+            # Actualizar excepciones (si aplica)
+            if supports_exceptions and exceptions_list is not None:
+                if rule_obj and 'parameters' in rule_obj:
+                    rule_obj['parameters']['exceptions'] = exceptions_list.copy()
+
+            # Guardar todos los cambios
+            self.rules_manager.save_rules()
+
             self._load_rules()
             dialog.destroy()
             messagebox.showinfo("Éxito", "✅ Regla actualizada correctamente")
@@ -587,245 +1111,12 @@ class RulesManagementScreen:
         )
         accept_btn.pack(side=tk.RIGHT, padx=5, pady=10)
     
-    
-
-        """Mostrar detalles de una regla en el panel lateral"""
-        # Limpiar panel
-        for widget in self.details_content.winfo_children():
-            widget.destroy()
-        
-        # Obtener regla
-        rule = self.rules_manager.get_rule_by_id(rule_id)
-        if not rule:
-            return
-        
-        # Nombre
-        name_label = tk.Label(
-            self.details_content,
-            text=rule.get('name', ''),
-            font=("Arial", 11, "bold"),
-            bg="#F5F5F5",
-            fg=PRIMARY_COLOR,
-            wraplength=360,
-            justify=tk.LEFT
-        )
-        name_label.pack(anchor="w", pady=(0, 10))
-        
-        # Descripción
-        desc_frame = tk.LabelFrame(
-            self.details_content,
-            text="Descripción",
-            font=("Arial", 9, "bold"),
-            bg="#F5F5F5",
-            fg=TEXT_COLOR
-        )
-        desc_frame.pack(fill=tk.X, pady=5)
-        
-        desc_text = tk.Text(
-            desc_frame,
-            height=4,
-            font=("Arial", 9),
-            wrap=tk.WORD,
-            bg="white",
-            relief=tk.FLAT
-        )
-        desc_text.pack(padx=5, pady=5, fill=tk.X)
-        desc_text.insert("1.0", rule.get('description', 'Sin descripción'))
-        desc_text.config(state=tk.DISABLED)
-        
-        # Activo
-        active_frame = tk.Frame(self.details_content, bg="#F5F5F5")
-        active_frame.pack(fill=tk.X, pady=5)
-        
-        self.active_var = tk.BooleanVar(value=rule.get('enabled', True))
-        active_check = tk.Checkbutton(
-            active_frame,
-            text="✅ Regla Activa",
-            variable=self.active_var,
-            font=("Arial", 10, "bold"),
-            bg="#F5F5F5",
-            fg=COLOR_SUCCESS,
-            selectcolor="white",
-            command=lambda: self._update_rule_field('enabled', self.active_var.get())
-        )
-        active_check.pack(anchor="w")
-        
-        # Severidad
-        severity_frame = tk.LabelFrame(
-            self.details_content,
-            text="Severidad",
-            font=("Arial", 9, "bold"),
-            bg="#F5F5F5"
-        )
-        severity_frame.pack(fill=tk.X, pady=5)
-        
-        self.severity_var = tk.StringVar(value=rule.get('severity', 'warning'))
-        severity_combo = ttk.Combobox(
-            severity_frame,
-            textvariable=self.severity_var,
-            values=["error", "warning", "info"],
-            state="readonly",
-            font=("Arial", 10)
-        )
-        severity_combo.pack(padx=5, pady=5, fill=tk.X)
-        severity_combo.bind("<<ComboboxSelected>>", 
-                           lambda e: self._update_rule_field('severity', self.severity_var.get()))
-        
-        # Penalización
-        penalty_frame = tk.LabelFrame(
-            self.details_content,
-            text="Penalización (%)",
-            font=("Arial", 9, "bold"),
-            bg="#F5F5F5"
-        )
-        penalty_frame.pack(fill=tk.X, pady=5)
-        
-        self.penalty_var = tk.IntVar(value=rule.get('penalty', 0))
-        penalty_spinbox = tk.Spinbox(
-            penalty_frame,
-            from_=0,
-            to=100,
-            textvariable=self.penalty_var,
-            font=("Arial", 10),
-            command=lambda: self._update_rule_field('penalty', self.penalty_var.get())
-        )
-        penalty_spinbox.pack(padx=5, pady=5, fill=tk.X)
-        
-        # Parámetros de la regla (si tiene)
-        parameters = self.rules_manager.get_rule_parameters(rule_id)
-        if parameters:
-            params_frame = tk.LabelFrame(
-                self.details_content,
-                text="Parámetros",
-                font=("Arial", 9, "bold"),
-                bg="#F5F5F5"
-            )
-            params_frame.pack(fill=tk.X, pady=5)
-            
-            self.param_vars = {}
-            for param_name, param_data in parameters.items():
-                if param_data.get('type') == 'number':
-                    # Frame para cada parámetro - Vertical para mejor lectura
-                    param_container = tk.Frame(params_frame, bg="#F5F5F5")
-                    param_container.pack(fill=tk.X, padx=5, pady=5)
-                    
-                    # Label con descripción - Arriba
-                    param_label = tk.Label(
-                        param_container,
-                        text=param_data.get('description', param_name),
-                        font=("Arial", 9),
-                        bg="#F5F5F5",
-                        anchor="w",
-                        wraplength=360,
-                        justify=tk.LEFT
-                    )
-                    param_label.pack(anchor="w", pady=(0, 3))
-                    
-                    # Frame para valor y spinbox - Abajo
-                    value_frame = tk.Frame(param_container, bg="#F5F5F5")
-                    value_frame.pack(fill=tk.X)
-                    
-                    # Label "Valor:"
-                    value_label = tk.Label(
-                        value_frame,
-                        text="Valor:",
-                        font=("Arial", 9, "bold"),
-                        bg="#F5F5F5"
-                    )
-                    value_label.pack(side=tk.LEFT, padx=(0, 5))
-                    
-                    # Spinbox para el valor
-                    param_var = tk.IntVar(value=param_data.get('value', 0))
-                    self.param_vars[param_name] = param_var
-                    
-                    param_spinbox = tk.Spinbox(
-                        value_frame,
-                        from_=param_data.get('min', 0),
-                        to=param_data.get('max', 100),
-                        textvariable=param_var,
-                        font=("Arial", 10, "bold"),
-                        width=10,
-                        command=lambda pn=param_name: self._update_parameter(pn)
-                    )
-                    param_spinbox.pack(side=tk.LEFT)
-                    
-                    # Mostrar rango
-                    range_label = tk.Label(
-                        value_frame,
-                        text=f"(rango: {param_data.get('min', 0)}-{param_data.get('max', 100)})",
-                        font=("Arial", 8),
-                        bg="#F5F5F5",
-                        fg="gray"
-                    )
-                    range_label.pack(side=tk.LEFT, padx=(5, 0))
-        
-        # Conjuntos
-        sets_frame = tk.LabelFrame(
-            self.details_content,
-            text="Conjuntos",
-            font=("Arial", 9, "bold"),
-            bg="#F5F5F5"
-        )
-        sets_frame.pack(fill=tk.X, pady=5)
-        
-        current_sets = rule.get('sets', [])
-        
-        self.uipath_var = tk.BooleanVar(value="UiPath" in current_sets)
-        uipath_check = tk.Checkbutton(
-            sets_frame,
-            text="☑ UiPath",
-            variable=self.uipath_var,
-            font=("Arial", 9),
-            bg="#F5F5F5",
-            command=self._update_sets
-        )
-        uipath_check.pack(anchor="w", padx=5, pady=2)
-        
-        self.nttdata_var = tk.BooleanVar(value="NTTData" in current_sets)
-        nttdata_check = tk.Checkbutton(
-            sets_frame,
-            text="☑ NTTData",
-            variable=self.nttdata_var,
-            font=("Arial", 9),
-            bg="#F5F5F5",
-            command=self._update_sets
-        )
-        nttdata_check.pack(anchor="w", padx=5, pady=2)
-        
-        # Estado de implementación
-        status_frame = tk.LabelFrame(
-            self.details_content,
-            text="Estado de Implementación",
-            font=("Arial", 9, "bold"),
-            bg="#F5F5F5"
-        )
-        status_frame.pack(fill=tk.X, pady=5)
-        
-        status = rule.get('implementation_status', 'pending')
-        status_text = {
-            'implemented': '✅ Implementada y funcional',
-            'pending': '⏳ Pendiente de implementar',
-            'duplicate': '🔄 Duplicada (revisar)',
-            'manual': '👤 Requiere revisión manual'
-        }.get(status, status)
-        
-        status_label = tk.Label(
-            status_frame,
-            text=status_text,
-            font=("Arial", 9),
-            bg="#F5F5F5",
-            wraplength=360,
-            justify=tk.LEFT
-        )
-        status_label.pack(padx=5, pady=5, anchor="w")
-    
     def _update_rule_field(self, field, value):
         """Actualizar un campo de la regla seleccionada"""
         if not self.selected_rule_id:
             return
         
         self.rules_manager.update_rule(self.selected_rule_id, {field: value})
-        self._load_rules()  # Recargar tabla
     
     def _update_sets(self):
         """Actualizar conjuntos de la regla seleccionada"""
@@ -870,6 +1161,7 @@ class RulesManagementScreen:
         """Activar todas las reglas"""
         for rule in self.rules_manager.get_all_rules():
             self.rules_manager.update_rule(rule['id'], {'enabled': True})
+        self.rules_manager.save_rules()
         self._load_rules()
         messagebox.showinfo("Éxito", "✅ Todas las reglas activadas")
     
@@ -878,8 +1170,490 @@ class RulesManagementScreen:
         if messagebox.askyesno("Confirmar", "¿Desactivar TODAS las reglas?"):
             for rule in self.rules_manager.get_all_rules():
                 self.rules_manager.update_rule(rule['id'], {'enabled': False})
+            self.rules_manager.save_rules()
             self._load_rules()
             messagebox.showinfo("Éxito", "❌ Todas las reglas desactivadas")
+    
+    def _save_company_settings(self):
+        """Guardar configuración de empresa"""
+        try:
+            # Obtener valores de los campos
+            company_name = self.company_name_var.get().strip()
+            company_short_name = self.company_short_name_var.get().strip()
+            
+            # Validar que no estén vacíos
+            if not company_name:
+                messagebox.showwarning("Advertencia", "El nombre de empresa no puede estar vacío")
+                return
+            
+            if not company_short_name:
+                messagebox.showwarning("Advertencia", "El nombre corto no puede estar vacío")
+                return
+            
+            # Guardar en branding_manager
+            success_name = self.branding_manager.set_company_name(company_name)
+            success_short = self.branding_manager.set_company_short_name(company_short_name)
+            
+            if success_name and success_short:
+                messagebox.showinfo(
+                    "✅ Configuración Guardada",
+                    f"La configuración de empresa se ha guardado correctamente:\n\n"
+                    f"Nombre: {company_name}\n"
+                    f"Nombre Corto: {company_short_name}\n\n"
+                    f"El sidebar se actualizará ahora."
+                )
+                
+                # Refrescar sidebar para mostrar cambios inmediatamente
+                try:
+                    # Obtener la ventana raíz (Tk)
+                    root = self.parent.winfo_toplevel()
+                    
+                    # Acceder a MainWindow a través de la referencia guardada en root
+                    if hasattr(root, 'main_window'):
+                        root.main_window.refresh_sidebar()
+                        print("✅ Sidebar refrescado correctamente")
+                    else:
+                        print("⚠️ No se encontró la referencia a MainWindow")
+                        messagebox.showinfo(
+                            "Información",
+                            "Los cambios se aplicarán al reiniciar la aplicación."
+                        )
+                except Exception as e:
+                    print(f"⚠️ No se pudo refrescar el sidebar automáticamente: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    messagebox.showinfo(
+                        "Información",
+                        "Los cambios se aplicarán al reiniciar la aplicación."
+                    )
+            else:
+                messagebox.showerror(
+                    "❌ Error",
+                    "No se pudo guardar la configuración de empresa."
+                )
+        except Exception as e:
+            messagebox.showerror(
+                "❌ Error",
+                f"Error al guardar la configuración:\n{str(e)}"
+            )
+
+
+
+
+
+
+    def _show_dependency_dialog(self, set_name):
+        """Mostrar diálogo para editar dependencias de un conjunto"""
+        current_deps = self.rules_manager.get_set_dependencies(set_name)
+        
+        # Crear ventana modal
+        dialog = tk.Toplevel(self.parent)
+        dialog.title(f"Dependencias: {set_name}")
+        dialog.geometry("600x500")
+        dialog.transient(self.parent)
+        dialog.grab_set()
+        
+        # Centrar ventana
+        dialog.update_idletasks()
+        x = (dialog.winfo_screenwidth() // 2) - (600 // 2)
+        y = (dialog.winfo_screenheight() // 2) - (500 // 2)
+        dialog.geometry(f"600x500+{x}+{y}")
+        
+        # Contenido
+        main_frame = tk.Frame(dialog, bg="white", padx=20, pady=20)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        tk.Label(
+            main_frame,
+            text=f"Configuración de Dependencias para {set_name}",
+            font=("Arial", 12, "bold"),
+            bg="white",
+            fg=PRIMARY_COLOR
+        ).pack(anchor="w", pady=(0, 10))
+        
+        tk.Label(
+            main_frame,
+            text="Pega aquí el bloque 'dependencies' del project.json:",
+            font=("Arial", 10),
+            bg="white"
+        ).pack(anchor="w", pady=(0, 5))
+        
+        # Área de texto
+        text_area = tk.Text(
+            main_frame,
+            font=("Consolas", 10),
+            height=15,
+            relief=tk.SUNKEN
+        )
+        text_area.pack(fill=tk.BOTH, expand=True, pady=5)
+        
+        # Cargar valor actual formateado
+        if current_deps:
+            text_area.insert("1.0", json.dumps(current_deps, indent=4))
+        else:
+            text_area.insert("1.0", "{\n    \"UiPath.System.Activities\": \"22.10.3\",\n    \"UiPath.Excel.Activities\": \"2.12.3\"\n}")
+            
+        # Botones
+        buttons_frame = tk.Frame(main_frame, bg="white")
+        buttons_frame.pack(fill=tk.X, pady=10)
+        
+        def validate_and_save():
+            content = text_area.get("1.0", tk.END).strip()
+            if not content:
+                messagebox.showwarning("Advertencia", "El contenido no puede estar vacío", parent=dialog)
+                return
+                
+            try:
+                deps = json.loads(content)
+                if not isinstance(deps, dict):
+                    raise ValueError("El JSON debe ser un objeto (diccionario)")
+                
+                # Guardar
+                if self.rules_manager.set_set_dependencies(set_name, deps):
+                    self.rules_manager.save_rules()
+                    messagebox.showinfo("Éxito", "✅ Dependencias guardadas correctamente", parent=dialog)
+                    dialog.destroy()
+                else:
+                    messagebox.showerror("Error", "No se pudo guardar la configuración", parent=dialog)
+                    
+            except json.JSONDecodeError as e:
+                messagebox.showerror("JSON Inválido", f"Error de sintaxis JSON:\n{e}", parent=dialog)
+            except Exception as e:
+                messagebox.showerror("Error", f"Error al procesar:\n{e}", parent=dialog)
+        
+        tk.Button(
+            buttons_frame,
+            text="✅ Guardar",
+            bg=COLOR_SUCCESS,
+            fg="white",
+            font=("Arial", 10, "bold"),
+            command=validate_and_save
+        ).pack(side=tk.RIGHT, padx=5)
+        
+        tk.Button(
+            buttons_frame,
+            text="❌ Cancelar",
+            bg="#DC3545",
+            fg="white",
+            font=("Arial", 10),
+            command=dialog.destroy
+        ).pack(side=tk.RIGHT, padx=5)
+        
+        tk.Button(
+            buttons_frame,
+            text="🔍 Validar JSON",
+            bg=SECONDARY_COLOR,
+            fg="white",
+            font=("Arial", 10),
+            command=lambda: self._validate_json(text_area.get("1.0", tk.END), dialog)
+        ).pack(side=tk.LEFT, padx=5)
+
+    def _validate_json(self, content, parent):
+        try:
+            json.loads(content)
+            messagebox.showinfo("Validación", "✅ JSON Válido", parent=parent)
+        except Exception as e:
+            messagebox.showerror("Validación", f"❌ JSON Inválido:\n{e}", parent=parent)
+
+    def _show_sets_management_dialog(self):
+        """
+        Mostrar diálogo para gestionar conjuntos de BBPP
+        Permite seleccionar un conjunto y gestionar qué reglas pertenecen a él
+        """
+        # Crear ventana modal
+        dialog = tk.Toplevel(self.parent)
+        dialog.title("🔧 Gestión de Conjuntos de Buenas Prácticas")
+        dialog.geometry("800x700")
+        dialog.transient(self.parent)
+        dialog.grab_set()
+
+        # Centrar ventana
+        dialog.update_idletasks()
+        x = (dialog.winfo_screenwidth() // 2) - 400
+        y = (dialog.winfo_screenheight() // 2) - 350
+        dialog.geometry(f"800x700+{x}+{y}")
+
+        # Frame principal
+        main_frame = tk.Frame(dialog, bg="white", padx=20, pady=20)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        # Título
+        tk.Label(
+            main_frame,
+            text="Gestión de Conjuntos de Buenas Prácticas",
+            font=("Arial", 14, "bold"),
+            bg="white",
+            fg=PRIMARY_COLOR
+        ).pack(pady=(0, 20))
+
+        # Descripción
+        tk.Label(
+            main_frame,
+            text="Seleccione un conjunto y marque las reglas que desea incluir en él.",
+            font=("Arial", 9),
+            bg="white",
+            fg="gray",
+            wraplength=750
+        ).pack(pady=(0, 10))
+
+        # Frame de selección de conjunto
+        select_frame = tk.Frame(main_frame, bg="white")
+        select_frame.pack(fill=tk.X, pady=10)
+
+        tk.Label(
+            select_frame,
+            text="Seleccionar Conjunto:",
+            font=("Arial", 10, "bold"),
+            bg="white"
+        ).pack(side=tk.LEFT, padx=(0, 10))
+
+        # Obtener conjuntos dinámicamente desde rules_manager
+        available_sets = list(self.rules_manager.sets.keys())
+        if not available_sets:
+            messagebox.showwarning(
+                "Sin Conjuntos",
+                "No hay conjuntos configurados en BBPP_Master.json",
+                parent=dialog
+            )
+            dialog.destroy()
+            return
+
+        selected_set = tk.StringVar(value=available_sets[0])
+
+        set_combo = ttk.Combobox(
+            select_frame,
+            textvariable=selected_set,
+            values=available_sets,
+            state="readonly",
+            width=30,
+            font=("Arial", 10)
+        )
+        set_combo.pack(side=tk.LEFT, padx=10)
+
+        # Variables para UI
+        set_enabled_var = tk.BooleanVar()
+        rules_checkboxes = {}  # {rule_id: BooleanVar}
+
+        # Frame de información del conjunto
+        info_frame = tk.LabelFrame(
+            main_frame,
+            text="Información del Conjunto",
+            font=("Arial", 10, "bold"),
+            bg="white",
+            padx=10,
+            pady=10
+        )
+        info_frame.pack(fill=tk.X, pady=10)
+
+        # Checkbox conjunto activo
+        enabled_check = tk.Checkbutton(
+            info_frame,
+            text="☑ Conjunto Activo",
+            variable=set_enabled_var,
+            font=("Arial", 10, "bold"),
+            bg="white",
+            fg=COLOR_SUCCESS
+        )
+        enabled_check.pack(anchor="w", pady=5)
+
+        # Label de info de dependencias
+        deps_label = tk.Label(
+            info_frame,
+            text="",
+            font=("Arial", 9),
+            bg="white",
+            fg="gray"
+        )
+        deps_label.pack(anchor="w", pady=5)
+
+        # Botón para editar dependencias (reutiliza función existente)
+        def edit_dependencies():
+            """Abrir diálogo de dependencias para el conjunto seleccionado"""
+            self._show_dependency_dialog(selected_set.get())
+            # Recargar info después de editar
+            load_set_info()
+
+        deps_btn = tk.Button(
+            info_frame,
+            text="📝 Editar Dependencias",
+            command=edit_dependencies,
+            bg=SECONDARY_COLOR,
+            fg="white",
+            font=("Arial", 9),
+            padx=10,
+            pady=5
+        )
+        deps_btn.pack(anchor="w", pady=5)
+
+        # Frame de reglas con scroll
+        rules_frame = tk.LabelFrame(
+            main_frame,
+            text="Reglas en este Conjunto",
+            font=("Arial", 10, "bold"),
+            bg="white",
+            padx=10,
+            pady=10
+        )
+        rules_frame.pack(fill=tk.BOTH, expand=True, pady=10)
+
+        # Canvas para scroll
+        rules_canvas = tk.Canvas(rules_frame, bg="white", highlightthickness=0)
+        rules_scrollbar = ttk.Scrollbar(rules_frame, orient=tk.VERTICAL, command=rules_canvas.yview)
+        rules_content = tk.Frame(rules_canvas, bg="white")
+
+        rules_content.bind(
+            "<Configure>",
+            lambda e: rules_canvas.configure(scrollregion=rules_canvas.bbox("all"))
+        )
+
+        rules_canvas.create_window((0, 0), window=rules_content, anchor="nw", width=730)
+        rules_canvas.configure(yscrollcommand=rules_scrollbar.set)
+
+        # Habilitar scroll con rueda del mouse
+        def _on_mousewheel(event):
+            rules_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        rules_canvas.bind_all("<MouseWheel>", _on_mousewheel)
+
+        rules_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        rules_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        def load_set_info():
+            """
+            Cargar información del conjunto seleccionado:
+            - Estado activo/inactivo
+            - Número de dependencias
+            - Checkboxes de reglas
+            """
+            set_name = selected_set.get()
+            if not set_name:
+                return
+
+            # Obtener datos del conjunto
+            set_data = self.rules_manager.sets.get(set_name, {})
+
+            # Actualizar checkbox de activo
+            set_enabled_var.set(set_data.get('enabled', True))
+
+            # Actualizar label de dependencias
+            deps = set_data.get('dependencies', {})
+            deps_count = len(deps)
+            deps_label.config(text=f"📦 {deps_count} dependencia{'s' if deps_count != 1 else ''} configurada{'s' if deps_count != 1 else ''}")
+
+            # Limpiar checkboxes anteriores
+            for widget in rules_content.winfo_children():
+                widget.destroy()
+            rules_checkboxes.clear()
+
+            # Crear checkboxes para TODAS las reglas
+            all_rules = self.rules_manager.get_all_rules()
+
+            for rule in all_rules:
+                rule_id = rule.get('id', '')
+                rule_name = rule.get('name', '')
+
+                # Verificar si la regla pertenece a este conjunto
+                is_in_set = set_name in rule.get('sets', [])
+
+                # Crear variable y checkbox
+                var = tk.BooleanVar(value=is_in_set)
+                rules_checkboxes[rule_id] = var
+
+                check = tk.Checkbutton(
+                    rules_content,
+                    text=f"{rule_id} - {rule_name}",
+                    variable=var,
+                    font=("Arial", 9),
+                    bg="white",
+                    anchor="w"
+                )
+                check.pack(fill=tk.X, pady=2, padx=5)
+
+        def on_set_changed(*args):
+            """Evento cuando se cambia el conjunto seleccionado en el dropdown"""
+            load_set_info()
+
+        # Vincular evento de cambio de conjunto
+        selected_set.trace('w', on_set_changed)
+
+        # Cargar información inicial
+        load_set_info()
+
+        # Botones de acción
+        buttons_frame = tk.Frame(main_frame, bg="white")
+        buttons_frame.pack(fill=tk.X, pady=10)
+
+        def save_changes():
+            """
+            Guardar cambios del conjunto:
+            1. Actualizar estado activo/inactivo del conjunto
+            2. Actualizar qué reglas pertenecen al conjunto
+            3. Guardar a BBPP_Master.json
+            """
+            set_name = selected_set.get()
+            if not set_name:
+                return
+
+            # 1. Actualizar enabled del conjunto
+            self.rules_manager.sets[set_name]['enabled'] = set_enabled_var.get()
+
+            # 2. Actualizar reglas: añadir/quitar del conjunto según checkboxes
+            for rule_id, var in rules_checkboxes.items():
+                rule = self.rules_manager.get_rule_by_id(rule_id)
+                if not rule:
+                    continue
+
+                current_sets = rule.get('sets', []).copy()  # Copiar para no mutar
+                is_checked = var.get()
+
+                # Añadir al conjunto si está marcado y no está
+                if is_checked and set_name not in current_sets:
+                    current_sets.append(set_name)
+                # Quitar del conjunto si no está marcado pero está
+                elif not is_checked and set_name in current_sets:
+                    current_sets.remove(set_name)
+
+                # Actualizar regla
+                self.rules_manager.update_rule(rule_id, {'sets': current_sets})
+
+            # 3. Guardar a archivo
+            if self.rules_manager.save_rules():
+                messagebox.showinfo(
+                    "Éxito",
+                    f"✅ Conjunto '{set_name}' actualizado correctamente",
+                    parent=dialog
+                )
+                # Recargar tabla principal para reflejar cambios
+                self._load_rules()
+            else:
+                messagebox.showerror(
+                    "Error",
+                    "❌ Error al guardar cambios",
+                    parent=dialog
+                )
+
+        # Botón Guardar
+        tk.Button(
+            buttons_frame,
+            text="💾 Guardar Cambios",
+            command=save_changes,
+            bg=COLOR_SUCCESS,
+            fg="white",
+            font=("Arial", 10, "bold"),
+            padx=20,
+            pady=8
+        ).pack(side=tk.LEFT, padx=5)
+
+        # Botón Cerrar
+        tk.Button(
+            buttons_frame,
+            text="❌ Cerrar",
+            command=dialog.destroy,
+            bg="#DC3545",
+            fg="white",
+            font=("Arial", 10),
+            padx=20,
+            pady=8
+        ).pack(side=tk.RIGHT, padx=5)
 
 
 # Test standalone

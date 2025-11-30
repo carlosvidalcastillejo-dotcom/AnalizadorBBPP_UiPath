@@ -44,14 +44,14 @@ class RulesManager:
             self.sets = data.get('sets', {})
             self.rules = data.get('rules', [])
             
-            print(f"✅ Cargadas {len(self.rules)} reglas desde {self.config_path.name}")
+            print(f"OK: Cargadas {len(self.rules)} reglas desde {self.config_path.name}")
             return True
             
         except FileNotFoundError:
-            print(f"❌ No se encontró {self.config_path}")
+            print(f"ERROR: No se encontró {self.config_path}")
             return False
         except json.JSONDecodeError as e:
-            print(f"❌ Error al parsear JSON: {e}")
+            print(f"ERROR al parsear JSON: {e}")
             return False
     
     def save_rules(self) -> bool:
@@ -71,11 +71,11 @@ class RulesManager:
             with open(self.config_path, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
             
-            print(f"✅ Reglas guardadas en {self.config_path.name}")
+            print(f"OK: Reglas guardadas en {self.config_path.name}")
             return True
             
         except Exception as e:
-            print(f"❌ Error al guardar reglas: {e}")
+            print(f"ERROR al guardar reglas: {e}")
             return False
     
     def get_all_rules(self) -> List[Dict]:
@@ -192,21 +192,30 @@ class RulesManager:
     def get_rule_parameter(self, rule_id: str, param_name: str) -> Optional[any]:
         """
         Obtener el valor de un parámetro de una regla
-        
+
         Args:
             rule_id: ID de la regla
             param_name: Nombre del parámetro
-        
+
         Returns:
             Valor del parámetro o None si no existe
         """
         rule = self.get_rule_by_id(rule_id)
         if not rule:
             return None
-        
+
         parameters = rule.get('parameters', {})
-        param = parameters.get(param_name, {})
-        return param.get('value')
+        param = parameters.get(param_name)
+
+        if param is None:
+            return None
+
+        # Si el parámetro es un dict con 'value', devolver value
+        # Sino, devolver el parámetro directamente (para penalty_mode, penalty_value, etc.)
+        if isinstance(param, dict) and 'value' in param:
+            return param.get('value')
+        else:
+            return param
     
     def update_rule_parameter(self, rule_id: str, param_name: str, value: any) -> bool:
         """
@@ -272,6 +281,38 @@ class RulesManager:
             return {}
         
         return rule.get('parameters', {})
+    
+    def get_set_dependencies(self, set_name: str) -> Dict[str, str]:
+        """
+        Obtener dependencias configuradas para un conjunto
+        
+        Args:
+            set_name: Nombre del conjunto (ej: 'NTTData')
+            
+        Returns:
+            Diccionario con dependencias {paquete: version}
+        """
+        if set_name not in self.sets:
+            return {}
+        
+        return self.sets[set_name].get('dependencies', {})
+
+    def set_set_dependencies(self, set_name: str, dependencies: Dict[str, str]) -> bool:
+        """
+        Establecer dependencias para un conjunto
+        
+        Args:
+            set_name: Nombre del conjunto
+            dependencies: Diccionario de dependencias
+            
+        Returns:
+            True si se actualizó correctamente
+        """
+        if set_name not in self.sets:
+            return False
+            
+        self.sets[set_name]['dependencies'] = dependencies
+        return True
 
 
 # Función helper para obtener instancia global

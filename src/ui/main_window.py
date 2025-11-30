@@ -31,30 +31,41 @@ class MainWindow:
         self.root.geometry(f"{WINDOW_MIN_WIDTH}x{WINDOW_MIN_HEIGHT}")
         self.root.minsize(WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT)
         
+        # Guardar referencia a MainWindow en el root para acceso desde widgets hijos
+        self.root.main_window = self
+        
         self.project_path = None
         
         self._setup_ui()
         
     def _setup_ui(self):
         """Configurar la interfaz de usuario"""
-        # Menú lateral
+        # IMPORTANTE: Crear sidebar PRIMERO para evitar conflictos de empaquetado
+        # El orden correcto es: sidebar (LEFT) -> main_area (RIGHT) -> status_bar (BOTTOM)
+        
+        # Menú lateral (PRIMERO)
         self._create_sidebar()
         
         # Área principal
         self._create_main_area()
         
-        # Barra de estado
+        # Barra de estado (ÚLTIMO para que quede abajo)
         self._create_status_bar()
+        
+        # Verificar que el sidebar está correctamente empaquetado
+        self._ensure_sidebar_visible()
         
     def _create_sidebar(self):
         """Crear menú lateral"""
-        sidebar = tk.Frame(self.root, bg=PRIMARY_COLOR, width=200)
-        sidebar.pack(side=tk.LEFT, fill=tk.Y)
-        sidebar.pack_propagate(False)
+        print("🔧 DEBUG: Creando sidebar...")
+        self.sidebar = tk.Frame(self.root, bg=PRIMARY_COLOR, width=200)
+        self.sidebar.pack(side=tk.LEFT, fill=tk.Y)
+        self.sidebar.pack_propagate(False)
+        print(f"✅ DEBUG: Sidebar creado - Existe: {self.sidebar.winfo_exists()}, Visible: {self.sidebar.winfo_viewable()}")
         
         # Título de la aplicación
         title_label = tk.Label(
-            sidebar,
+            self.sidebar,
             text="Analizador BBPP\nUiPath",
             bg=PRIMARY_COLOR,
             fg="white",
@@ -65,7 +76,7 @@ class MainWindow:
         
         # Versión
         version_label = tk.Label(
-            sidebar,
+            self.sidebar,
             text=f"v{APP_VERSION} {APP_VERSION_TYPE}",
             bg=PRIMARY_COLOR,
             fg="white",
@@ -74,22 +85,22 @@ class MainWindow:
         version_label.pack()
         
         # Separador
-        separator = tk.Frame(sidebar, bg="white", height=2)
+        separator = tk.Frame(self.sidebar, bg="white", height=2)
         separator.pack(fill=tk.X, padx=20, pady=20)
         
         # Botones del menú
-        self._create_menu_button(sidebar, "📊 Análisis", self._show_analysis_screen)
-        self._create_menu_button(sidebar, "📋 Gestión de BBPP", self._show_bbpp_management_screen)
-        self._create_menu_button(sidebar, "⚙️ Configuración", self._show_config_screen)
-        self._create_menu_button(sidebar, "📈 Métricas", self._show_metrics_dashboard)
-        self._create_menu_button(sidebar, "📝 Notas de Versión", self._show_version_notes)
+        self._create_menu_button(self.sidebar, "📊 Análisis", self._show_analysis_screen)
+        self._create_menu_button(self.sidebar, "📋 Gestión de BBPP", self._show_bbpp_management_screen)
+        self._create_menu_button(self.sidebar, "⚙️ Configuración", self._show_config_screen)
+        self._create_menu_button(self.sidebar, "📈 Métricas", self._show_metrics_dashboard)
+        self._create_menu_button(self.sidebar, "📝 Notas de Versión", self._show_version_notes)
         
         # Espaciador
-        tk.Frame(sidebar, bg=PRIMARY_COLOR).pack(fill=tk.BOTH, expand=True)
+        tk.Frame(self.sidebar, bg=PRIMARY_COLOR).pack(fill=tk.BOTH, expand=True)
         
         # Botón salir al final
         exit_btn = tk.Button(
-            sidebar,
+            self.sidebar,
             text="🚪 Salir",
             command=self.root.quit,
             bg="#DC3545",
@@ -101,15 +112,107 @@ class MainWindow:
         )
         exit_btn.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=10)
         
-        # Logo NTT Data (placeholder)
-        company_label = tk.Label(
-            sidebar,
-            text=COMPANY,
-            bg=PRIMARY_COLOR,
-            fg="white",
-            font=("Arial", 10, "bold")
-        )
-        company_label.pack(side=tk.BOTTOM, pady=10)
+        # Logo y nombre de empresa
+        self._create_company_branding()
+    
+    def _create_company_branding(self):
+        """Crear sección de branding (logo + nombre de empresa)"""
+        try:
+            from src.branding_manager import get_branding_manager
+            branding = get_branding_manager()
+            
+            # Frame contenedor para logo y nombre
+            branding_frame = tk.Frame(self.sidebar, bg=PRIMARY_COLOR)
+            branding_frame.pack(side=tk.BOTTOM, pady=10)
+            
+            # Intentar cargar y mostrar logo si está configurado
+            logo_path = branding.get_logo_path()
+            if logo_path and logo_path.exists() and branding.use_logo_in_ui():
+                try:
+                    from PIL import Image, ImageTk
+                    
+                    # Cargar imagen
+                    img = Image.open(logo_path)
+                    
+                    # Obtener dimensiones configuradas
+                    logo_width, logo_height = branding.get_logo_dimensions()
+                    
+                    # Redimensionar manteniendo aspecto
+                    img.thumbnail((logo_width, logo_height), Image.Resampling.LANCZOS)
+                    
+                    # Convertir a PhotoImage
+                    photo = ImageTk.PhotoImage(img)
+                    
+                    # Crear label con imagen
+                    logo_label = tk.Label(
+                        branding_frame,
+                        image=photo,
+                        bg=PRIMARY_COLOR
+                    )
+                    logo_label.image = photo  # Mantener referencia
+                    logo_label.pack(pady=(0, 5))
+                    
+                except Exception as e:
+                    print(f"⚠️ No se pudo cargar el logo: {e}")
+                    # Continuar sin logo
+            
+            # Nombre de empresa (siempre se muestra)
+            company_name = branding.get_company_name()
+            self.company_label = tk.Label(
+                branding_frame,
+                text=company_name,
+                bg=PRIMARY_COLOR,
+                fg="white",
+                font=("Arial", 10, "bold")
+            )
+            self.company_label.pack()
+            
+        except Exception as e:
+            print(f"⚠️ Error al cargar branding: {e}")
+            # Fallback: mostrar solo el nombre de empresa por defecto
+            self.company_label = tk.Label(
+                self.sidebar,
+                text=COMPANY,
+                bg=PRIMARY_COLOR,
+                fg="white",
+                font=("Arial", 10, "bold")
+            )
+            self.company_label.pack(side=tk.BOTTOM, pady=10)
+    
+    def refresh_sidebar(self):
+        """Refrescar sidebar para mostrar cambios de branding"""
+        print("🔄 DEBUG: Iniciando refresh_sidebar...")
+        print(f"   - Sidebar existe: {hasattr(self, 'sidebar') and self.sidebar.winfo_exists()}")
+        
+        try:
+            from src.branding_manager import get_branding_manager
+            branding = get_branding_manager()
+            
+            # Verificar estado del sidebar ANTES de actualizar
+            if hasattr(self, 'sidebar'):
+                print(f"   - Sidebar visible ANTES: {self.sidebar.winfo_viewable()}")
+                print(f"   - Sidebar manager: {self.sidebar.winfo_manager()}")
+            
+            # Solo actualizar el texto del label de empresa si existe
+            if hasattr(self, 'company_label') and self.company_label.winfo_exists():
+                new_company_name = branding.get_company_name()
+                self.company_label.config(text=new_company_name)
+                print(f"✅ Nombre de empresa actualizado a: {new_company_name}")
+            else:
+                print("⚠️ No se encontró el label de empresa para actualizar")
+            
+            # Verificar estado del sidebar DESPUÉS de actualizar
+            if hasattr(self, 'sidebar'):
+                print(f"   - Sidebar visible DESPUÉS: {self.sidebar.winfo_viewable()}")
+                print(f"   - Sidebar manager DESPUÉS: {self.sidebar.winfo_manager()}")
+            
+            # IMPORTANTE: Asegurar que el sidebar sigue visible
+            self._ensure_sidebar_visible()
+                
+        except Exception as e:
+            print(f"⚠️ Error al refrescar sidebar: {e}")
+            import traceback
+            traceback.print_exc()
         
     def _create_menu_button(self, parent, text, command):
         """Crear botón del menú"""
@@ -154,6 +257,33 @@ class MainWindow:
             pady=5
         )
         self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
+    
+    def _ensure_sidebar_visible(self):
+        """
+        Verificar que el sidebar está visible y correctamente empaquetado.
+        Si no lo está, re-empaquetarlo.
+        """
+        if not hasattr(self, 'sidebar'):
+            print("⚠️ WARNING: Sidebar no existe en _ensure_sidebar_visible()")
+            return
+        
+        if not self.sidebar.winfo_exists():
+            print("⚠️ WARNING: Sidebar fue destruido - esto no debería pasar")
+            return
+        
+        # Verificar si está empaquetado
+        manager = self.sidebar.winfo_manager()
+        if not manager or manager == '':
+            print("🔧 DEBUG: Sidebar no está empaquetado - re-empaquetando...")
+            self.sidebar.pack(side=tk.LEFT, fill=tk.Y)
+            self.sidebar.pack_propagate(False)
+            print("✅ DEBUG: Sidebar re-empaquetado")
+        
+        # Verificar visibilidad
+        if not self.sidebar.winfo_viewable():
+            print(f"⚠️ DEBUG: Sidebar no visible - Manager: {manager}, Geometry: {self.sidebar.winfo_geometry()}")
+        else:
+            print(f"✅ DEBUG: Sidebar visible - Manager: {manager}, Width: {self.sidebar.winfo_width()}px")
     
     def _clear_main_area(self):
         """Limpiar área principal"""
@@ -224,7 +354,63 @@ class MainWindow:
             pady=15,
             padx=40
         )
-        analyze_btn.pack(pady=30)
+        analyze_btn.pack(pady=20)
+        
+        # Frame para selección de BBPP (NUEVO)
+        bbpp_frame = tk.LabelFrame(
+            self.main_area,
+            text="Reglas BBPP a Aplicar",
+            font=("Arial", 12, "bold"),
+            bg=BG_COLOR,
+            padx=20,
+            pady=10
+        )
+        bbpp_frame.pack(padx=20, pady=5, fill=tk.X)
+        
+        # Cargar conjuntos disponibles
+        from src.config import get_available_bbpp_sets, load_user_config
+        available_sets = get_available_bbpp_sets()
+        user_config = load_user_config()
+        active_sets_config = user_config.get('active_bbpp_sets', ['UiPath'])
+        
+        self.bbpp_vars = {}
+        
+        if not available_sets:
+            tk.Label(bbpp_frame, text="No se encontraron reglas BBPP", bg=BG_COLOR, fg="red").pack()
+        else:
+            # Grid para checkboxes
+            grid_frame = tk.Frame(bbpp_frame, bg=BG_COLOR)
+            grid_frame.pack(fill=tk.X)
+            
+            col = 0
+            row = 0
+            for bbpp_set in available_sets:
+                name = bbpp_set['name']
+                filename = bbpp_set['filename']
+                
+                # Extraer el nombre del set del filename (BBPP_UiPath.json -> UiPath)
+                set_name = filename.replace('BBPP_', '').replace('.json', '')
+                
+                # Estado inicial basado en config
+                is_active = set_name in active_sets_config or filename in active_sets_config
+                
+                var = tk.BooleanVar(value=is_active)
+                self.bbpp_vars[set_name] = var  # Usar set_name en lugar de filename
+                
+                cb = tk.Checkbutton(
+                    grid_frame,
+                    text=f"{name} (v{bbpp_set['version']})",
+                    variable=var,
+                    bg=BG_COLOR,
+                    font=("Arial", 10),
+                    cursor="hand2"
+                )
+                cb.grid(row=row, column=col, sticky="w", padx=10, pady=5)
+                
+                col += 1
+                if col > 2:  # 3 columnas
+                    col = 0
+                    row += 1
         
         # Frame para botones de reportes
         reports_frame = tk.Frame(self.main_area, bg=BG_COLOR)
@@ -320,78 +506,7 @@ class MainWindow:
         # Variables para los controles
         self.config_vars = {}
         
-        # ========== SECCIÓN 1: UMBRALES ==========
-        self._create_config_section(
-            scrollable_frame,
-            "📊 Umbrales de Análisis",
-            "Configura los límites para las reglas de análisis"
-        )
-        
-        # Frame para umbrales
-        thresholds_frame = tk.Frame(scrollable_frame, bg=BG_COLOR)
-        thresholds_frame.pack(padx=40, pady=10, fill=tk.X)
-        
-        # Umbral: Actividades máximas por Sequence
-        self._create_threshold_input(
-            thresholds_frame,
-            "max_activities_sequence",
-            "Máximo de actividades por Sequence:",
-            config.get("thresholds", {}).get("max_activities_sequence", 20),
-            "Número máximo de actividades permitidas en un Sequence"
-        )
-        
-        # Umbral: IFs anidados
-        self._create_threshold_input(
-            thresholds_frame,
-            "max_nested_ifs",
-            "Máximo de IFs anidados:",
-            config.get("thresholds", {}).get("max_nested_ifs", 3),
-            "Nivel máximo de anidamiento de IFs permitido"
-        )
-        
-        # Umbral: Código comentado
-        self._create_threshold_input(
-            thresholds_frame,
-            "max_commented_code_percent",
-            "Máximo % de código comentado:",
-            config.get("thresholds", {}).get("max_commented_code_percent", 5),
-            "Porcentaje máximo de código comentado permitido"
-        )
-        
-        # ========== SECCIÓN 2: VALIDACIONES ==========
-        self._create_config_section(
-            scrollable_frame,
-            "✅ Opciones de Validación",
-            "Activa o desactiva validaciones específicas"
-        )
-        
-        # Frame para validaciones
-        validations_frame = tk.Frame(scrollable_frame, bg=BG_COLOR)
-        validations_frame.pack(padx=40, pady=10, fill=tk.X)
-        
-        # Validaciones opcionales
-        self._create_validation_checkbox(
-            validations_frame,
-            "validate_variable_prefixes",
-            "Validar prefijos in_/out_/io_ en argumentos",
-            config.get("validations", {}).get("validate_variable_prefixes", True)
-        )
-        
-        self._create_validation_checkbox(
-            validations_frame,
-            "validate_argument_descriptions",
-            "Validar descripciones en argumentos",
-            config.get("validations", {}).get("validate_argument_descriptions", True)
-        )
-        
-        self._create_validation_checkbox(
-            validations_frame,
-            "validate_init_end_pattern",
-            "Validar patrón Init/End en States",
-            config.get("validations", {}).get("validate_init_end_pattern", False)
-        )
-        
-        # ========== SECCIÓN 3: OPCIONES DE SALIDA ==========
+        # ========== SECCIÓN 1: OPCIONES DE SALIDA ==========
         self._create_config_section(
             scrollable_frame,
             "📄 Opciones de Reportes",
@@ -450,7 +565,7 @@ class MainWindow:
             config.get("output", {}).get("include_charts", True)
         )
         
-        # ========== SECCIÓN 4: LOGO PERSONALIZADO ==========
+        # ========== SECCIÓN 3: LOGO PERSONALIZADO ==========
         self._create_config_section(
             scrollable_frame,
             "🎨 Logo Personalizado",
@@ -504,6 +619,91 @@ class MainWindow:
             pady=5
         )
         reset_logo_btn.pack(side=tk.LEFT, padx=5)
+        
+        # ========== SECCIÓN 4: CONFIGURACIÓN DE EMPRESA ==========
+        self._create_config_section(
+            scrollable_frame,
+            "🏢 Configuración de Empresa",
+            "Configura el nombre de tu empresa que aparece en la aplicación"
+        )
+        
+        # Frame para configuración de empresa
+        company_frame = tk.Frame(scrollable_frame, bg=BG_COLOR)
+        company_frame.pack(padx=40, pady=10, fill=tk.X)
+        
+        # Importar branding_manager
+        try:
+            from src.branding_manager import get_branding_manager
+            branding = get_branding_manager()
+            
+            # Nombre de Empresa
+            name_row = tk.Frame(company_frame, bg=BG_COLOR)
+            name_row.pack(fill=tk.X, pady=5)
+            
+            tk.Label(
+                name_row,
+                text="Nombre de Empresa:",
+                font=("Arial", 10),
+                bg=BG_COLOR,
+                fg=TEXT_COLOR,
+                width=25,
+                anchor="w"
+            ).pack(side=tk.LEFT, padx=(0, 10))
+            
+            self.company_name_var = tk.StringVar(value=branding.get_company_name())
+            company_name_entry = tk.Entry(
+                name_row,
+                textvariable=self.company_name_var,
+                font=("Arial", 10)
+            )
+            company_name_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+            
+            # Nombre Corto
+            short_name_row = tk.Frame(company_frame, bg=BG_COLOR)
+            short_name_row.pack(fill=tk.X, pady=5)
+            
+            tk.Label(
+                short_name_row,
+                text="Nombre Corto:",
+                font=("Arial", 10),
+                bg=BG_COLOR,
+                fg=TEXT_COLOR,
+                width=25,
+                anchor="w"
+            ).pack(side=tk.LEFT, padx=(0, 10))
+            
+            self.company_short_name_var = tk.StringVar(value=branding.get_company_short_name())
+            short_name_entry = tk.Entry(
+                short_name_row,
+                textvariable=self.company_short_name_var,
+                font=("Arial", 10)
+            )
+            short_name_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+            
+            # Botón Guardar Configuración de Empresa
+            save_company_btn = tk.Button(
+                company_frame,
+                text="💾 Guardar Configuración de Empresa",
+                command=self._save_company_settings,
+                bg=COLOR_SUCCESS,
+                fg="white",
+                font=("Arial", 10, "bold"),
+                relief=tk.FLAT,
+                cursor="hand2",
+                padx=15,
+                pady=8
+            )
+            save_company_btn.pack(pady=(10, 0))
+            
+        except Exception as e:
+            error_label = tk.Label(
+                company_frame,
+                text=f"⚠️ Error al cargar configuración de empresa: {e}",
+                font=("Arial", 9),
+                bg=BG_COLOR,
+                fg="red"
+            )
+            error_label.pack()
         
         # ========== BOTONES DE ACCIÓN ==========
         buttons_frame = tk.Frame(scrollable_frame, bg=BG_COLOR)
@@ -674,12 +874,37 @@ class MainWindow:
             
     def _reset_logo(self):
         """Restaurar logo por defecto"""
-        self.logo_path_label.config(text="Logo actual: Logo por defecto")
-        self.custom_logo_path = None
-        messagebox.showinfo(
-            "Logo Restaurado",
-            "Logo restaurado al valor por defecto.\nNo olvides guardar la configuración."
-        )
+        try:
+            # Limpiar logo del branding_manager
+            from src.branding_manager import get_branding_manager
+            branding = get_branding_manager()
+            branding.set_logo_path(None)
+            
+            # Limpiar variable temporal
+            self.logo_path_label.config(text="Logo actual: Logo por defecto")
+            self.custom_logo_path = None
+            
+            # Refrescar sidebar para quitar el logo
+            try:
+                if hasattr(self, 'sidebar'):
+                    self.sidebar.destroy()
+                self._create_sidebar()
+                print("✅ Sidebar recreado sin logo")
+            except Exception as e:
+                print(f"⚠️ Error al refrescar sidebar: {e}")
+            
+            messagebox.showinfo(
+                "✅ Logo Restaurado",
+                "Logo restaurado al valor por defecto.\n\nEl logo ha sido eliminado del sidebar."
+            )
+        except Exception as e:
+            messagebox.showerror(
+                "❌ Error",
+                f"Error al restaurar logo:\n{str(e)}"
+            )
+            import traceback
+            traceback.print_exc()
+        
         
     def _save_configuration(self):
         """Guardar toda la configuración"""
@@ -694,13 +919,6 @@ class MainWindow:
                 "max_commented_code_percent": self.config_vars.get("max_commented_code_percent", tk.IntVar(value=5)).get()
             }
             
-            # Actualizar validaciones
-            config["validations"] = {
-                "validate_variable_prefixes": self.config_vars.get("validate_variable_prefixes", tk.BooleanVar(value=True)).get(),
-                "validate_argument_descriptions": self.config_vars.get("validate_argument_descriptions", tk.BooleanVar(value=True)).get(),
-                "validate_init_end_pattern": self.config_vars.get("validate_init_end_pattern", tk.BooleanVar(value=False)).get()
-            }
-            
             # Actualizar opciones de salida
             config["output"] = {
                 "auto_generate_reports": self.config_vars.get("auto_generate_reports", tk.BooleanVar(value=True)).get(),
@@ -709,16 +927,31 @@ class MainWindow:
                 "include_charts": self.config_vars.get("include_charts", tk.BooleanVar(value=True)).get()
             }
             
-            # Actualizar logo personalizado si se cambió
-            if hasattr(self, 'custom_logo_path'):
-                config["custom_logo"] = self.custom_logo_path
+            # Guardar logo en branding_manager si se cambió
+            if hasattr(self, 'custom_logo_path') and self.custom_logo_path:
+                from src.branding_manager import get_branding_manager
+                branding = get_branding_manager()
+                from pathlib import Path
+                branding.set_logo_path(Path(self.custom_logo_path))
+                print(f"✅ Logo guardado en branding: {self.custom_logo_path}")
             
-            # Guardar
+            # Guardar user config
             if save_user_config(config):
                 messagebox.showinfo(
                     "✅ Configuración Guardada",
-                    "La configuración se ha guardado correctamente."
+                    "La configuración se ha guardado correctamente.\n\nReinicia la aplicación para ver el logo."
                 )
+                
+                # Refrescar sidebar si hay logo nuevo
+                if hasattr(self, 'custom_logo_path') and self.custom_logo_path:
+                    try:
+                        # Destruir y recrear sidebar para cargar nuevo logo
+                        if hasattr(self, 'sidebar'):
+                            self.sidebar.destroy()
+                        self._create_sidebar()
+                        print("✅ Sidebar recreado con nuevo logo")
+                    except Exception as e:
+                        print(f"⚠️ Error al refrescar sidebar: {e}")
             else:
                 messagebox.showerror(
                     "❌ Error",
@@ -730,6 +963,8 @@ class MainWindow:
                 "❌ Error",
                 f"Error al guardar la configuración:\n{str(e)}"
             )
+            import traceback
+            traceback.print_exc()
             
     def _reset_configuration(self):
         """Restaurar configuración a valores por defecto"""
@@ -751,6 +986,57 @@ class MainWindow:
                     "❌ Error",
                     "No se pudo restaurar la configuración."
                 )
+        
+    def _save_company_settings(self):
+        """Guardar configuración de empresa"""
+        try:
+            from src.branding_manager import get_branding_manager
+            branding = get_branding_manager()
+            
+            # Obtener valores de los campos
+            company_name = self.company_name_var.get().strip()
+            company_short_name = self.company_short_name_var.get().strip()
+            
+            # Validar que no estén vacíos
+            if not company_name:
+                messagebox.showwarning("Advertencia", "El nombre de empresa no puede estar vacío")
+                return
+            
+            if not company_short_name:
+                messagebox.showwarning("Advertencia", "El nombre corto no puede estar vacío")
+                return
+            
+            # Guardar en branding_manager
+            success_name = branding.set_company_name(company_name)
+            success_short = branding.set_company_short_name(company_short_name)
+            
+            if success_name and success_short:
+                messagebox.showinfo(
+                    "✅ Configuración Guardada",
+                    f"La configuración de empresa se ha guardado correctamente:\n\n"
+                    f"Nombre: {company_name}\n"
+                    f"Nombre Corto: {company_short_name}\n\n"
+                    f"El sidebar se actualizará ahora."
+                )
+                
+                # Refrescar sidebar para mostrar cambios inmediatamente
+                try:
+                    self.refresh_sidebar()
+                    print("✅ Sidebar refrescado correctamente")
+                except Exception as e:
+                    print(f"⚠️ Error al refrescar sidebar: {e}")
+                    import traceback
+                    traceback.print_exc()
+            else:
+                messagebox.showerror(
+                    "❌ Error",
+                    "No se pudo guardar la configuración de empresa."
+                )
+        except Exception as e:
+            messagebox.showerror(
+                "❌ Error",
+                f"Error al guardar la configuración:\n{str(e)}"
+            )
         
     def _show_version_notes(self):
         """Mostrar notas de versión desde CHANGELOG.md"""
@@ -868,16 +1154,28 @@ class MainWindow:
         # Función para ejecutar análisis en thread separado
         def run_analysis():
             try:
-                # Cargar configuración del usuario (no DEFAULT_CONFIG)
+                # Cargar configuración del usuario
                 user_config = load_user_config()
-                scanner = ProjectScanner(self.project_path, user_config)
+                
+                # Obtener sets seleccionados de la UI
+                active_sets = [
+                    set_name for set_name, var in self.bbpp_vars.items()
+                    if var.get()
+                ]
+                
+                # Si no hay ninguno seleccionado, usar UiPath por defecto o advertir
+                if not active_sets:
+                    active_sets = ['UiPath']
+                
+                scanner = ProjectScanner(self.project_path, user_config, active_sets=active_sets)
                 results = scanner.scan(progress_callback)
                 
                 # Al terminar, actualizar UI en el thread principal
-                self.root.after(0, lambda: self._show_results(results, scanner))
+                self.root.after(0, lambda r=results, s=scanner: self._show_results(r, s))
                 
             except Exception as e:
-                self.root.after(0, lambda: self._show_error(str(e)))
+                error_msg = str(e)
+                self.root.after(0, lambda msg=error_msg: self._show_error(msg))
         
         # Iniciar análisis en thread separado
         analysis_thread = threading.Thread(target=run_analysis, daemon=True)
@@ -980,45 +1278,171 @@ class MainWindow:
         )
     
     def _generate_report(self):
-        """Generar reporte HTML"""
+        """Generar reporte HTML con selección de tipo"""
         if not self.last_results:
             messagebox.showwarning(
                 "Advertencia",
                 "No hay resultados para generar reporte.\nPor favor, analiza un proyecto primero."
             )
             return
-        
+
+        # Mostrar diálogo de selección de tipo de reporte
+        self._show_report_type_dialog()
+
+    def _show_report_type_dialog(self):
+        """Mostrar diálogo para seleccionar tipo de reporte"""
+        # Crear ventana modal
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Seleccionar Tipo de Reporte HTML")
+        dialog.geometry("500x350")
+        dialog.transient(self.root)
+        dialog.grab_set()
+
+        # Centrar ventana
+        dialog.update_idletasks()
+        x = (dialog.winfo_screenwidth() // 2) - (500 // 2)
+        y = (dialog.winfo_screenheight() // 2) - (350 // 2)
+        dialog.geometry(f"500x350+{x}+{y}")
+
+        # Frame principal
+        main_frame = tk.Frame(dialog, bg="white", padx=30, pady=20)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        # Título
+        tk.Label(
+            main_frame,
+            text="Selecciona el tipo de reporte HTML",
+            font=("Arial", 14, "bold"),
+            bg="white",
+            fg=PRIMARY_COLOR
+        ).pack(pady=(0, 20))
+
+        # Variable para almacenar selección
+        report_type = tk.StringVar(value="detallado")
+
+        # Opción 1: Detallado
+        frame_detallado = tk.Frame(main_frame, bg="white", relief=tk.GROOVE, borderwidth=2)
+        frame_detallado.pack(fill=tk.X, pady=10)
+
+        rb_detallado = tk.Radiobutton(
+            frame_detallado,
+            text="📊 Detallado (Recomendado)",
+            variable=report_type,
+            value="detallado",
+            bg="white",
+            font=("Arial", 12, "bold"),
+            cursor="hand2",
+            activebackground="white"
+        )
+        rb_detallado.pack(anchor="w", padx=15, pady=(10, 5))
+
+        tk.Label(
+            frame_detallado,
+            text="✓ Sistema de pestañas (Resumen/Hallazgos/Archivos)\n"
+                 "✓ Hallazgos colapsables y filtros interactivos\n"
+                 "✓ Score individual por archivo\n"
+                 "✓ Visualización moderna y completa",
+            bg="white",
+            font=("Arial", 9),
+            justify=tk.LEFT,
+            fg="#555"
+        ).pack(anchor="w", padx=15, pady=(0, 10))
+
+        # Opción 2: Normal
+        frame_normal = tk.Frame(main_frame, bg="white", relief=tk.GROOVE, borderwidth=2)
+        frame_normal.pack(fill=tk.X, pady=10)
+
+        rb_normal = tk.Radiobutton(
+            frame_normal,
+            text="📄 Normal",
+            variable=report_type,
+            value="normal",
+            bg="white",
+            font=("Arial", 12, "bold"),
+            cursor="hand2",
+            activebackground="white"
+        )
+        rb_normal.pack(anchor="w", padx=15, pady=(10, 5))
+
+        tk.Label(
+            frame_normal,
+            text="✓ Vista simple y directa\n"
+                 "✓ Todas las secciones en una página\n"
+                 "✓ Ideal para reportes rápidos\n"
+                 "✓ Menos funcionalidades interactivas",
+            bg="white",
+            font=("Arial", 9),
+            justify=tk.LEFT,
+            fg="#555"
+        ).pack(anchor="w", padx=15, pady=(0, 10))
+
+        # Botones
+        buttons_frame = tk.Frame(main_frame, bg="white")
+        buttons_frame.pack(pady=20)
+
+        def on_generate():
+            selected_type = report_type.get()
+            dialog.destroy()
+            self._generate_html_report(selected_type)
+
+        tk.Button(
+            buttons_frame,
+            text="Generar Reporte",
+            command=on_generate,
+            bg=PRIMARY_COLOR,
+            fg="white",
+            font=("Arial", 11, "bold"),
+            cursor="hand2",
+            padx=20,
+            pady=10
+        ).pack(side=tk.LEFT, padx=5)
+
+        tk.Button(
+            buttons_frame,
+            text="Cancelar",
+            command=dialog.destroy,
+            bg="#6c757d",
+            fg="white",
+            font=("Arial", 11),
+            cursor="hand2",
+            padx=20,
+            pady=10
+        ).pack(side=tk.LEFT, padx=5)
+
+    def _generate_html_report(self, report_type="detallado"):
+        """Generar reporte HTML del tipo especificado"""
         try:
             from src.report_generator import HTMLReportGenerator
             from datetime import datetime
-            
+
             # Crear nombre de archivo con timestamp
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             project_name = self.last_results['project_info'].get('name', 'proyecto')
-            output_file = Path(f"output/reporte_{project_name}_{timestamp}.html")
-            
-            # Generar reporte
-            generator = HTMLReportGenerator(self.last_results, output_file)
+            type_suffix = "DETALLADO" if report_type == "detallado" else "NORMAL"
+            output_file = Path(f"output/reporte_{type_suffix}_{project_name}_{timestamp}.html")
+
+            # Generar reporte con el tipo especificado
+            generator = HTMLReportGenerator(self.last_results, output_file, report_type=report_type)
             report_path = generator.generate()
-            
+
             # Preguntar si abrir el reporte
             result = messagebox.askyesno(
                 "Reporte Generado",
-                f"Reporte HTML generado con éxito:\n\n{report_path}\n\n¿Deseas abrirlo ahora?"
+                f"Reporte HTML ({type_suffix}) generado con éxito:\n\n{report_path}\n\n¿Deseas abrirlo ahora?"
             )
-            
+
             if result:
                 import webbrowser
                 webbrowser.open(str(report_path.absolute()))
-            
+
             self.status_bar.config(text=f"Reporte generado: {report_path.name}")
-            
+
         except Exception as e:
             messagebox.showerror(
                 "Error",
                 f"Error al generar el reporte:\n\n{str(e)}"
             )
-    
+
     def _generate_excel_report(self):
         """Generar reporte Excel"""
         if not self.last_results:
@@ -1123,32 +1547,7 @@ class MainWindow:
             )
             error_label.pack(fill=tk.BOTH, expand=True)
     
-    def _show_bbpp_management_screen(self):
-        """Mostrar pantalla de gestión de reglas BBPP"""
-        self._clear_main_area()
-        
-        # Importar y crear pantalla de gestión de reglas
-        try:
-            from src.ui.rules_management_screen import RulesManagementScreen
-            RulesManagementScreen(self.main_area)
-        except Exception as e:
-            # Si falla, mostrar mensaje de error
-            import traceback
-            error_frame = tk.Frame(self.main_area, bg=BG_COLOR)
-            error_frame.pack(fill=tk.BOTH, expand=True)
-            
-            error_text = f"❌ Error al cargar Gestión de Reglas:\n\n{str(e)}\n\n{traceback.format_exc()}"
-            error_label = tk.Label(
-                error_frame,
-                text=error_text,
-                font=("Arial", 10),
-                bg=BG_COLOR,
-                fg="red",
-                justify=tk.LEFT,
-                padx=20,
-                pady=20
-            )
-            error_label.pack(fill=tk.BOTH, expand=True)
+
     
     def _create_bbpp_set_card(self, parent, set_name, set_info, rules_mgr):
         """Crear tarjeta para un conjunto de BBPP"""

@@ -1,7 +1,7 @@
 {
     "company": {
-        "name": "Your Company",
-        "short_name": "YC",
+        "name": "Nombre de Empresa",
+        "short_name": "Nombre Corto",
         "website": "https://yourcompany.com",
         "email": "contact@yourcompany.com"
     },
@@ -33,7 +33,7 @@
     },
     "metadata": {
         "version": "1.0.0",
-        "last_updated": "2025-11-23",
+        "last_updated": "2025-11-30 12:15:58",
         "description": "Configuración de branding personalizable para el Analizador BBPP UiPath"
     }
 }

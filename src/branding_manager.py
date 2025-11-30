@@ -118,6 +118,13 @@ class BrandingManager:
         self._config['company']['name'] = name
         return self._save_config()
     
+    def set_company_short_name(self, short_name: str) -> bool:
+        """Establecer nombre corto de la empresa"""
+        if 'company' not in self._config:
+            self._config['company'] = {}
+        self._config['company']['short_name'] = short_name
+        return self._save_config()
+    
     # ========== LOGO ==========
     
     def get_logo_path(self) -> Optional[Path]:

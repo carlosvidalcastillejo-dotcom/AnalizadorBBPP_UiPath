@@ -1,5 +1,85 @@
 # Changelog
 
+## [1.0.0] - 2024-11-30 🎉
+
+**Autor:** Carlos Vidal Castillejo
+**Tipo de cambio:** Major - PRIMERA VERSIÓN ESTABLE
+
+### 🎉 Release v1.0.0 - Primera Versión Funcional Completa
+
+**FEATURES PRINCIPALES:**
+
+#### 🔧 Sistema de Penalización Personalizable
+- ✅ 3 modos de penalización (severity_default, individual, global)
+- ✅ Límite máximo configurable por regla
+- ✅ penalty_value=0 funcionando correctamente
+- ✅ Configuración desde UI para cada regla individualmente
+
+#### 🔐 Sistema de Excepciones REFramework
+- ✅ 50 excepciones predefinidas (Config, TransactionItem, SystemException, etc.)
+- ✅ Gestión desde UI (agregar/eliminar excepciones)
+- ✅ Persistencia en BBPP_Master.json
+- ✅ Aplicable a 5 reglas de nomenclatura
+
+#### 📦 Gestión Avanzada de Conjuntos
+- ✅ Selector dropdown en lugar de checkboxes
+- ✅ Gestión dinámica de conjuntos desde BBPP_Master.json
+- ✅ Asignación de reglas a conjuntos
+- ✅ Validación de dependencias NuGet por conjunto
+
+#### 🎨 Prefijos de Tipo
+- ✅ 13 prefijos reconocidos (dt_, str_, int_, bool_, arr_, dict_, etc.)
+- ✅ Configurables desde UI
+- ✅ Reconocimiento automático en nomenclatura
+
+#### 📊 Reportes Mejorados
+- ✅ Reporte HTML Normal
+- ✅ Reporte HTML Detallado con gráficos Chart.js interactivos
+- ✅ Hallazgos colapsables
+- ✅ Filtros por severidad y categoría
+- ✅ Reporte Excel profesional
+
+#### 🐛 Correcciones Críticas
+- ✅ **FIX CRÍTICO:** Panel izquierdo desaparecía (grid weights y minsize)
+- ✅ **FIX:** penalty_value=0 ahora funciona en todos los modos
+- ✅ **FIX:** get_rule_parameter() maneja parámetros simples y complejos
+
+#### 📚 Documentación
+- ✅ README.md actualizado a v1.0.0
+- ✅ ESTADO_PROYECTO_Y_ROADMAP_COMPLETO.md
+- ✅ SOLUCION_BUG_SIDEBAR.md con análisis completo
+
+#### 🏗️ Arquitectura
+- ✅ 17 reglas BBPP implementadas al 100%
+- ✅ Ejecutable .exe funcional (PyInstaller)
+- ✅ Archivo .spec incluido para reconstrucción
+- ✅ Base de datos SQLite para métricas
+- ✅ Dashboard de métricas con histórico
+
+**ARCHIVOS MODIFICADOS:**
+- src/project_scanner.py: Refactor completo de _calculate_score()
+- src/rules_manager.py: Mejora en get_rule_parameter()
+- src/ui/rules_management_screen.py: UI de penalización personalizable
+- src/ui/main_window.py: Fix sidebar bug
+- config/bbpp/BBPP_Master.json: Estructura de penalización en todas las reglas
+- config/config.json: Pesos de severidad y SCALING_FACTOR
+
+---
+
+## [0.12.0] - 2024-11-30
+
+**Autor:** Carlos Vidal Castillejo  
+**Tipo de cambio:** Minor  
+
+FIX CRITICO: Panel izquierdo desaparecia. Sistema de Excepciones REFramework (50 excepciones). Sistema de Penalizacion Personalizable (3 modos). Prefijos de Tipo (13 prefijos). Graficos en Reportes HTML (Chart.js). Gestion de Conjuntos mejorada. Validacion de Dependencias. Documentacion completa actualizada.
+
+## [0.11.0] - 2025-11-25
+
+**Autor:** Carlos Vidal Castillejo  
+**Tipo de cambio:** Minor  
+
+Validaciones movidas a Gestión BBPP. Mejorada UI de reglas con columna Activa y botones funcionales.
+
 ## [0.10.4] - 2025-11-23
 
 **Autor:** Carlos Vidal Castillejo  

@@ -47,26 +47,25 @@ class Finding:
 class BBPPAnalyzer:
     """Analizador de Buenas Prácticas para UiPath - v0.3 con RulesManager"""
     
-    def __init__(self, config: Dict = None, rules: List[Dict] = None):
+    def __init__(self, config: Dict = None, rules: List[Dict] = None, active_sets: List[str] = None):
         """
         Inicializar analizador con configuración
         
         Args:
             config: Diccionario con configuración de umbrales y validaciones
             rules: Lista de reglas a aplicar (si None, carga desde RulesManager)
+            active_sets: Lista de conjuntos activos (ej: ['UiPath', 'NTTData'])
         """
         # Importar rules_manager
         from src.rules_manager import get_rules_manager
         
         self.rules_manager = get_rules_manager()
         self.config = config or {}
+        self.active_sets = active_sets or ['UiPath', 'NTTData']  # Default fallback
         
         # Cargar reglas activas desde BBPP_Master.json
         if rules is None:
-            # Obtener conjuntos activos (por ahora UiPath y NTTData)
-            # TODO: Obtener de configuración de usuario
-            active_sets = ['UiPath', 'NTTData']
-            self.rules = self.rules_manager.get_active_rules(active_sets)
+            self.rules = self.rules_manager.get_active_rules(self.active_sets)
         else:
             self.rules = rules
         
@@ -97,11 +96,28 @@ class BBPPAnalyzer:
         
         return self.findings
     
+    def analyze_project(self, project_info: Dict) -> List[Finding]:
+        """
+        Analizar dependencias y configuración del proyecto
+        
+        Args:
+            project_info: Información extraída del project.json
+            
+        Returns:
+            Lista de hallazgos
+        """
+        # Usar conjuntos activos del constructor
+        # Verificar dependencias
+        self._check_dependencies(project_info, self.active_sets)
+        
+        return self.findings
+    
     def _apply_rules(self, data: Dict):
         """Aplicar todas las reglas habilitadas al XAML"""
         
         # Reglas de nomenclatura
         self._check_variable_naming(data, self.rules)
+        self._check_variable_naming_pascal(data, self.rules)  # Nueva regla PascalCase
         self._check_generic_names(data, self.rules)
         self._check_argument_prefixes(data, self.rules)
         self._check_argument_descriptions(data, self.rules)
@@ -186,31 +202,61 @@ class BBPPAnalyzer:
         rule = next((r for r in rules if r.get('rule_type') == 'variable_naming'), None)
         if not rule or not rule.get('enabled'):
             return
-        
+
         file_path = data.get('file_path', '')
+
+        # Obtener configuración de prefijos de tipo
+        params = rule.get('parameters', {})
+        allow_type_prefixes = params.get('allow_type_prefixes', False)
+        type_prefixes = params.get('type_prefixes', [])
         
+        # NUEVO: Obtener excepciones del REFramework
+        exceptions = params.get('exceptions', [])
+
         for var in data.get('variables', []):
             var_name = var.get('name', '')
-            
+
             # Ignorar variables vacías o muy cortas
             if len(var_name) < 2:
                 continue
             
+            # NUEVO: Verificar si es una excepción (REFramework)
+            if var_name in exceptions:
+                continue  # Saltar validación
+
+            # Verificar y quitar prefijo de tipo si está permitido
+            name_to_check = var_name
+            detected_type_prefix = None
+
+            if allow_type_prefixes and type_prefixes:
+                for type_prefix in type_prefixes:
+                    if var_name.startswith(type_prefix):
+                        detected_type_prefix = type_prefix
+                        name_to_check = var_name[len(type_prefix):]
+                        break
+
             # Patrón camelCase: primera letra minúscula, resto puede ser PascalCase
             # Ejemplos válidos: myVariable, userName, data123, myVar_temp
+            # Con prefijos: dt_myVariable, str_userName
             # Ejemplos inválidos: MyVariable, MYVARIABLE, my_variable
-            
-            is_valid_camel_case = self._is_camel_case(var_name)
-            
+
+            is_valid_camel_case = self._is_camel_case(name_to_check)
+
             if not is_valid_camel_case:
+                # Generar sugerencia
+                suggestion = self._to_camel_case(name_to_check)
+                if detected_type_prefix:
+                    suggestion = f'{detected_type_prefix}{suggestion}'
+
                 self._add_finding(
                     rule=rule,
                     file_path=file_path,
                     location=f"Variable: {var_name}",
                     details={
                         'variable_name': var_name,
-                        'expected_pattern': 'camelCase (primera letra minúscula)',
-                        'suggestion': f'Renombrar a: {self._to_camel_case(var_name)}'
+                        'expected_pattern': 'camelCase (primera letra minúscula)' + (' con prefijo de tipo opcional' if allow_type_prefixes else ''),
+                        'suggestion': f'Renombrar a: {suggestion}',
+                        'detected_type_prefix': detected_type_prefix
                     }
                 )
     
@@ -251,51 +297,141 @@ class BBPPAnalyzer:
         
         return name
     
+    def _is_pascal_case(self, name: str) -> bool:
+        """Verificar si un nombre sigue el patrón PascalCase"""
+        if not name:
+            return False
+        
+        # Primera letra debe ser mayúscula
+        if not name[0].isupper():
+            return False
+        
+        # No debe tener guiones bajos (excepto casos especiales)
+        if '_' in name:
+            return False
+        
+        # No debe estar todo en mayúsculas
+        if name.isupper():
+            return False
+        
+        return True
+    
+    def _to_pascal_case(self, name: str) -> str:
+        """Convertir un nombre a PascalCase (sugerencia)"""
+        # Si empieza con minúscula, convertir primera letra a mayúscula
+        if name and name[0].islower():
+            return name[0].upper() + name[1:]
+        
+        # Si es snake_case, convertir a PascalCase
+        if '_' in name:
+            parts = name.split('_')
+            return ''.join(word.capitalize() for word in parts)
+        
+        return name
+    
+    def _check_variable_naming_pascal(self, data: Dict, rules: List[Dict]):
+        """Verificar nomenclatura de variables según patrón PascalCase"""
+        rule = next((r for r in rules if r.get('rule_type') == 'variable_naming_pascal'), None)
+        if not rule or not rule.get('enabled'):
+            return
+
+        file_path = data.get('file_path', '')
+
+        # Obtener configuración de prefijos de tipo
+        params = rule.get('parameters', {})
+        allow_type_prefixes = params.get('allow_type_prefixes', False)
+        type_prefixes = params.get('type_prefixes', [])
+        
+        # NUEVO: Obtener excepciones del REFramework
+        exceptions = params.get('exceptions', [])
+
+        for var in data.get('variables', []):
+            var_name = var.get('name', '')
+
+            # Ignorar variables vacías o muy cortas
+            if len(var_name) < 2:
+                continue
+            
+            # NUEVO: Verificar si es una excepción (REFramework)
+            if var_name in exceptions:
+                continue  # Saltar validación
+
+            # Verificar y quitar prefijo de tipo si está permitido
+            name_to_check = var_name
+            detected_type_prefix = None
+
+            if allow_type_prefixes and type_prefixes:
+                for type_prefix in type_prefixes:
+                    if var_name.startswith(type_prefix):
+                        detected_type_prefix = type_prefix
+                        name_to_check = var_name[len(type_prefix):]
+                        break
+
+            # Patrón PascalCase: primera letra mayúscula, cada palabra inicia con mayúscula
+            # Ejemplos válidos: MyVariable, UserName, Data123
+            # Con prefijos: dt_MyVariable, str_UserName
+            # Ejemplos inválidos: myVariable, MYVARIABLE, my_variable
+
+            is_valid_pascal_case = self._is_pascal_case(name_to_check)
+
+            if not is_valid_pascal_case:
+                # Generar sugerencia
+                suggestion = self._to_pascal_case(name_to_check)
+                if detected_type_prefix:
+                    suggestion = f'{detected_type_prefix}{suggestion}'
+
+                self._add_finding(
+                    rule=rule,
+                    file_path=file_path,
+                    location=f"Variable: {var_name}",
+                    details={
+                        'variable_name': var_name,
+                        'expected_pattern': 'PascalCase (primera letra mayúscula)' + (' con prefijo de tipo opcional' if allow_type_prefixes else ''),
+                        'suggestion': f'Renombrar a: {suggestion}',
+                        'detected_type_prefix': detected_type_prefix
+                    }
+                )
+    
     def _check_generic_names(self, data: Dict, rules: List[Dict]):
         """Detectar nombres de variables genéricos"""
         file_path = data.get('file_path', '')
-        
+
         for rule in rules:
-            forbidden_names = rule.get('parameters', {}).get('forbidden_names', [])
-            if not forbidden_names:
-                continue
+            params = rule.get('parameters', {})
+            forbidden_names = params.get('forbidden_names', [])
+            generic_patterns = params.get('generic_patterns', [])
             
+            # NUEVO: Obtener excepciones del REFramework
+            exceptions = params.get('exceptions', [])
+
+            if not forbidden_names and not generic_patterns:
+                continue
+
             for var in data.get('variables', []):
-                var_name = var.get('name', '').lower()
+                var_name = var.get('name', '')
+                
+                # NUEVO: Verificar si es una excepción (REFramework)
+                if var_name in exceptions:
+                    continue  # Saltar validación
+                
+                var_name = var_name.lower()
                 is_generic = False
                 reason = ''
-                
+
                 # 1. Verificar nombres exactos
-                if var_name in [name.lower() for name in forbidden_names]:
+                if forbidden_names and var_name in [name.lower() for name in forbidden_names]:
                     is_generic = True
                     reason = 'Nombre genérico exacto'
-                
-                # 2. Verificar patrones con números (variable_1, var1, temp2, etc.)
-                if not is_generic:
+
+                # 2. Verificar patrones configurables
+                if not is_generic and generic_patterns:
                     import re
-                    # Patrones: var1, var_1, variable1, variable_1, temp1, etc.
-                    generic_patterns = [
-                        r'^var[_]?\d+$',        # var1, var_1
-                        r'^variable[_]?\d+$',   # variable1, variable_1
-                        r'^temp[_]?\d+$',       # temp1, temp_1
-                        r'^test[_]?\d+$',       # test1, test_1
-                        r'^data[_]?\d+$',       # data1, data_1
-                        r'^value[_]?\d+$',      # value1, value_1
-                        r'^result[_]?\d+$',     # result1, result_1
-                        r'^output[_]?\d+$',     # output1, output_1
-                        r'^input[_]?\d+$',      # input1, input_1
-                        r'^item[_]?\d+$',       # item1, item_1
-                        r'^str[_]?\d+$',        # str1, str_1
-                        r'^int[_]?\d+$',        # int1, int_1
-                        r'^obj[_]?\d+$',        # obj1, obj_1
-                    ]
-                    
                     for pattern in generic_patterns:
                         if re.match(pattern, var_name):
                             is_generic = True
                             reason = 'Nombre genérico con número'
                             break
-                
+
                 if is_generic:
                     self._add_finding(
                         rule=rule,
@@ -305,41 +441,170 @@ class BBPPAnalyzer:
                     )
     
     def _check_argument_prefixes(self, data: Dict, rules: List[Dict]):
-        """Verificar prefijos de argumentos"""
-        file_path = data.get('file_path', '')
+        """Verificar prefijos de argumentos y formato después del prefijo"""
+        # Buscar la regla específica de prefijos
+        rule = next((r for r in rules if r.get('rule_type') == 'argument_prefixes'), None)
+        if not rule or not rule.get('enabled'):
+            return
         
-        for rule in rules:
-            params = rule.get('parameters', {})
-            if not params.get('check_prefixes', False):
-                continue
+        file_path = data.get('file_path', '')
+        params = rule.get('parameters', {})
+        
+        if not params.get('check_prefixes', False):
+            return
+        
+        prefix_in = params.get('prefix_in', 'in_')
+        prefix_out = params.get('prefix_out', 'out_')
+        prefix_inout = params.get('prefix_inout', 'io_')
+        
+        # Nuevos parámetros para validar formato
+        validate_format = params.get('validate_format_after_prefix', False)
+        expected_format = params.get('format_after_prefix', 'camelCase')  # 'camelCase' o 'PascalCase'
+        
+        # NUEVO: Obtener excepciones del REFramework
+        exceptions = params.get('exceptions', [])
+        
+        for arg in data.get('arguments', []):
+            arg_name = arg.get('name', '')
+            arg_direction = arg.get('direction', '').lower()
             
-            prefix_in = params.get('prefix_in', 'in_')
-            prefix_out = params.get('prefix_out', 'out_')
-            prefix_inout = params.get('prefix_inout', 'io_')
+            # NUEVO: Verificar si es una excepción (REFramework)
+            if arg_name in exceptions:
+                continue  # Saltar validación
             
-            for arg in data.get('arguments', []):
-                arg_name = arg.get('name', '')
-                arg_direction = arg.get('direction', '').lower()
+            # Determinar prefijo esperado
+            expected_prefix = None
+            if arg_direction == 'in' and not arg_name.startswith(prefix_in):
+                expected_prefix = prefix_in
+            elif arg_direction == 'out' and not arg_name.startswith(prefix_out):
+                expected_prefix = prefix_out
+            elif arg_direction == 'inout' and not arg_name.startswith(prefix_inout):
+                expected_prefix = prefix_inout
+            
+            # Reportar falta de prefijo
+            if expected_prefix:
+                self._add_finding(
+                    rule=rule,
+                    file_path=file_path,
+                    location=f"Argumento: {arg_name} ({arg_direction})",
+                    details={
+                        'argument_name': arg_name,
+                        'direction': arg_direction,
+                        'expected_prefix': expected_prefix,
+                        'issue': 'Falta prefijo'
+                    }
+                )
+                continue  # No validar formato si falta el prefijo
+            
+            # Validar formato después del prefijo (si está configurado)
+            if validate_format:
+                # LÓGICA INTELIGENTE: Detectar qué regla de nomenclatura está activa
+                camel_case_active = any(
+                    r.get('id') == 'NOMENCLATURA_001' and r.get('enabled') 
+                    for r in self.rules
+                )
+                pascal_case_active = any(
+                    r.get('id') == 'NOMENCLATURA_005' and r.get('enabled') 
+                    for r in self.rules
+                )
                 
-                expected_prefix = None
-                if arg_direction == 'in' and not arg_name.startswith(prefix_in):
-                    expected_prefix = prefix_in
-                elif arg_direction == 'out' and not arg_name.startswith(prefix_out):
-                    expected_prefix = prefix_out
-                elif arg_direction == 'inout' and not arg_name.startswith(prefix_inout):
-                    expected_prefix = prefix_inout
+                # Determinar formatos aceptados
+                accepted_formats = []
+                if camel_case_active and pascal_case_active:
+                    # Ambas activas: aceptar cualquiera
+                    accepted_formats = ['camelCase', 'PascalCase']
+                elif pascal_case_active:
+                    accepted_formats = ['PascalCase']
+                elif camel_case_active:
+                    accepted_formats = ['camelCase']
+                else:
+                    # Ninguna activa: no validar formato (solo prefijos)
+                    accepted_formats = []
                 
-                if expected_prefix:
-                    self._add_finding(
-                        rule=rule,
-                        file_path=file_path,
-                        location=f"Argumento: {arg_name} ({arg_direction})",
-                        details={
-                            'argument_name': arg_name,
-                            'direction': arg_direction,
-                            'expected_prefix': expected_prefix
-                        }
-                    )
+                # Si no hay formatos aceptados, saltar validación
+                if not accepted_formats:
+                    continue
+                
+                # Determinar el prefijo actual
+                current_prefix = None
+                if arg_name.startswith(prefix_in):
+                    current_prefix = prefix_in
+                elif arg_name.startswith(prefix_out):
+                    current_prefix = prefix_out
+                elif arg_name.startswith(prefix_inout):
+                    current_prefix = prefix_inout
+                
+                if current_prefix:
+                    # Extraer la parte después del prefijo
+                    name_after_prefix = arg_name[len(current_prefix):]
+
+                    if name_after_prefix:  # Solo validar si hay algo después del prefijo
+                        # Configuración de prefijos de tipo
+                        allow_type_prefixes = params.get('allow_type_prefixes', False)
+                        type_prefixes = params.get('type_prefixes', [])
+
+                        # Verificar y quitar prefijo de tipo si está permitido
+                        name_to_check = name_after_prefix
+                        detected_type_prefix = None
+
+                        if allow_type_prefixes and type_prefixes:
+                            for type_prefix in type_prefixes:
+                                if name_after_prefix.startswith(type_prefix):
+                                    detected_type_prefix = type_prefix
+                                    name_to_check = name_after_prefix[len(type_prefix):]
+                                    break
+
+                        # Verificar si cumple ALGUNO de los formatos aceptados
+                        is_valid = False
+
+                        for fmt in accepted_formats:
+                            if fmt == 'PascalCase':
+                                if self._is_pascal_case(name_to_check):
+                                    is_valid = True
+                                    break
+                            elif fmt == 'camelCase':
+                                if self._is_camel_case(name_to_check):
+                                    is_valid = True
+                                    break
+
+                        # Solo reportar si NO cumple ningún formato aceptado
+                        if not is_valid:
+                            # Generar mensaje y sugerencia según formatos aceptados
+                            if len(accepted_formats) == 2:
+                                expected_pattern = 'camelCase o PascalCase'
+                                # Sugerir el formato que esté más cerca
+                                if name_to_check[0].isupper():
+                                    suggestion_base = self._to_pascal_case(name_to_check)
+                                else:
+                                    suggestion_base = self._to_camel_case(name_to_check)
+                            elif accepted_formats[0] == 'PascalCase':
+                                expected_pattern = 'PascalCase (primera letra mayúscula)'
+                                suggestion_base = self._to_pascal_case(name_to_check)
+                            else:  # camelCase
+                                expected_pattern = 'camelCase (primera letra minúscula)'
+                                suggestion_base = self._to_camel_case(name_to_check)
+
+                            # Construir sugerencia completa con prefijos
+                            suggestion = current_prefix
+                            if detected_type_prefix:
+                                suggestion += detected_type_prefix
+                                expected_pattern += ' (con prefijo de tipo permitido)'
+                            suggestion += suggestion_base
+
+                            self._add_finding(
+                                rule=rule,
+                                file_path=file_path,
+                                location=f"Argumento: {arg_name} ({arg_direction})",
+                                details={
+                                    'argument_name': arg_name,
+                                    'direction': arg_direction,
+                                    'issue': f'No usa {expected_pattern} después del prefijo',
+                                    'expected_pattern': expected_pattern,
+                                    'suggestion': f'Renombrar a: {suggestion}',
+                                    'accepted_formats': accepted_formats,
+                                    'detected_type_prefix': detected_type_prefix
+                                }
+                            )
     
     def _check_state_machine_pattern(self, data: Dict, rules: List[Dict]):
         """Verificar patrón Init/End en State Machines"""
@@ -448,16 +713,25 @@ class BBPPAnalyzer:
         
         for rule in rules:
             params = rule.get('parameters', {})
-            if not params.get('require_description', False):
-                continue
+            require_description = params.get('require_description', True)
+            min_description_length = params.get('min_description_length', 5)
             
-            min_length = params.get('min_description_length', 0)
+            # NUEVO: Obtener excepciones del REFramework
+            exceptions = params.get('exceptions', [])
+            
+            if not require_description:
+                continue # Skip this rule if description is not required
             
             for arg in data.get('arguments', []):
                 arg_name = arg.get('name', '')
+                
+                # NUEVO: Verificar si es una excepción (REFramework)
+                if arg_name in exceptions:
+                    continue  # Saltar validación para este argumento
+                
                 description = arg.get('annotation', '').strip()
                 
-                if not description or len(description) < min_length:
+                if not description or len(description) < min_description_length:
                     self._add_finding(
                         rule=rule,
                         file_path=file_path,
@@ -465,7 +739,7 @@ class BBPPAnalyzer:
                         details={
                             'argument_name': arg_name,
                             'current_description': description or '(vacío)',
-                            'min_length_required': min_length
+                            'min_length_required': min_description_length
                         }
                     )
     
@@ -632,14 +906,18 @@ class BBPPAnalyzer:
         rule = next((r for r in rules if r['id'] == 'ESTRUCTURA_003'), None)
         if not rule or not rule.get('enabled'):
             return
-        
-        # Actividades críticas que deben estar protegidas
-        critical_activities = [
-            'InvokeWorkflowFile', 'InvokeMethod', 'InvokeCode',
-            'ReadRange', 'WriteRange', 'OpenBrowser', 'Click',
-            'TypeInto', 'GetText'
-        ]
-        
+
+        # Obtener lista configurable de actividades críticas
+        params = rule.get('parameters', {})
+        critical_activities = params.get('critical_activities', [])
+
+        if not critical_activities:
+            critical_activities = [
+                'InvokeWorkflowFile', 'InvokeMethod', 'InvokeCode',
+                'ReadRange', 'WriteRange', 'OpenBrowser', 'Click',
+                'TypeInto', 'GetText'
+            ]
+
         file_path = data.get('file_path', '')
         activities = data.get('activities', [])
         
@@ -733,10 +1011,16 @@ class BBPPAnalyzer:
             default_timeout = default_timeout.get('value', 30000)
         if default_timeout is None:
             default_timeout = 30000
-        
+
+        # Obtener lista configurable de actividades que requieren timeout
+        params_timeout = rule.get('parameters', {})
+        timeout_required = params_timeout.get('timeout_required_activities', [])
+
+        if not timeout_required:
+            timeout_required = ['Click', 'TypeInto', 'GetText', 'ElementExists', 'Find']
+
         activities = data.get('activities', [])
-        timeout_required = ['Click', 'TypeInto', 'GetText', 'ElementExists', 'Find']
-        
+
         # Contar casos con timeout por defecto
         problematic_activities = []
         
@@ -798,6 +1082,145 @@ class BBPPAnalyzer:
         if not rule or not rule.get('enabled'):
             return
         
+    def _check_dependencies(self, project_info: Dict, active_sets: List[str]):
+        """
+        Verificar dependencias del proyecto contra los conjuntos activos
+        y enriquecer la información del proyecto con el estado de cada una.
+        
+        Args:
+            project_info: Información del proyecto (se modifica in-place)
+            active_sets: Lista de conjuntos activos
+        """
+        # Crear una regla virtual para dependencias si no existe
+        rule_id = "DEPENDENCIAS_001"
+        rule = next((r for r in self.rules if r['id'] == rule_id), None)
+        
+        if not rule:
+            # Crear regla temporal si no está en BBPP_Master.json
+            rule = {
+                'id': rule_id,
+                'name': 'Dependencias Desactualizadas',
+                'description': 'Las dependencias deben cumplir con la versión mínima requerida',
+                'category': 'dependencias',
+                'severity': 'error',
+                'penalty': 10,
+                'enabled': True
+            }
+        
+        # 1. Obtener dependencias del proyecto
+        # Estructura actual: [{'name': 'UiPath.Excel.Activities', 'version': '2.12.3'}, ...]
+        current_deps_list = project_info.get('dependencies', [])
+        project_deps_map = {d['name']: d['version'] for d in current_deps_list}
+        
+        # 2. Obtener dependencias requeridas (BBPP)
+        required_deps_map = {}
+        for set_name in active_sets:
+            deps = self.rules_manager.get_set_dependencies(set_name)
+            for pkg, ver in deps.items():
+                # Si hay conflicto entre sets, nos quedamos con la versión mayor (simplificación)
+                if pkg in required_deps_map:
+                    if self._compare_versions(ver, required_deps_map[pkg]) > 0:
+                        required_deps_map[pkg] = ver
+                else:
+                    required_deps_map[pkg] = ver
+        
+        # 3. Construir lista unificada y comparada
+        enriched_dependencies = []
+        all_packages = set(project_deps_map.keys()) | set(required_deps_map.keys())
+        
+        for pkg in sorted(all_packages):
+            installed_ver = project_deps_map.get(pkg)
+            required_ver = required_deps_map.get(pkg)
+            
+            status = 'unknown'
+            status_label = 'Desconocido'
+            
+            if installed_ver and not required_ver:
+                # Caso: Dependencia Adicional (está en proyecto, no en BBPP)
+                status = 'additional'
+                status_label = 'N/A: Dependencia Adicional'
+                
+            elif not installed_ver and required_ver:
+                # Caso: No instalada (está en BBPP, no en proyecto)
+                status = 'missing'
+                status_label = 'N/A: Dependencia no instalada'
+                
+                # Generar hallazgo (Error)
+                self._add_finding(
+                    rule=rule,
+                    file_path="project.json",
+                    location=f"Dependencia: {pkg}",
+                    details={
+                        'package': pkg,
+                        'required_version': required_ver,
+                        'current_version': 'No instalado',
+                        'issue': 'Paquete requerido faltante'
+                    }
+                )
+                
+            elif installed_ver and required_ver:
+                # Caso: Comparar versiones
+                comparison = self._compare_versions(installed_ver, required_ver)
+                
+                if comparison < 0:
+                    status = 'outdated'
+                    status_label = 'Desactualizada'
+                    
+                    # Generar hallazgo (Error)
+                    self._add_finding(
+                        rule=rule,
+                        file_path="project.json",
+                        location=f"Dependencia: {pkg}",
+                        details={
+                            'package': pkg,
+                            'required_version': required_ver,
+                            'current_version': installed_ver,
+                            'issue': 'Versión desactualizada'
+                        }
+                    )
+                else:
+                    status = 'ok'
+                    status_label = 'Actualizada'
+            
+            enriched_dependencies.append({
+                'name': pkg,
+                'installed_version': installed_ver,
+                'required_version': required_ver,
+                'status': status,
+                'status_label': status_label
+            })
+            
+        # 4. Actualizar project_info con la lista enriquecida
+        project_info['dependencies'] = enriched_dependencies
+
+    def _compare_versions(self, v1: str, v2: str) -> int:
+        """
+        Comparar dos versiones semánticas (v1 vs v2)
+        
+        Returns:
+            1 si v1 > v2
+            0 si v1 == v2
+            -1 si v1 < v2
+        """
+        def parse_version(v):
+            # Eliminar caracteres no numéricos excepto puntos
+            v = re.sub(r'[^\d.]', '', v)
+            return [int(x) for x in v.split('.') if x.isdigit()]
+            
+        parts1 = parse_version(v1)
+        parts2 = parse_version(v2)
+        
+        # Igualar longitud con ceros
+        max_len = max(len(parts1), len(parts2))
+        parts1 += [0] * (max_len - len(parts1))
+        parts2 += [0] * (max_len - len(parts2))
+        
+        if parts1 > parts2:
+            return 1
+        elif parts1 < parts2:
+            return -1
+        else:
+            return 0
         file_path = data.get('file_path', '')
         
         # Solo aplicar a workflows principales
@@ -855,6 +1278,11 @@ class BBPPAnalyzer:
     
     def _check_init_end_pattern(self, data: Dict):
         """Verificar que State Machines tengan patrón Init/End"""
+        # Buscar regla en JSON
+        rule = next((r for r in self.rules if r['id'] == 'MODULARIZACION_003'), None)
+        if not rule or not rule.get('enabled'):
+            return
+        
         file_path = data.get('file_path', '')
         workflow_type = data.get('workflow_type', '')
         
@@ -881,18 +1309,14 @@ class BBPPAnalyzer:
             if not has_end:
                 missing.append('End/Final')
             
-            # Crear finding manual (no hay regla JSON para esto)
-            finding = Finding(
-                category='estructura',
-                severity='warning',
-                rule_name='Patrón Init/End en State Machine',
-                description=f'State Machine sin patrón Init/End recomendado. Falta: {", ".join(missing)}',
+            # Usar regla del JSON
+            self._add_finding(
+                rule=rule,
                 file_path=file_path,
                 location="State Machine",
                 details={
                     'found_states': [s.get('name', '') for s in states],
-                    'missing_pattern': missing
-                },
-                rule_id='ESTRUCTURA_001'
+                    'missing_pattern': missing,
+                    'suggestion': f'Agregar estados faltantes: {", ".join(missing)}'
+                }
             )
-            self.findings.append(finding)

@@ -22,7 +22,8 @@ wheels/
 
 # PyInstaller
 *.manifest
-*.spec
+# Mantener .spec para reconstrucción
+# *.spec
 
 # Environments
 .env
