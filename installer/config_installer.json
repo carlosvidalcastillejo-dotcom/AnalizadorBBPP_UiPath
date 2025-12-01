@@ -1,0 +1,69 @@
+{
+    "app_info": {
+        "name": "Analizador BBPP UiPath",
+        "version": "1.0.0",
+        "author": "Carlos Vidal Castillejo",
+        "description": "Analizador profesional de Buenas Prácticas para proyectos UiPath"
+    },
+    "git_config": {
+        "repository_url": "https://github.com/carlosvidalcastillejo-dotcom/AnalizadorBBPP_UiPath.git",
+        "branch": "main",
+        "use_releases": true,
+        "fallback_to_clone": true
+    },
+    "installation": {
+        "default_path": "C:\\Program Files\\AnalizadorBBPP",
+        "create_desktop_shortcut": true,
+        "create_start_menu_shortcut": true,
+        "auto_update_enabled": true,
+        "launch_after_install": true
+    },
+    "features": [
+        {
+            "icon": "✅",
+            "title": "Análisis de Buenas Prácticas",
+            "description": "17 reglas BBPP oficiales de UiPath y personalizadas"
+        },
+        {
+            "icon": "⚙️",
+            "title": "Configuración Personalizada",
+            "description": "Ajusta severidades, penalizaciones y excepciones"
+        },
+        {
+            "icon": "📊",
+            "title": "Reportes Profesionales",
+            "description": "HTML interactivo con gráficos y Excel detallado"
+        },
+        {
+            "icon": "📈",
+            "title": "Dashboard de Métricas",
+            "description": "Histórico de análisis con filtros y estadísticas"
+        },
+        {
+            "icon": "🎨",
+            "title": "Branding Personalizable",
+            "description": "Logo, colores y nombre de empresa customizables"
+        },
+        {
+            "icon": "🔄",
+            "title": "Auto-actualización",
+            "description": "Mantente siempre actualizado con la última versión"
+        },
+        {
+            "icon": "📦",
+            "title": "Gestión de Conjuntos BBPP",
+            "description": "Organiza reglas por conjuntos (UiPath, Custom, etc.)"
+        },
+        {
+            "icon": "🛡️",
+            "title": "Sistema de Excepciones",
+            "description": "50+ excepciones REFramework predefinidas"
+        }
+    ],
+    "requirements": {
+        "python_version": "3.8",
+        "python_download_url": "https://www.python.org/downloads/",
+        "check_python": true,
+        "install_python_if_missing": false
+    }
+}

@@ -156,42 +156,61 @@ class RulesManagementScreen:
         # Frame de Gestión de Conjuntos
         sets_mgmt_frame = tk.LabelFrame(
             main_frame,
-            text="Gestión de Conjuntos y Dependencias",
+            text="Gestión de Dependencias por Conjunto",
             font=("Arial", 10, "bold"),
             bg=BG_COLOR,
             padx=10,
             pady=10
         )
         sets_mgmt_frame.pack(fill=tk.X, padx=20, pady=10)
-        
+
         # Obtener conjuntos disponibles
         sets_info = self.rules_manager.get_sets_info()
-        
-        for set_name, info in sets_info.items():
-            set_frame = tk.Frame(sets_mgmt_frame, bg=BG_COLOR)
-            set_frame.pack(fill=tk.X, pady=5)
-            
-            # Nombre del conjunto
-            tk.Label(
-                set_frame,
-                text=f"🔹 {info.get('name', set_name)}",
-                font=("Arial", 10, "bold"),
-                bg=BG_COLOR,
-                width=30,
-                anchor="w"
-            ).pack(side=tk.LEFT)
-            
-            # Botón Dependencias
-            tk.Button(
-                set_frame,
-                text="📦 Dependencias",
-                font=("Arial", 9),
-                bg="#E3F2FD",
-                fg=PRIMARY_COLOR,
-                relief=tk.FLAT,
-                cursor="hand2",
-                command=lambda s=set_name: self._show_dependency_dialog(s)
-            ).pack(side=tk.LEFT, padx=10)
+        set_names = list(sets_info.keys())
+
+        # Dropdown frame
+        dropdown_frame = tk.Frame(sets_mgmt_frame, bg=BG_COLOR)
+        dropdown_frame.pack(fill=tk.X, pady=5)
+
+        # Label
+        tk.Label(
+            dropdown_frame,
+            text="Selecciona conjunto para gestionar dependencias:",
+            font=("Arial", 9),
+            bg=BG_COLOR,
+            fg="gray"
+        ).pack(side=tk.LEFT, padx=(0, 10))
+
+        # Dropdown de conjuntos
+        selected_set_var = tk.StringVar(value=set_names[0] if set_names else "")
+        sets_dropdown = ttk.Combobox(
+            dropdown_frame,
+            textvariable=selected_set_var,
+            values=set_names,
+            state="readonly",
+            width=30,
+            font=("Arial", 10)
+        )
+        sets_dropdown.pack(side=tk.LEFT, padx=5)
+
+        # Botón para editar dependencias del conjunto seleccionado
+        def open_dependencies():
+            selected = selected_set_var.get()
+            if selected:
+                self._show_dependency_dialog(selected)
+
+        tk.Button(
+            dropdown_frame,
+            text="📝 Editar Dependencias",
+            font=("Arial", 9, "bold"),
+            bg=SECONDARY_COLOR,
+            fg="white",
+            relief=tk.FLAT,
+            cursor="hand2",
+            command=open_dependencies,
+            padx=15,
+            pady=5
+        ).pack(side=tk.LEFT, padx=10)
 
         # Frame para tabla y panel de detalles
         content_frame = tk.Frame(main_frame, bg=BG_COLOR)
@@ -979,28 +998,46 @@ class RulesManagementScreen:
             pady=10
         )
         sets_frame.pack(fill=tk.X, padx=padding, pady=10)
-        
+
+        # Obtener todos los conjuntos disponibles
+        available_sets = list(self.rules_manager.sets.keys())
         current_sets = rule.get('sets', [])
-        uipath_var = tk.BooleanVar(value="UiPath" in current_sets)
-        nttdata_var = tk.BooleanVar(value="NTTData" in current_sets)
-        
-        uipath_check = tk.Checkbutton(
+
+        # Label explicativo
+        tk.Label(
             sets_frame,
-            text="☑ UiPath",
-            variable=uipath_var,
+            text="Selecciona los conjuntos a los que pertenece esta regla:",
+            font=("Arial", 9),
+            bg="white",
+            fg="gray"
+        ).pack(anchor="w", pady=(0, 5))
+
+        # Listbox con selección múltiple
+        sets_listbox_frame = tk.Frame(sets_frame, bg="white")
+        sets_listbox_frame.pack(fill=tk.BOTH, pady=5)
+
+        sets_listbox = tk.Listbox(
+            sets_listbox_frame,
+            selectmode=tk.MULTIPLE,
+            height=min(len(available_sets), 4),
             font=("Arial", 10),
-            bg="white"
+            relief=tk.SUNKEN,
+            bd=1
         )
-        uipath_check.pack(anchor="w", pady=2)
-        
-        nttdata_check = tk.Checkbutton(
-            sets_frame,
-            text="☑ NTTData",
-            variable=nttdata_var,
-            font=("Arial", 10),
-            bg="white"
-        )
-        nttdata_check.pack(anchor="w", pady=2)
+        sets_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        # Scrollbar si hay muchos conjuntos
+        if len(available_sets) > 4:
+            sets_scrollbar = tk.Scrollbar(sets_listbox_frame, orient=tk.VERTICAL)
+            sets_scrollbar.config(command=sets_listbox.yview)
+            sets_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+            sets_listbox.config(yscrollcommand=sets_scrollbar.set)
+
+        # Llenar listbox y seleccionar los actuales
+        for idx, set_name in enumerate(available_sets):
+            sets_listbox.insert(tk.END, set_name)
+            if set_name in current_sets:
+                sets_listbox.selection_set(idx)
         
         # Estado de implementación
         status_frame = tk.LabelFrame(
@@ -1039,12 +1076,9 @@ class RulesManagementScreen:
                 'penalty': penalty_value_var.get()  # Usar penalty_value en lugar del antiguo penalty_var
             }
 
-            # Actualizar conjuntos
-            sets = []
-            if uipath_var.get():
-                sets.append("UiPath")
-            if nttdata_var.get():
-                sets.append("NTTData")
+            # Actualizar conjuntos desde Listbox
+            selected_indices = sets_listbox.curselection()
+            sets = [available_sets[i] for i in selected_indices]
             updates['sets'] = sets
 
             self.rules_manager.update_rule(rule_id, updates)
@@ -1539,34 +1573,41 @@ class RulesManagementScreen:
             deps_count = len(deps)
             deps_label.config(text=f"📦 {deps_count} dependencia{'s' if deps_count != 1 else ''} configurada{'s' if deps_count != 1 else ''}")
 
-            # Limpiar checkboxes anteriores
+            # Limpiar widgets anteriores
             for widget in rules_content.winfo_children():
                 widget.destroy()
             rules_checkboxes.clear()
 
-            # Crear checkboxes para TODAS las reglas
+            # Obtener TODAS las reglas
             all_rules = self.rules_manager.get_all_rules()
 
-            for rule in all_rules:
+            # Crear Listbox con selección múltiple (más compacto que checkboxes individuales)
+            rules_listbox = tk.Listbox(
+                rules_content,
+                selectmode=tk.MULTIPLE,
+                font=("Arial", 9),
+                relief=tk.FLAT,
+                bg="white",
+                highlightthickness=0
+            )
+            rules_listbox.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+            # Almacenar referencia al listbox para acceder desde save_changes()
+            rules_checkboxes['_listbox'] = rules_listbox
+            rules_checkboxes['_all_rules'] = all_rules
+
+            # Llenar listbox y seleccionar reglas que pertenecen al conjunto
+            for idx, rule in enumerate(all_rules):
                 rule_id = rule.get('id', '')
                 rule_name = rule.get('name', '')
 
-                # Verificar si la regla pertenece a este conjunto
+                # Insertar regla en listbox
+                rules_listbox.insert(tk.END, f"{rule_id} - {rule_name}")
+
+                # Seleccionar si pertenece al conjunto
                 is_in_set = set_name in rule.get('sets', [])
-
-                # Crear variable y checkbox
-                var = tk.BooleanVar(value=is_in_set)
-                rules_checkboxes[rule_id] = var
-
-                check = tk.Checkbutton(
-                    rules_content,
-                    text=f"{rule_id} - {rule_name}",
-                    variable=var,
-                    font=("Arial", 9),
-                    bg="white",
-                    anchor="w"
-                )
-                check.pack(fill=tk.X, pady=2, padx=5)
+                if is_in_set:
+                    rules_listbox.selection_set(idx)
 
         def on_set_changed(*args):
             """Evento cuando se cambia el conjunto seleccionado en el dropdown"""
@@ -1596,24 +1637,33 @@ class RulesManagementScreen:
             # 1. Actualizar enabled del conjunto
             self.rules_manager.sets[set_name]['enabled'] = set_enabled_var.get()
 
-            # 2. Actualizar reglas: añadir/quitar del conjunto según checkboxes
-            for rule_id, var in rules_checkboxes.items():
-                rule = self.rules_manager.get_rule_by_id(rule_id)
-                if not rule:
-                    continue
+            # 2. Actualizar reglas: añadir/quitar del conjunto según Listbox
+            rules_listbox = rules_checkboxes.get('_listbox')
+            all_rules = rules_checkboxes.get('_all_rules', [])
 
-                current_sets = rule.get('sets', []).copy()  # Copiar para no mutar
-                is_checked = var.get()
+            if rules_listbox and all_rules:
+                # Obtener índices seleccionados
+                selected_indices = rules_listbox.curselection()
 
-                # Añadir al conjunto si está marcado y no está
-                if is_checked and set_name not in current_sets:
-                    current_sets.append(set_name)
-                # Quitar del conjunto si no está marcado pero está
-                elif not is_checked and set_name in current_sets:
-                    current_sets.remove(set_name)
+                # Iterar sobre TODAS las reglas y actualizar su pertenencia al conjunto
+                for idx, rule in enumerate(all_rules):
+                    rule_id = rule.get('id', '')
+                    rule_obj = self.rules_manager.get_rule_by_id(rule_id)
+                    if not rule_obj:
+                        continue
 
-                # Actualizar regla
-                self.rules_manager.update_rule(rule_id, {'sets': current_sets})
+                    current_sets = rule_obj.get('sets', []).copy()
+                    is_selected = idx in selected_indices
+
+                    # Añadir al conjunto si está seleccionado y no está
+                    if is_selected and set_name not in current_sets:
+                        current_sets.append(set_name)
+                    # Quitar del conjunto si no está seleccionado pero está
+                    elif not is_selected and set_name in current_sets:
+                        current_sets.remove(set_name)
+
+                    # Actualizar regla
+                    self.rules_manager.update_rule(rule_id, {'sets': current_sets})
 
             # 3. Guardar a archivo
             if self.rules_manager.save_rules():

@@ -1,8 +1,7 @@
 # 🚀 Analizador de Buenas Prácticas para UiPath
 
 **Versión:** 1.0.0
-**Autor:** Carlos Vidal Castillejo + Claude AI
-**Empresa:** NTT Data
+**Autor:** Carlos Vidal Castillejo
 
 ---
 
@@ -192,7 +191,6 @@ dt_Config, str_TransactionID, Exception, BusinessRuleException,
 
 Permite organizar reglas en **conjuntos** como:
 - **UiPath**: Reglas oficiales de UiPath
-- **NTTData**: Reglas personalizadas de NTT Data
 - **Custom**: Conjuntos personalizados
 
 ### Funcionalidades:
@@ -292,20 +290,19 @@ Ver [ROADMAP.md](ROADMAP.md) para próximas funcionalidades planificadas.
 
 ## 📝 Licencia
 
-Uso interno NTT Data.
+Proyecto de código abierto.
 
 ---
 
-## 👥 Contribuciones
+## 👥 Autor
 
-**Desarrollador Principal:** Carlos Vidal Castillejo
-**Colaborador AI:** Claude (Anthropic)
+**Desarrollador:** Carlos Vidal Castillejo
 
 ---
 
 ## 📞 Contacto
 
-Para soporte o consultas, contactar al equipo de Automation de NTT Data.
+Para consultas o contribuciones, abrir un issue en el repositorio de GitHub.
 
 ---
 

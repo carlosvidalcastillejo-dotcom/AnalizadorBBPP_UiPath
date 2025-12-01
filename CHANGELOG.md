@@ -1,5 +1,149 @@
 # Changelog
 
+## [1.1.4] - 2024-11-30
+
+**Autor:** Carlos Vidal Castillejo
+**Tipo de cambio:** Patch - Mejora UX Gestión de Dependencias
+
+### ✨ Mejoras
+
+#### Conversión de Botones a Dropdown (Gestión de Dependencias)
+- ✅ **Gestión de Dependencias:** Cambiado de múltiples botones (uno por conjunto) a dropdown único + botón
+  - UI más limpia y compacta
+  - Dropdown para seleccionar el conjunto
+  - Botón único "📝 Editar Dependencias" para el conjunto seleccionado
+  - Mejor escalabilidad para proyectos con muchos conjuntos
+
+### 🎯 Beneficios
+- Menos espacio horizontal ocupado
+- Interfaz más organizada y profesional
+- Mejor UX para gestionar dependencias
+
+**ARCHIVOS MODIFICADOS:**
+- src/ui/rules_management_screen.py:
+  - Líneas 156-213: Dropdown + botón para gestión de dependencias
+
+---
+
+## [1.1.3] - 2024-11-30
+
+**Autor:** Carlos Vidal Castillejo
+**Tipo de cambio:** Minor - Mejoras UX (Conversión Checkboxes a Dropdowns)
+
+### ✨ Mejoras
+
+#### Conversión de Checkboxes a Listbox Multiselect
+- ✅ **Editor de Reglas - Conjuntos:** Cambiado de 2 checkboxes (UiPath, NTTData) a Listbox multiselect escalable
+  - Soporte para cualquier número de conjuntos dinámicamente
+  - Scrollbar automático si hay más de 4 conjuntos
+  - Selección múltiple más intuitiva
+
+- ✅ **Gestión de Conjuntos - Asignación de Reglas:** Cambiado de 17 checkboxes individuales a Listbox compacto
+  - Menos espacio vertical ocupado
+  - Mejor navegación con scrollbar
+  - Selección múltiple de reglas más eficiente
+  - Interfaz más limpia y profesional
+
+### 🎯 Beneficios
+- Mejor escalabilidad para proyectos con muchos conjuntos
+- UI más compacta y organizada
+- Experiencia de usuario mejorada
+
+**ARCHIVOS MODIFICADOS:**
+- src/ui/rules_management_screen.py:
+  - Líneas 972-1021: Listbox para conjuntos en editor de reglas
+  - Líneas 1557-1591: Listbox para asignación de reglas a conjuntos
+  - Líneas 1060-1063: Actualización de lectura desde Listbox (editor)
+  - Líneas 1621-1647: Actualización de lectura desde Listbox (gestión)
+
+---
+
+## [1.1.2] - 2024-11-30
+
+**Autor:** Carlos Vidal Castillejo
+**Tipo de cambio:** Hotfix - Bug crítico filtro conjuntos activos
+
+### 🐛 Correcciones
+
+#### Fix Crítico: Filtro de Conjuntos Activos NO Funcionaba
+- ❌ **BUG:** Conjuntos desactivados (enabled: false) aparecían en el dropdown de análisis
+- ✅ **FIX:** Corrección en lectura de flag `enabled` desde BBPP_Master.json
+- ✅ El flag `enabled` está directamente en el objeto set, no dentro de `metadata`
+- ✅ Ahora solo se muestran conjuntos con `enabled: true`
+
+**Causa Raíz:**
+```python
+# ANTES (INCORRECTO):
+metadata = bbpp_data.get('metadata', {})
+is_enabled = metadata.get('enabled', True)  # metadata no existe!
+
+# DESPUÉS (CORRECTO):
+is_enabled = bbpp_data.get('enabled', True)  # enabled está en el set directamente
+```
+
+**ARCHIVOS MODIFICADOS:**
+- src/ui/main_window.py: Fix lectura de enabled flag (línea 410)
+
+---
+
+## [1.1.1] - 2024-11-30
+
+**Autor:** Carlos Vidal Castillejo
+**Tipo de cambio:** Patch - Mejora UX selector de conjuntos
+
+### 🎯 Mejoras
+
+#### Selector de Conjuntos Simplificado
+- ✅ Cambiado de Listbox multiselect a **Combobox (dropdown) simple**
+- ✅ Selección más intuitiva sin necesidad de Ctrl/Shift
+- ✅ Solo se muestran conjuntos **ACTIVOS** (filtro desde Gestión BBPP)
+- ✅ Si un conjunto está desactivado en Gestión, NO aparece en análisis
+
+#### Aplicación Correcta de Reglas
+- ✅ Solo se aplican reglas del conjunto seleccionado en análisis
+- ✅ Sistema verifica que el conjunto esté habilitado antes de mostrarlo
+- ✅ Guardar último conjunto seleccionado en preferencias
+
+### 🐛 Correcciones
+- ✅ Fix AttributeError: Corrección de `bbpp_sets` → `sets`
+- ✅ Validación de selección antes de iniciar análisis
+
+**ARCHIVOS MODIFICADOS:**
+- src/ui/main_window.py: Combobox + filtro de conjuntos activos
+
+---
+
+## [1.1.0] - 2024-11-30
+
+**Autor:** Carlos Vidal Castillejo
+**Tipo de cambio:** Minor - Mejoras de UI/UX
+
+### ✨ Nuevas Funcionalidades
+
+#### 🎯 Selector de Conjuntos BBPP Mejorado
+- ✅ Reemplazado checkboxes por **Listbox con selección múltiple**
+- ✅ Scrollbar vertical para navegación
+- ✅ Soporte para Ctrl/Shift para selección múltiple
+- ✅ Mejor experiencia de usuario y más escalable
+
+#### 🔙 Navegación Mejorada
+- ✅ Botón "← Volver al Menú Principal" en todas las pantallas secundarias
+- ✅ Presente en: Configuración, Gestión BBPP, Métricas, Notas de Versión
+- ✅ Diseño consistente con colores corporativos
+- ✅ Efecto hover para mejor feedback visual
+
+#### 🐛 Correcciones
+- ✅ Eliminados todos los emojis de prints (compatibilidad Windows)
+- ✅ Arreglados errores UnicodeEncodeError en consola
+- ✅ Mejorada retrocompatibilidad del selector de conjuntos
+
+**ARCHIVOS MODIFICADOS:**
+- src/ui/main_window.py: Listbox multiselect, botón Volver, fix emojis
+- src/config.py: Fix emojis en prints
+- src/branding_manager.py: Fix emojis en prints
+
+---
+
 ## [1.0.0] - 2024-11-30 🎉
 
 **Autor:** Carlos Vidal Castillejo
