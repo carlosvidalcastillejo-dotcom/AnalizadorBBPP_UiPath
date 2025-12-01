@@ -102,7 +102,7 @@ class InstallerGUI:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("Instalador - Analizador BBPP UiPath")
-        self.root.geometry("700x650")
+        self.root.geometry("700x600")
         self.root.resizable(False, False)
         
         # Colores del tema
@@ -157,7 +157,7 @@ class InstallerGUI:
         """Crea la interfaz de usuario"""
         # Contenedor principal
         main_container = tk.Frame(self.root, bg=self.colors['bg'])
-        main_container.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        main_container.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
         
         # Crear páginas
         self.create_welcome_page(main_container)
@@ -174,24 +174,24 @@ class InstallerGUI:
         self.pages.append(page)
         
         # Header con gradiente simulado
-        header = tk.Frame(page, bg=self.colors['primary'], height=120)
-        header.pack(fill=tk.X, pady=(0, 20))
+        header = tk.Frame(page, bg=self.colors['primary'], height=70)
+        header.pack(fill=tk.X, pady=(0, 10))
         header.pack_propagate(False)
-        
+
         # Título principal
         title = tk.Label(
             header,
             text="🚀 Bienvenido al Instalador",
-            font=('Segoe UI', 24, 'bold'),
+            font=('Segoe UI', 18, 'bold'),
             bg=self.colors['primary'],
             fg='white'
         )
-        title.pack(pady=(20, 5))
-        
+        title.pack(pady=(10, 2))
+
         subtitle = tk.Label(
             header,
             text=self.config['app_info']['name'],
-            font=('Segoe UI', 14),
+            font=('Segoe UI', 11),
             bg=self.colors['primary'],
             fg='white'
         )
@@ -203,111 +203,113 @@ class InstallerGUI:
         
         # Descripción
         desc_frame = tk.Frame(content_card, bg=self.colors['card_bg'])
-        desc_frame.pack(pady=20, padx=30)
-        
+        desc_frame.pack(pady=12, padx=30)
+
         desc = tk.Label(
             desc_frame,
             text=self.config['app_info']['description'],
-            font=('Segoe UI', 11),
+            font=('Segoe UI', 10),
             bg=self.colors['card_bg'],
             fg=self.colors['text_dark'],
             wraplength=600,
             justify=tk.CENTER
         )
         desc.pack()
-        
+
         # Separador
         separator = tk.Frame(content_card, bg=self.colors['border'], height=1)
-        separator.pack(fill=tk.X, padx=30, pady=15)
-        
+        separator.pack(fill=tk.X, padx=30, pady=10)
+
         # Características
         features_label = tk.Label(
             content_card,
             text="✨ Características Principales",
-            font=('Segoe UI', 13, 'bold'),
+            font=('Segoe UI', 11, 'bold'),
             bg=self.colors['card_bg'],
             fg=self.colors['text_dark']
         )
-        features_label.pack(pady=(10, 15))
+        features_label.pack(pady=(5, 10))
         
         # Grid de características
         features_frame = tk.Frame(content_card, bg=self.colors['card_bg'])
-        features_frame.pack(padx=30, pady=10)
-        
+        features_frame.pack(padx=30, pady=5)
+
         # Mostrar características en 2 columnas
         features = self.config['features']
         for i, feature in enumerate(features):
             row = i // 2
             col = i % 2
-            
+
             feature_item = self.create_feature_item(
                 features_frame,
                 feature['icon'],
                 feature['title'],
                 feature['description']
             )
-            feature_item.grid(row=row, column=col, padx=10, pady=8, sticky='w')
-        
+            feature_item.grid(row=row, column=col, padx=8, pady=5, sticky='w')
+
         # Botones
         button_frame = tk.Frame(page, bg=self.colors['bg'])
-        button_frame.pack(side=tk.BOTTOM, pady=20)
-        
+        button_frame.pack(side=tk.BOTTOM, pady=10)
+
         next_btn = ModernButton(
             button_frame,
             "Siguiente →",
             lambda: self.show_page(1),
             bg_color=self.colors['primary'],
-            hover_color=self.colors['secondary']
+            hover_color=self.colors['secondary'],
+            height=40
         )
         next_btn.pack(side=tk.RIGHT, padx=5)
-        
+
         cancel_btn = ModernButton(
             button_frame,
             "Cancelar",
             self.cancel_installation,
             bg_color=self.colors['text_light'],
             hover_color='#5D6D7E',
-            width=120
+            width=120,
+            height=40
         )
         cancel_btn.pack(side=tk.RIGHT, padx=5)
     
     def create_feature_item(self, parent, icon, title, description):
         """Crea un item de característica"""
         frame = tk.Frame(parent, bg=self.colors['card_bg'])
-        
+
         # Icon y título en la misma línea
         header = tk.Frame(frame, bg=self.colors['card_bg'])
         header.pack(anchor='w')
-        
+
         icon_label = tk.Label(
             header,
             text=icon,
-            font=('Segoe UI', 14),
+            font=('Segoe UI', 12),
             bg=self.colors['card_bg']
         )
-        icon_label.pack(side=tk.LEFT, padx=(0, 8))
-        
+        icon_label.pack(side=tk.LEFT, padx=(0, 6))
+
         title_label = tk.Label(
             header,
             text=title,
-            font=('Segoe UI', 10, 'bold'),
+            font=('Segoe UI', 9, 'bold'),
             bg=self.colors['card_bg'],
             fg=self.colors['text_dark']
         )
         title_label.pack(side=tk.LEFT)
-        
+
         # Descripción
         desc_label = tk.Label(
             frame,
             text=description,
-            font=('Segoe UI', 9),
+            font=('Segoe UI', 8),
             bg=self.colors['card_bg'],
             fg=self.colors['text_light'],
-            wraplength=280,
+            wraplength=270,
             justify=tk.LEFT
         )
-        desc_label.pack(anchor='w', padx=(30, 0))
-        
+        desc_label.pack(anchor='w', padx=(24, 0))
+
         return frame
     
     def create_options_page(self, parent):
@@ -316,18 +318,18 @@ class InstallerGUI:
         self.pages.append(page)
         
         # Header
-        header = tk.Frame(page, bg=self.colors['primary'], height=80)
-        header.pack(fill=tk.X, pady=(0, 20))
+        header = tk.Frame(page, bg=self.colors['primary'], height=60)
+        header.pack(fill=tk.X, pady=(0, 10))
         header.pack_propagate(False)
-        
+
         title = tk.Label(
             header,
             text="⚙️ Opciones de Instalación",
-            font=('Segoe UI', 20, 'bold'),
+            font=('Segoe UI', 16, 'bold'),
             bg=self.colors['primary'],
             fg='white'
         )
-        title.pack(pady=20)
+        title.pack(pady=15)
         
         # Card de opciones
         options_card = tk.Frame(page, bg=self.colors['card_bg'])
@@ -335,16 +337,16 @@ class InstallerGUI:
         
         # Ruta de instalación
         path_frame = tk.Frame(options_card, bg=self.colors['card_bg'])
-        path_frame.pack(fill=tk.X, padx=30, pady=20)
-        
+        path_frame.pack(fill=tk.X, padx=30, pady=15)
+
         path_label = tk.Label(
             path_frame,
             text="📁 Ubicación de instalación:",
-            font=('Segoe UI', 11, 'bold'),
+            font=('Segoe UI', 10, 'bold'),
             bg=self.colors['card_bg'],
             fg=self.colors['text_dark']
         )
-        path_label.pack(anchor='w', pady=(0, 10))
+        path_label.pack(anchor='w', pady=(0, 8))
         
         path_entry_frame = tk.Frame(path_frame, bg=self.colors['card_bg'])
         path_entry_frame.pack(fill=tk.X)
@@ -352,85 +354,87 @@ class InstallerGUI:
         path_entry = tk.Entry(
             path_entry_frame,
             textvariable=self.install_path,
-            font=('Segoe UI', 10),
+            font=('Segoe UI', 9),
             relief=tk.FLAT,
             bg='#F8F9FA',
             fg=self.colors['text_dark']
         )
-        path_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, ipady=8, padx=(0, 10))
-        
+        path_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, ipady=6, padx=(0, 10))
+
         browse_btn = ModernButton(
             path_entry_frame,
             "Examinar",
             self.browse_install_path,
             width=100,
-            height=35
+            height=32
         )
         browse_btn.pack(side=tk.RIGHT)
         
         # Separador
         separator = tk.Frame(options_card, bg=self.colors['border'], height=1)
-        separator.pack(fill=tk.X, padx=30, pady=20)
-        
+        separator.pack(fill=tk.X, padx=30, pady=12)
+
         # Opciones adicionales
         options_label = tk.Label(
             options_card,
             text="🎯 Opciones adicionales:",
-            font=('Segoe UI', 11, 'bold'),
+            font=('Segoe UI', 10, 'bold'),
             bg=self.colors['card_bg'],
             fg=self.colors['text_dark']
         )
-        options_label.pack(anchor='w', padx=30, pady=(0, 15))
+        options_label.pack(anchor='w', padx=30, pady=(0, 10))
         
         # Checkboxes con estilo
         checkbox_frame = tk.Frame(options_card, bg=self.colors['card_bg'])
         checkbox_frame.pack(fill=tk.X, padx=50)
-        
+
         self.create_styled_checkbox(
             checkbox_frame,
             "🖥️ Crear acceso directo en el escritorio",
             self.create_desktop_shortcut
-        ).pack(anchor='w', pady=8)
-        
+        ).pack(anchor='w', pady=5)
+
         self.create_styled_checkbox(
             checkbox_frame,
             "📌 Crear acceso directo en el menú Inicio",
             self.create_start_menu_shortcut
-        ).pack(anchor='w', pady=8)
-        
+        ).pack(anchor='w', pady=5)
+
         self.create_styled_checkbox(
             checkbox_frame,
             "🚀 Iniciar aplicación al completar instalación",
             self.launch_after_install
-        ).pack(anchor='w', pady=8)
-        
+        ).pack(anchor='w', pady=5)
+
         self.create_styled_checkbox(
             checkbox_frame,
             "🔄 Habilitar actualizaciones automáticas",
             self.auto_update
-        ).pack(anchor='w', pady=8)
-        
+        ).pack(anchor='w', pady=5)
+
         # Botones
         button_frame = tk.Frame(page, bg=self.colors['bg'])
-        button_frame.pack(side=tk.BOTTOM, pady=20)
-        
+        button_frame.pack(side=tk.BOTTOM, pady=10)
+
         install_btn = ModernButton(
             button_frame,
             "Instalar",
             self.start_installation,
             bg_color=self.colors['success'],
             hover_color='#4CAF50',
-            width=150
+            width=150,
+            height=40
         )
         install_btn.pack(side=tk.RIGHT, padx=5)
-        
+
         back_btn = ModernButton(
             button_frame,
             "← Atrás",
             lambda: self.show_page(0),
             bg_color=self.colors['text_light'],
             hover_color='#5D6D7E',
-            width=120
+            width=120,
+            height=40
         )
         back_btn.pack(side=tk.RIGHT, padx=5)
     
@@ -454,20 +458,20 @@ class InstallerGUI:
         """Crea la página de instalación"""
         page = tk.Frame(parent, bg=self.colors['bg'])
         self.pages.append(page)
-        
+
         # Header
-        header = tk.Frame(page, bg=self.colors['secondary'], height=80)
-        header.pack(fill=tk.X, pady=(0, 20))
+        header = tk.Frame(page, bg=self.colors['secondary'], height=60)
+        header.pack(fill=tk.X, pady=(0, 10))
         header.pack_propagate(False)
-        
+
         title = tk.Label(
             header,
             text="⏳ Instalando...",
-            font=('Segoe UI', 20, 'bold'),
+            font=('Segoe UI', 16, 'bold'),
             bg=self.colors['secondary'],
             fg='white'
         )
-        title.pack(pady=20)
+        title.pack(pady=15)
         
         # Card de progreso
         progress_card = tk.Frame(page, bg=self.colors['card_bg'])
@@ -477,15 +481,15 @@ class InstallerGUI:
         self.status_label = tk.Label(
             progress_card,
             text="Preparando instalación...",
-            font=('Segoe UI', 12),
+            font=('Segoe UI', 11),
             bg=self.colors['card_bg'],
             fg=self.colors['text_dark']
         )
-        self.status_label.pack(pady=(40, 20))
-        
+        self.status_label.pack(pady=(25, 15))
+
         # Barra de progreso
         progress_frame = tk.Frame(progress_card, bg=self.colors['card_bg'])
-        progress_frame.pack(pady=20, padx=50, fill=tk.X)
+        progress_frame.pack(pady=15, padx=50, fill=tk.X)
         
         self.progress_var = tk.IntVar(value=0)
         self.progress_bar = ttk.Progressbar(
@@ -501,29 +505,29 @@ class InstallerGUI:
         self.percentage_label = tk.Label(
             progress_card,
             text="0%",
-            font=('Segoe UI', 14, 'bold'),
+            font=('Segoe UI', 13, 'bold'),
             bg=self.colors['card_bg'],
             fg=self.colors['primary']
         )
-        self.percentage_label.pack(pady=10)
-        
+        self.percentage_label.pack(pady=8)
+
         # Log de instalación
         log_frame = tk.Frame(progress_card, bg=self.colors['card_bg'])
-        log_frame.pack(fill=tk.BOTH, expand=True, padx=50, pady=20)
-        
+        log_frame.pack(fill=tk.BOTH, expand=True, padx=50, pady=15)
+
         log_label = tk.Label(
             log_frame,
             text="📋 Detalles:",
-            font=('Segoe UI', 10, 'bold'),
+            font=('Segoe UI', 9, 'bold'),
             bg=self.colors['card_bg'],
             fg=self.colors['text_dark']
         )
         log_label.pack(anchor='w', pady=(0, 5))
-        
+
         self.log_text = tk.Text(
             log_frame,
-            height=8,
-            font=('Consolas', 9),
+            height=6,
+            font=('Consolas', 8),
             bg='#F8F9FA',
             fg=self.colors['text_dark'],
             relief=tk.FLAT,
@@ -540,25 +544,25 @@ class InstallerGUI:
         """Crea la página de finalización"""
         page = tk.Frame(parent, bg=self.colors['bg'])
         self.pages.append(page)
-        
+
         # Header
-        header = tk.Frame(page, bg=self.colors['success'], height=120)
-        header.pack(fill=tk.X, pady=(0, 20))
+        header = tk.Frame(page, bg=self.colors['success'], height=70)
+        header.pack(fill=tk.X, pady=(0, 10))
         header.pack_propagate(False)
-        
+
         title = tk.Label(
             header,
             text="✅ ¡Instalación Completada!",
-            font=('Segoe UI', 24, 'bold'),
+            font=('Segoe UI', 18, 'bold'),
             bg=self.colors['success'],
             fg='white'
         )
-        title.pack(pady=(30, 5))
-        
+        title.pack(pady=(10, 2))
+
         subtitle = tk.Label(
             header,
             text="El Analizador BBPP UiPath está listo para usar",
-            font=('Segoe UI', 12),
+            font=('Segoe UI', 10),
             bg=self.colors['success'],
             fg='white'
         )
@@ -572,63 +576,65 @@ class InstallerGUI:
         message = tk.Label(
             finish_card,
             text="La aplicación se ha instalado correctamente en:\n",
-            font=('Segoe UI', 11),
+            font=('Segoe UI', 10),
             bg=self.colors['card_bg'],
             fg=self.colors['text_dark']
         )
-        message.pack(pady=(30, 5))
-        
+        message.pack(pady=(20, 5))
+
         path_label = tk.Label(
             finish_card,
             text=self.install_path.get(),
-            font=('Segoe UI', 10, 'bold'),
+            font=('Segoe UI', 9, 'bold'),
             bg=self.colors['card_bg'],
             fg=self.colors['primary']
         )
-        path_label.pack(pady=(0, 30))
-        
+        path_label.pack(pady=(0, 20))
+
         # Información adicional
         info_frame = tk.Frame(finish_card, bg=self.colors['card_bg'])
-        info_frame.pack(pady=20)
+        info_frame.pack(pady=15)
         
         if self.create_desktop_shortcut.get():
             tk.Label(
                 info_frame,
                 text="✓ Acceso directo creado en el escritorio",
-                font=('Segoe UI', 10),
+                font=('Segoe UI', 9),
                 bg=self.colors['card_bg'],
                 fg=self.colors['text_dark']
-            ).pack(anchor='w', pady=3)
-        
+            ).pack(anchor='w', pady=2)
+
         if self.auto_update.get():
             tk.Label(
                 info_frame,
                 text="✓ Actualizaciones automáticas habilitadas",
-                font=('Segoe UI', 10),
+                font=('Segoe UI', 9),
                 bg=self.colors['card_bg'],
                 fg=self.colors['text_dark']
-            ).pack(anchor='w', pady=3)
-        
+            ).pack(anchor='w', pady=2)
+
         # Botones
         button_frame = tk.Frame(page, bg=self.colors['bg'])
-        button_frame.pack(side=tk.BOTTOM, pady=20)
-        
+        button_frame.pack(side=tk.BOTTOM, pady=10)
+
         finish_btn = ModernButton(
             button_frame,
             "Finalizar",
             self.finish_installation,
             bg_color=self.colors['success'],
-            hover_color='#4CAF50'
+            hover_color='#4CAF50',
+            height=40
         )
         finish_btn.pack(side=tk.RIGHT, padx=5)
-        
+
         if self.launch_after_install.get():
             launch_btn = ModernButton(
                 button_frame,
                 "🚀 Iniciar Aplicación",
                 self.launch_application,
                 bg_color=self.colors['primary'],
-                hover_color=self.colors['secondary']
+                hover_color=self.colors['secondary'],
+                height=40
             )
             launch_btn.pack(side=tk.RIGHT, padx=5)
     
