@@ -58,10 +58,17 @@ class BBPPAnalyzer:
         """
         # Importar rules_manager
         from src.rules_manager import get_rules_manager
-        
+
         self.rules_manager = get_rules_manager()
         self.config = config or {}
-        self.active_sets = active_sets or ['UiPath', 'NTTData']  # Default fallback
+
+        # Si no se especifican conjuntos activos, usar todos los conjuntos habilitados
+        if active_sets is None:
+            # Obtener todos los conjuntos habilitados dinámicamente
+            all_sets = self.rules_manager.get_sets_info()
+            self.active_sets = [name for name, info in all_sets.items() if info.get('enabled', True)]
+        else:
+            self.active_sets = active_sets
         
         # Cargar reglas activas desde BBPP_Master.json
         if rules is None:

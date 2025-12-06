@@ -403,10 +403,10 @@ class MainWindow:
             filename = bbpp_set['filename']
             set_name = filename.replace('BBPP_', '').replace('.json', '')
 
-            # Verificar si el conjunto está activo en BBPP_Master.json
-            bbpp_data = rules_manager.sets.get(set_name, {})
-            metadata = bbpp_data.get('metadata', {})
-            is_enabled = metadata.get('enabled', True)
+            # Verificar si el conjunto está activo
+            # rules_manager.sets tiene estructura: {set_name: {'name': ..., 'enabled': ..., 'dependencies': ...}}
+            set_info = rules_manager.sets.get(set_name, {})
+            is_enabled = set_info.get('enabled', True)
 
             if is_enabled:
                 active_sets_only.append({

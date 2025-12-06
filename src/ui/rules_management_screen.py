@@ -285,11 +285,11 @@ class RulesManagementScreen:
 
         # Anchos de columna
         self.tree.column("id", width=140, anchor="w")
-        self.tree.column("name", width=350, anchor="w")
-        self.tree.column("category", width=150, anchor="center")
-        self.tree.column("severity", width=110, anchor="center")
-        self.tree.column("penalty", width=120, anchor="center")
-        self.tree.column("enabled", width=90, anchor="center")
+        self.tree.column("name", width=300, anchor="w")
+        self.tree.column("category", width=130, anchor="center")
+        self.tree.column("severity", width=100, anchor="center")
+        self.tree.column("penalty", width=200, anchor="center")
+        self.tree.column("enabled", width=80, anchor="center")
         
         # Scrollbar
         scrollbar = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=self.tree.yview)
@@ -331,7 +331,25 @@ class RulesManagementScreen:
             name = rule.get('name', '')
             category = rule.get('category', '')
             severity = rule.get('severity', 'warning').upper()
-            penalty = f"{rule.get('penalty', 0)}%"
+
+            # Construir texto de penalización descriptivo
+            params = rule.get('parameters', {})
+            penalty_mode = params.get('penalty_mode', 'severity_default')
+            penalty_value = params.get('penalty_value', rule.get('penalty', 0))
+            use_cap = params.get('use_penalty_cap', False)
+            penalty_cap = params.get('penalty_cap', 10)
+
+            if penalty_mode == 'severity_default':
+                penalty_text = "Predeterminado"
+            elif penalty_mode == 'global':
+                penalty_text = f"{penalty_value}% Global"
+            elif penalty_mode == 'individual':
+                if use_cap:
+                    penalty_text = f"{penalty_value}%/hallazgo (Límite {penalty_cap}%)"
+                else:
+                    penalty_text = f"{penalty_value}%/hallazgo"
+            else:
+                penalty_text = f"{penalty_value}%"
 
             # Estado enabled/disabled
             enabled = "✅" if rule.get('enabled', True) else "❌"
@@ -342,7 +360,7 @@ class RulesManagementScreen:
             self.tree.insert(
                 "",
                 tk.END,
-                values=(rule_id, name, category, severity, penalty, enabled),
+                values=(rule_id, name, category, severity, penalty_text, enabled),
                 tags=(tag,)
             )
         
@@ -1177,8 +1195,12 @@ class RulesManagementScreen:
             # Actualizar parámetros de penalización personalizada
             rules = self.rules_manager.get_rules_by_set(set_name)
             rule_obj = next((r for r in rules if r.get('id') == rule_id), None)
-            
-            if rule_obj and 'parameters' in rule_obj:
+
+            if rule_obj:
+                # Asegurar que existe el diccionario parameters
+                if 'parameters' not in rule_obj:
+                    rule_obj['parameters'] = {}
+
                 rule_obj['parameters']['penalty_mode'] = penalty_mode_var.get()
                 rule_obj['parameters']['penalty_value'] = penalty_value_var.get()
                 rule_obj['parameters']['use_penalty_cap'] = use_cap_var.get()
