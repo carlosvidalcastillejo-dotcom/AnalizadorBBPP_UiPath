@@ -62,23 +62,57 @@ class MainWindow:
         self.sidebar.pack_propagate(False)
         print(f"DEBUG: Sidebar creado - Existe: {self.sidebar.winfo_exists()}, Visible: {self.sidebar.winfo_viewable()}")
         
-        # Título de la aplicación (usa nombre de empresa del branding)
+        # Branding en la parte superior (Logo + Nombre de Empresa)
         from src.branding_manager import get_branding_manager
         branding = get_branding_manager()
-        company_name = branding.get_company_name()
 
-        title_label = tk.Label(
-            self.sidebar,
+        # Frame contenedor para branding
+        branding_frame = tk.Frame(self.sidebar, bg=PRIMARY_COLOR)
+        branding_frame.pack(pady=20)
+
+        # Intentar cargar y mostrar logo si está configurado
+        logo_path = branding.get_logo_path()
+        if logo_path and logo_path.exists() and branding.use_logo_in_ui():
+            try:
+                from PIL import Image, ImageTk
+
+                # Cargar imagen
+                img = Image.open(logo_path)
+
+                # Obtener dimensiones configuradas
+                logo_width, logo_height = branding.get_logo_dimensions()
+
+                # Redimensionar manteniendo aspecto
+                img.thumbnail((logo_width, logo_height), Image.Resampling.LANCZOS)
+
+                # Convertir a PhotoImage
+                photo = ImageTk.PhotoImage(img)
+
+                # Crear label con imagen
+                logo_label = tk.Label(
+                    branding_frame,
+                    image=photo,
+                    bg=PRIMARY_COLOR
+                )
+                logo_label.image = photo  # Mantener referencia
+                logo_label.pack(pady=(0, 10))
+
+            except Exception as e:
+                print(f"WARNING: No se pudo cargar el logo: {e}")
+
+        # Nombre de empresa
+        company_name = branding.get_company_name()
+        self.company_label = tk.Label(
+            branding_frame,
             text=company_name,
             bg=PRIMARY_COLOR,
             fg="white",
             font=("Arial", 16, "bold"),
-            pady=20,
             wraplength=180,
             justify=tk.CENTER
         )
-        title_label.pack()
-        
+        self.company_label.pack()
+
         # Versión
         version_label = tk.Label(
             self.sidebar,
@@ -116,73 +150,6 @@ class MainWindow:
             pady=10
         )
         exit_btn.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=10)
-        
-        # Logo y nombre de empresa
-        self._create_company_branding()
-    
-    def _create_company_branding(self):
-        """Crear sección de branding (logo + nombre de empresa)"""
-        try:
-            from src.branding_manager import get_branding_manager
-            branding = get_branding_manager()
-            
-            # Frame contenedor para logo y nombre
-            branding_frame = tk.Frame(self.sidebar, bg=PRIMARY_COLOR)
-            branding_frame.pack(side=tk.BOTTOM, pady=10)
-            
-            # Intentar cargar y mostrar logo si está configurado
-            logo_path = branding.get_logo_path()
-            if logo_path and logo_path.exists() and branding.use_logo_in_ui():
-                try:
-                    from PIL import Image, ImageTk
-                    
-                    # Cargar imagen
-                    img = Image.open(logo_path)
-                    
-                    # Obtener dimensiones configuradas
-                    logo_width, logo_height = branding.get_logo_dimensions()
-                    
-                    # Redimensionar manteniendo aspecto
-                    img.thumbnail((logo_width, logo_height), Image.Resampling.LANCZOS)
-                    
-                    # Convertir a PhotoImage
-                    photo = ImageTk.PhotoImage(img)
-                    
-                    # Crear label con imagen
-                    logo_label = tk.Label(
-                        branding_frame,
-                        image=photo,
-                        bg=PRIMARY_COLOR
-                    )
-                    logo_label.image = photo  # Mantener referencia
-                    logo_label.pack(pady=(0, 5))
-                    
-                except Exception as e:
-                    print(f"WARNING: No se pudo cargar el logo: {e}")
-                    # Continuar sin logo
-            
-            # Nombre de empresa (siempre se muestra)
-            company_name = branding.get_company_name()
-            self.company_label = tk.Label(
-                branding_frame,
-                text=company_name,
-                bg=PRIMARY_COLOR,
-                fg="white",
-                font=("Arial", 10, "bold")
-            )
-            self.company_label.pack()
-            
-        except Exception as e:
-            print(f"WARNING: Error al cargar branding: {e}")
-            # Fallback: mostrar solo el nombre de empresa por defecto
-            self.company_label = tk.Label(
-                self.sidebar,
-                text=COMPANY,
-                bg=PRIMARY_COLOR,
-                fg="white",
-                font=("Arial", 10, "bold")
-            )
-            self.company_label.pack(side=tk.BOTTOM, pady=10)
     
     def refresh_sidebar(self):
         """Refrescar sidebar para mostrar cambios de branding"""
