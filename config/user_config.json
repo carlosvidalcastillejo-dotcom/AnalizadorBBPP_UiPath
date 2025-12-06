@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "last_updated": "2025-11-30",
+  "last_updated": "2025-12-05",
   "active_bbpp_sets": [],
   "thresholds": {
     "max_activities_sequence": 20,
@@ -24,5 +24,6 @@
     "info_weight": -0.5
   },
   "build_author": "Carlos Vidal Castillejo",
-  "custom_logo": "C:/Users/Imrik/Downloads/Gemini_Generated_Image_e5dss7e5dss7e5ds.png"
+  "custom_logo": "C:/Users/Imrik/Downloads/Gemini_Generated_Image_e5dss7e5dss7e5ds.png",
+  "last_selected_bbpp_set": "Master"
 }

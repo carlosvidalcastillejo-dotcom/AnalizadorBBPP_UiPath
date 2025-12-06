@@ -40,18 +40,17 @@ class MainWindow:
         
     def _setup_ui(self):
         """Configurar la interfaz de usuario"""
-        # IMPORTANTE: Crear sidebar PRIMERO para evitar conflictos de empaquetado
-        # El orden correcto es: sidebar (LEFT) -> main_area (RIGHT) -> status_bar (BOTTOM)
-        
-        # Menú lateral (PRIMERO)
-        self._create_sidebar()
-        
-        # Área principal
-        self._create_main_area()
-        
-        # Barra de estado (ÚLTIMO para que quede abajo)
+        # Estructura de 3 áreas: sidebar (izq), contenido (derecha), status bar (abajo global)
+
+        # Barra de estado PRIMERO (abajo) para reservar espacio
         self._create_status_bar()
-        
+
+        # Menú lateral (izquierda)
+        self._create_sidebar()
+
+        # Área principal (derecha, rellena el espacio restante)
+        self._create_main_area()
+
         # Verificar que el sidebar está correctamente empaquetado
         self._ensure_sidebar_visible()
         
@@ -1368,15 +1367,16 @@ class MainWindow:
         # Crear ventana modal
         dialog = tk.Toplevel(self.root)
         dialog.title("Seleccionar Tipo de Reporte HTML")
-        dialog.geometry("500x350")
+        dialog.geometry("550x500")
         dialog.transient(self.root)
         dialog.grab_set()
+        dialog.resizable(False, False)
 
         # Centrar ventana
         dialog.update_idletasks()
-        x = (dialog.winfo_screenwidth() // 2) - (500 // 2)
-        y = (dialog.winfo_screenheight() // 2) - (350 // 2)
-        dialog.geometry(f"500x350+{x}+{y}")
+        x = (dialog.winfo_screenwidth() // 2) - (550 // 2)
+        y = (dialog.winfo_screenheight() // 2) - (500 // 2)
+        dialog.geometry(f"550x500+{x}+{y}")
 
         # Frame principal
         main_frame = tk.Frame(dialog, bg="white", padx=30, pady=20)

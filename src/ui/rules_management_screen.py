@@ -182,10 +182,11 @@ class RulesManagementScreen:
         ).pack(side=tk.LEFT, padx=(0, 10))
 
         # Dropdown de conjuntos
-        selected_set_var = tk.StringVar(value=set_names[0] if set_names else "")
+        self.selected_set_var = tk.StringVar(value=set_names[0] if set_names else "")
+        self.selected_set_var.trace_add("write", lambda *args: self._on_set_changed())
         sets_dropdown = ttk.Combobox(
             dropdown_frame,
-            textvariable=selected_set_var,
+            textvariable=self.selected_set_var,
             values=set_names,
             state="readonly",
             width=30,
@@ -195,7 +196,7 @@ class RulesManagementScreen:
 
         # Botón para editar dependencias del conjunto seleccionado
         def open_dependencies():
-            selected = selected_set_var.get()
+            selected = self.selected_set_var.get()
             if selected:
                 self._show_dependency_dialog(selected)
 
@@ -220,8 +221,8 @@ class RulesManagementScreen:
         table_frame = tk.Frame(content_frame, bg=BG_COLOR)
         table_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
-        # Crear Treeview
-        columns = ("id", "name", "category", "severity", "penalty", "enabled", "status")
+        # Crear Treeview (sin columna "status")
+        columns = ("id", "name", "category", "severity", "penalty", "enabled")
         self.tree = ttk.Treeview(
             table_frame,
             columns=columns,
@@ -236,16 +237,14 @@ class RulesManagementScreen:
         self.tree.heading("severity", text="Severidad")
         self.tree.heading("penalty", text="Penalización")
         self.tree.heading("enabled", text="Activa")
-        self.tree.heading("status", text="Estado")
 
         # Anchos de columna
-        self.tree.column("id", width=120, anchor="w")
-        self.tree.column("name", width=300, anchor="w")
-        self.tree.column("category", width=130, anchor="center")
-        self.tree.column("severity", width=100, anchor="center")
-        self.tree.column("penalty", width=110, anchor="center")
-        self.tree.column("enabled", width=80, anchor="center")
-        self.tree.column("status", width=150, anchor="center")
+        self.tree.column("id", width=140, anchor="w")
+        self.tree.column("name", width=350, anchor="w")
+        self.tree.column("category", width=150, anchor="center")
+        self.tree.column("severity", width=110, anchor="center")
+        self.tree.column("penalty", width=120, anchor="center")
+        self.tree.column("enabled", width=90, anchor="center")
         
         # Scrollbar
         scrollbar = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=self.tree.yview)
@@ -254,38 +253,38 @@ class RulesManagementScreen:
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
-        # Bind evento de doble-click para abrir diálogo de edición
+        # Bind eventos
         self.tree.bind("<Double-Button-1>", self._on_rule_double_click)
+        self.tree.bind("<Button-1>", self._on_tree_click)
     
     
+    def _on_set_changed(self):
+        """Callback cuando cambia el conjunto seleccionado"""
+        self._load_rules()
+
     def _load_rules(self):
-        """Cargar reglas en la tabla"""
+        """Cargar reglas en la tabla (filtradas por conjunto seleccionado)"""
         # Limpiar tabla
         for item in self.tree.get_children():
             self.tree.delete(item)
-        
-        # Obtener reglas
+
+        # Obtener conjunto seleccionado
+        selected_set = getattr(self, 'selected_set_var', None)
+        filter_set = selected_set.get() if selected_set else None
+
+        # Obtener reglas (todas o filtradas por conjunto)
         rules = self.rules_manager.get_all_rules()
         
-        # Insertar reglas
+        # Insertar reglas (TODAS, sin filtrar)
         for rule in rules:
             rule_id = rule.get('id', '')
             name = rule.get('name', '')
             category = rule.get('category', '')
             severity = rule.get('severity', 'warning').upper()
             penalty = f"{rule.get('penalty', 0)}%"
-            
+
             # Estado enabled/disabled
             enabled = "✅" if rule.get('enabled', True) else "❌"
-
-            # Estado de implementación
-            status = rule.get('implementation_status', 'pending')
-            status_text = {
-                'implemented': '✅ Implementada',
-                'pending': '⏳ Pendiente',
-                'duplicate': '🔄 Duplicada',
-                'manual': '👤 Manual'
-            }.get(status, status)
 
             # Color según severidad
             tag = severity.lower()
@@ -293,7 +292,7 @@ class RulesManagementScreen:
             self.tree.insert(
                 "",
                 tk.END,
-                values=(rule_id, name, category, severity, penalty, enabled, status_text),
+                values=(rule_id, name, category, severity, penalty, enabled),
                 tags=(tag,)
             )
         
@@ -319,16 +318,43 @@ class RulesManagementScreen:
         self.stats_label.config(text=text)
     
     
+    def _on_tree_click(self, event):
+        """Manejar clic simple en la tabla para toggle enabled/disabled"""
+        # Identificar qué columna se clickeó
+        region = self.tree.identify_region(event.x, event.y)
+        if region != "cell":
+            return
+
+        column = self.tree.identify_column(event.x)
+        # Columna "enabled" es la #6 (índice comienza en #1)
+        if column != "#6":
+            return
+
+        # Obtener regla clickeada
+        item_id = self.tree.identify_row(event.y)
+        if not item_id:
+            return
+
+        item = self.tree.item(item_id)
+        rule_id = item['values'][0]
+
+        # Toggle enabled/disabled
+        rule = self.rules_manager.get_rule_by_id(rule_id)
+        if rule:
+            new_enabled = not rule.get('enabled', True)
+            self.rules_manager.update_rule(rule_id, {'enabled': new_enabled})
+            self._load_rules()  # Recargar tabla
+
     def _on_rule_double_click(self, event):
         """Manejar doble-click en una regla para abrir diálogo de edición"""
         selection = self.tree.selection()
         if not selection:
             return
-        
+
         # Obtener ID de la regla seleccionada
         item = self.tree.item(selection[0])
         rule_id = item['values'][0]
-        
+
         self._show_edit_dialog(rule_id)
     
     def _show_edit_dialog(self, rule_id):

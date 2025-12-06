@@ -37,11 +37,8 @@
       "category": "nomenclatura",
       "severity": "warning",
       "penalty": 0.0,
-      "enabled": false,
-      "sets": [
-        "UiPath",
-        "NTTData"
-      ],
+      "enabled": true,
+      "sets": [],
       "implementation_status": "implemented",
       "rule_type": "variable_naming",
       "parameters": {
@@ -111,12 +108,9 @@
       "description": "Evitar nombres de variables genéricos que no indican su propósito (var, temp, data, etc.)",
       "category": "nomenclatura",
       "severity": "warning",
-      "penalty": 0.0,
+      "penalty": 1.0,
       "enabled": true,
-      "sets": [
-        "UiPath",
-        "NTTData"
-      ],
+      "sets": [],
       "implementation_status": "implemented",
       "rule_type": "generic_names",
       "parameters": {
@@ -203,7 +197,7 @@
           "io_dt_TransactionData"
         ],
         "penalty_mode": "global",
-        "penalty_value": 0.0,
+        "penalty_value": 1.0,
         "use_penalty_cap": false,
         "penalty_cap": 10.0
       }
@@ -214,12 +208,9 @@
       "description": "Los argumentos deben tener prefijos según su dirección (in_, out_, io_) y seguir el formato especificado después del prefijo",
       "category": "nomenclatura",
       "severity": "warning",
-      "penalty": 0.0,
+      "penalty": 1.0,
       "enabled": true,
-      "sets": [
-        "UiPath",
-        "NTTData"
-      ],
+      "sets": [],
       "implementation_status": "implemented",
       "rule_type": "argument_prefixes",
       "parameters": {
@@ -284,7 +275,7 @@
           "io_dt_TransactionData"
         ],
         "penalty_mode": "global",
-        "penalty_value": 0.0,
+        "penalty_value": 1.0,
         "use_penalty_cap": false,
         "penalty_cap": 10.0
       }
@@ -295,11 +286,9 @@
       "description": "Todos los argumentos deben tener una descripción clara",
       "category": "nomenclatura",
       "severity": "info",
-      "penalty": 0.0,
+      "penalty": 1.0,
       "enabled": true,
-      "sets": [
-        "UiPath"
-      ],
+      "sets": [],
       "implementation_status": "implemented",
       "rule_type": "argument_description",
       "parameters": {
@@ -358,7 +347,7 @@
           "io_dt_TransactionData"
         ],
         "penalty_mode": "global",
-        "penalty_value": 0.0,
+        "penalty_value": 1.0,
         "use_penalty_cap": false,
         "penalty_cap": 10.0
       }
@@ -369,12 +358,9 @@
       "description": "Las variables deben seguir el patrón PascalCase (primera letra mayúscula, cada palabra inicia con mayúscula)",
       "category": "nomenclatura",
       "severity": "warning",
-      "penalty": 0.0,
+      "penalty": 2.0,
       "enabled": true,
-      "sets": [
-        "UiPath",
-        "NTTData"
-      ],
+      "sets": [],
       "implementation_status": "implemented",
       "rule_type": "variable_naming_pascal",
       "parameters": {
@@ -433,7 +419,7 @@
           "io_dt_TransactionData"
         ],
         "penalty_mode": "global",
-        "penalty_value": 0.0,
+        "penalty_value": 2.0,
         "use_penalty_cap": false,
         "penalty_cap": 10.0
       }
