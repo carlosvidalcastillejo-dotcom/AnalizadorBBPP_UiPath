@@ -208,22 +208,21 @@ class MetricsDashboard(tk.Frame):
         table_frame = tk.Frame(main_container, bg=self.BG_COLOR)
         table_frame.pack(fill=tk.BOTH, expand=True)
 
-        # Scrollbar
-        scrollbar = ttk.Scrollbar(table_frame)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        
         # Treeview
         columns = ("Fecha", "Proyecto", "Versión", "Score", "Errors", "Warnings", "Info")
         self.tree = ttk.Treeview(
             table_frame,
             columns=columns,
             show="headings",
-            yscrollcommand=scrollbar.set,
             height=10
         )
-        scrollbar.config(command=self.tree.yview)
-        
-        # Configurar columnas
+
+        # Scrollbars (vertical y horizontal)
+        vsb = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=self.tree.yview)
+        hsb = ttk.Scrollbar(table_frame, orient=tk.HORIZONTAL, command=self.tree.xview)
+        self.tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+
+        # Configurar columnas con minwidth y stretch
         self.tree.heading("Fecha", text="Fecha")
         self.tree.heading("Proyecto", text="Proyecto")
         self.tree.heading("Versión", text="Versión")
@@ -231,16 +230,23 @@ class MetricsDashboard(tk.Frame):
         self.tree.heading("Errors", text="Errors")
         self.tree.heading("Warnings", text="Warnings")
         self.tree.heading("Info", text="Info")
-        
-        self.tree.column("Fecha", width=130)
-        self.tree.column("Proyecto", width=150)
-        self.tree.column("Versión", width=80)
-        self.tree.column("Score", width=70)
-        self.tree.column("Errors", width=70)
-        self.tree.column("Warnings", width=80)
-        self.tree.column("Info", width=70)
-        
-        self.tree.pack(fill=tk.BOTH, expand=True)
+
+        self.tree.column("Fecha", width=140, minwidth=100, stretch=False)
+        self.tree.column("Proyecto", width=200, minwidth=150, stretch=True)
+        self.tree.column("Versión", width=100, minwidth=80, stretch=False)
+        self.tree.column("Score", width=80, minwidth=70, stretch=False)
+        self.tree.column("Errors", width=80, minwidth=70, stretch=False)
+        self.tree.column("Warnings", width=90, minwidth=80, stretch=False)
+        self.tree.column("Info", width=80, minwidth=70, stretch=False)
+
+        # Layout con grid para ambas scrollbars
+        self.tree.grid(row=0, column=0, sticky='nsew')
+        vsb.grid(row=0, column=1, sticky='ns')
+        hsb.grid(row=1, column=0, sticky='ew')
+
+        # Configurar grid responsive
+        table_frame.grid_rowconfigure(0, weight=1)
+        table_frame.grid_columnconfigure(0, weight=1)
         
         # Bind doble-click para abrir reportes
         self.tree.bind("<Double-Button-1>", self._on_double_click)

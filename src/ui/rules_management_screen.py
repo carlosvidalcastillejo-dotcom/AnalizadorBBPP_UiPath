@@ -283,20 +283,27 @@ class RulesManagementScreen:
         self.tree.heading("penalty", text="Penalización")
         self.tree.heading("enabled", text="Activa")
 
-        # Anchos de columna
-        self.tree.column("id", width=140, anchor="w")
-        self.tree.column("name", width=300, anchor="w")
-        self.tree.column("category", width=130, anchor="center")
-        self.tree.column("severity", width=100, anchor="center")
-        self.tree.column("penalty", width=200, anchor="center")
-        self.tree.column("enabled", width=80, anchor="center")
-        
-        # Scrollbar
-        scrollbar = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=self.tree.yview)
-        self.tree.configure(yscrollcommand=scrollbar.set)
-        
-        self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        # Anchos de columna (optimizados para mejor visualización)
+        self.tree.column("id", width=160, minwidth=120, anchor="w", stretch=False)
+        self.tree.column("name", width=350, minwidth=250, anchor="w", stretch=True)
+        self.tree.column("category", width=140, minwidth=100, anchor="center", stretch=False)
+        self.tree.column("severity", width=110, minwidth=90, anchor="center", stretch=False)
+        self.tree.column("penalty", width=220, minwidth=180, anchor="center", stretch=False)
+        self.tree.column("enabled", width=80, minwidth=70, anchor="center", stretch=False)
+
+        # Scrollbars (vertical y horizontal)
+        vsb = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=self.tree.yview)
+        hsb = ttk.Scrollbar(table_frame, orient=tk.HORIZONTAL, command=self.tree.xview)
+        self.tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+
+        # Layout con ambas scrollbars
+        self.tree.grid(row=0, column=0, sticky='nsew')
+        vsb.grid(row=0, column=1, sticky='ns')
+        hsb.grid(row=1, column=0, sticky='ew')
+
+        # Configurar grid para que sea responsive
+        table_frame.grid_rowconfigure(0, weight=1)
+        table_frame.grid_columnconfigure(0, weight=1)
         
         # Bind eventos
         self.tree.bind("<Double-Button-1>", self._on_rule_double_click)
