@@ -899,26 +899,51 @@ class MainWindow:
         checkbox.pack(fill=tk.X, pady=3, padx=5)
         
     def _select_custom_logo(self):
-        """Seleccionar logo personalizado"""
+        """Seleccionar logo personalizado y copiarlo a carpeta interna"""
+        import shutil
+        from pathlib import Path
+
         filetypes = [
             ("Imágenes", "*.png *.jpg *.jpeg *.gif"),
             ("Todos los archivos", "*.*")
         ]
-        
+
         filepath = filedialog.askopenfilename(
             title="Seleccionar Logo",
             filetypes=filetypes
         )
-        
+
         if filepath:
-            # Actualizar label
-            self.logo_path_label.config(text=f"Logo actual: {filepath}")
-            # Guardar en configuración temporal
-            self.custom_logo_path = filepath
-            messagebox.showinfo(
-                "Logo Seleccionado",
-                f"Logo seleccionado correctamente.\nNo olvides guardar la configuración."
-            )
+            try:
+                # Crear carpeta de assets si no existe
+                assets_dir = Path(__file__).parent.parent.parent / "assets" / "branding"
+                assets_dir.mkdir(parents=True, exist_ok=True)
+
+                # Copiar archivo a carpeta interna con nombre fijo
+                source = Path(filepath)
+                extension = source.suffix  # .png, .jpg, etc.
+                dest = assets_dir / f"company_logo{extension}"
+
+                # Copiar archivo
+                shutil.copy2(source, dest)
+
+                # Actualizar label con ruta interna
+                self.logo_path_label.config(text=f"Logo actual: {dest.name}")
+                # Guardar ruta interna en configuración temporal
+                self.custom_logo_path = str(dest)
+
+                messagebox.showinfo(
+                    "Logo Guardado",
+                    f"Logo copiado a la carpeta interna del proyecto:\n\n"
+                    f"{dest.relative_to(Path(__file__).parent.parent.parent)}\n\n"
+                    f"El logo está ahora embebido en la aplicación.\n"
+                    f"No olvides guardar la configuración."
+                )
+            except Exception as e:
+                messagebox.showerror(
+                    "Error al Copiar Logo",
+                    f"No se pudo copiar el logo a la carpeta interna:\n\n{e}"
+                )
             
     def _reset_logo(self):
         """Restaurar logo por defecto"""

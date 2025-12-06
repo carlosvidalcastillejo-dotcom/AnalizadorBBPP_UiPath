@@ -53,6 +53,9 @@ output/
 temp/
 tmp/
 
+# Assets personalizados (cada instalación tiene su propio logo)
+assets/branding/
+
 # Backups
 *.backup
 *.broken
