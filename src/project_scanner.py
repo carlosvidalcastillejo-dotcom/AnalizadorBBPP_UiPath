@@ -107,6 +107,7 @@ class ProjectScanner:
             'score': score,
             'findings': [f.to_dict() for f in self.all_findings],
             'parsed_files': self.parsed_files,
+            'bbpp_sets': self.active_sets,  # Conjuntos de BBPP utilizados
         }
         
         # 6. Guardar en base de datos de métricas (auto-save)

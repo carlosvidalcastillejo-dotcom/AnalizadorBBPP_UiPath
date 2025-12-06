@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2] - 2025-12-06
+
+**Autor:** Carlos Vidal Castillejo  
+**Tipo de cambio:** Patch  
+
+Actualización de colores de severidad en reportes (Error=Rojo, Warning=Amarillo, Info=Azul) y mejoras de formato en Excel con filas alternadas, colores de fondo y gráfico personalizado. Nueva columna 'Conjunto BBPP' y 'Versión Studio' en Dashboard de Métricas.
+
 ## [1.1.4] - 2024-11-30
 
 **Autor:** Carlos Vidal Castillejo

@@ -503,7 +503,7 @@ class HTMLReportGenerator:
         }
         
         .finding-info {
-            border-left-color: #17a2b8;
+            border-left-color: #0d6efd;
         }
         
         .finding-header {
@@ -569,7 +569,7 @@ class HTMLReportGenerator:
         }
         
         .badge-info {
-            background: #17a2b8;
+            background: #0d6efd;
             color: white;
         }
         
@@ -778,7 +778,7 @@ class HTMLReportGenerator:
         }
 
         .file-score-card.score-good {
-            border-left-color: #17a2b8;
+            border-left-color: #0d6efd;
             background: linear-gradient(to right, #e3f2fd 0%, white 50%);
         }
 
@@ -1324,7 +1324,7 @@ class HTMLReportGenerator:
         severity_labels = {
             'error': ('❌ Errores', '#dc3545'),
             'warning': ('⚠️ Warnings', '#ffc107'),
-            'info': ('ℹ️ Info', '#17a2b8')
+            'info': ('ℹ️ Info', '#0d6efd')
         }
 
         for sev in ['error', 'warning', 'info']:
@@ -1596,7 +1596,7 @@ class HTMLReportGenerator:
                             backgroundColor: [
                                 '#dc3545',  // Rojo para errores
                                 '#ffc107',  // Amarillo para warnings
-                                '#17a2b8'   // Azul para info
+                                '#0d6efd'   // Azul para info
                             ],
                             borderWidth: 2,
                             borderColor: '#fff'
@@ -1925,7 +1925,7 @@ class HTMLReportGenerator:
         }
 
         .finding-info {
-            border-left-color: #17a2b8;
+            border-left-color: #0d6efd;
         }
 
         .finding-header {
@@ -2044,7 +2044,7 @@ class HTMLReportGenerator:
         }
 
         .badge-info {
-            background: #17a2b8;
+            background: #0d6efd;
             color: white;
         }
 
@@ -2246,3 +2246,4 @@ class HTMLReportGenerator:
         """
 
         return findings_html
+

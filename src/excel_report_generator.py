@@ -12,6 +12,8 @@ try:
     from openpyxl.styles import Font, Fill, PatternFill, Alignment, Border, Side
     from openpyxl.chart import PieChart, BarChart, Reference
     from openpyxl.chart.label import DataLabelList
+    from openpyxl.chart.shapes import GraphicalProperties
+    from openpyxl.drawing.fill import SolidColorFillProperties, ColorChoice
     from openpyxl.utils import get_column_letter
     OPENPYXL_AVAILABLE = True
 except ImportError:
@@ -44,11 +46,11 @@ class ExcelReportGenerator:
             self.COLOR_SECONDARY = "0077B6"
         
         # Colores para severidades (fijos)
-        self.COLOR_SUCCESS = "28A745"
-        self.COLOR_WARNING = "FFC107"
-        self.COLOR_ERROR = "DC3545"
-        self.COLOR_INFO = "17A2B8"
-        self.COLOR_HEADER = "E8E8E8"
+        self.COLOR_SUCCESS = "28A745"  # Verde
+        self.COLOR_WARNING = "FFC107"  # Amarillo
+        self.COLOR_ERROR = "DC3545"    # Rojo
+        self.COLOR_INFO = "0D6EFD"     # Azul (cambiado de cyan a azul)
+        self.COLOR_HEADER = "E8E8E8"   # Gris claro
         
         # Si no se especifica ruta, usar estructura nueva con nombre estandarizado
         if output_path is None:
@@ -189,17 +191,22 @@ class ExcelReportGenerator:
         row += 1
         
         findings_rows = [
-            ("❌ Errores:", stats.get('errors', 0), self.COLOR_ERROR),
-            ("⚠️ Warnings:", stats.get('warnings', 0), self.COLOR_WARNING),
-            ("ℹ️ Info:", stats.get('infos', 0), self.COLOR_INFO),
-            ("📊 Total:", stats.get('total_findings', 0), self.COLOR_PRIMARY),
+            ("❌ Errores:", stats.get('errors', 0), self.COLOR_ERROR, "FFE6E6"),
+            ("⚠️ Warnings:", stats.get('warnings', 0), "B8860B", "FFF9E6"),
+            ("ℹ️ Info:", stats.get('infos', 0), self.COLOR_INFO, "E6F2FF"),
+            ("📊 Total:", stats.get('total_findings', 0), self.COLOR_PRIMARY, "E8E8E8"),
         ]
         
-        for label, value, color in findings_rows:
+        for label, value, color, bg_color in findings_rows:
             ws[f'A{row}'] = label
             ws[f'A{row}'].font = Font(bold=True)
+            ws[f'A{row}'].border = self.border
+            ws[f'A{row}'].alignment = self.left_align
             ws[f'B{row}'] = value
             ws[f'B{row}'].font = Font(bold=True, color=color)
+            ws[f'B{row}'].fill = PatternFill(start_color=bg_color, end_color=bg_color, fill_type="solid")
+            ws[f'B{row}'].border = self.border
+            ws[f'B{row}'].alignment = self.center_align
             row += 1
         
         # Ajustar anchos de columna
@@ -242,6 +249,34 @@ class ExcelReportGenerator:
         chart.dataLabels.showPercent = True
         chart.dataLabels.showVal = True
         
+        # Aplicar colores personalizados usando el método de series
+        # Este método es más compatible con OnlyOffice y otros lectores
+        from openpyxl.chart.series import DataPoint
+        
+        # Colores: Rojo para Errores, Amarillo para Warnings, Azul para Info
+        colors = [
+            self.COLOR_ERROR,    # Rojo para Errores
+            "FFC107",            # Amarillo para Warnings
+            self.COLOR_INFO      # Azul para Info
+        ]
+        
+        # Crear puntos de datos con colores específicos
+        try:
+            # Método alternativo más compatible
+            for idx, color in enumerate(colors):
+                pt = DataPoint(idx=idx)
+                pt.graphicalProperties = GraphicalProperties()
+                pt.graphicalProperties.solidFill = color
+                chart.series[0].dPt.append(pt)
+        except Exception as e:
+            print(f"Warning: Método 1 falló, intentando método 2: {e}")
+            # Método alternativo 2: Usar el estilo de la serie
+            try:
+                chart.series[0].graphicalProperties = GraphicalProperties()
+                chart.series[0].graphicalProperties.solidFill = self.COLOR_ERROR
+            except Exception as e2:
+                print(f"Warning: No se pudieron aplicar colores al gráfico: {e2}")
+        
         # Posición del gráfico
         ws.add_chart(chart, f"{get_column_letter(start_col + 3)}{start_row}")
     
@@ -260,6 +295,10 @@ class ExcelReportGenerator:
         
         # Datos
         findings = self.results.get('findings', [])
+        
+        # Color de fila alternada
+        alternate_fill = PatternFill(start_color="F8F9FA", end_color="F8F9FA", fill_type="solid")
+        
         for row_idx, finding in enumerate(findings, 2):
             severity = finding.get('severity', 'info')
             
@@ -279,18 +318,31 @@ class ExcelReportGenerator:
                 finding.get('location', '')
             ]
             
+            # Determinar color de fondo para la celda de severidad
+            if severity == 'error':
+                severity_fill = PatternFill(start_color="FFE6E6", end_color="FFE6E6", fill_type="solid")
+                severity_font = Font(color=self.COLOR_ERROR, bold=True)
+            elif severity == 'warning':
+                severity_fill = PatternFill(start_color="FFF9E6", end_color="FFF9E6", fill_type="solid")
+                severity_font = Font(color="B8860B", bold=True)  # Dorado oscuro para mejor contraste
+            else:  # info
+                severity_fill = PatternFill(start_color="E6F2FF", end_color="E6F2FF", fill_type="solid")
+                severity_font = Font(color=self.COLOR_INFO, bold=True)
+            
             for col_idx, value in enumerate(row_data, 1):
                 cell = ws.cell(row=row_idx, column=col_idx, value=value)
                 cell.border = self.border
+                cell.alignment = self.left_align if col_idx > 2 else self.center_align
                 
-                # Color según severidad
+                # Aplicar color de fondo alternado
+                if row_idx % 2 == 0:
+                    cell.fill = alternate_fill
+                
+                # Color especial para columna de severidad
                 if col_idx == 2:
-                    if severity == 'error':
-                        cell.font = Font(color=self.COLOR_ERROR)
-                    elif severity == 'warning':
-                        cell.font = Font(color="B8860B")  # Dorado oscuro
-                    else:
-                        cell.font = Font(color=self.COLOR_INFO)
+                    cell.fill = severity_fill
+                    cell.font = severity_font
+                    cell.alignment = self.center_align
         
         # Ajustar anchos
         ws.column_dimensions['A'].width = 5
@@ -302,6 +354,9 @@ class ExcelReportGenerator:
         
         # Filtros automáticos
         ws.auto_filter.ref = f"A1:F{len(findings) + 1}"
+        
+        # Congelar primera fila
+        ws.freeze_panes = "A2"
     
     def _create_statistics_sheet(self):
         """Crear hoja de estadísticas"""
