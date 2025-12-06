@@ -153,7 +153,7 @@ class RulesManagementScreen:
         )
         sets_mgmt_btn.pack(side=tk.LEFT, padx=5)
         
-        # Frame de Gestión de Conjuntos
+        # Frame de Gestión de Dependencias
         sets_mgmt_frame = tk.LabelFrame(
             main_frame,
             text="Gestión de Dependencias por Conjunto",
@@ -168,7 +168,7 @@ class RulesManagementScreen:
         sets_info = self.rules_manager.get_sets_info()
         set_names = list(sets_info.keys())
 
-        # Dropdown frame
+        # Dropdown frame para dependencias
         dropdown_frame = tk.Frame(sets_mgmt_frame, bg=BG_COLOR)
         dropdown_frame.pack(fill=tk.X, pady=5)
 
@@ -181,12 +181,11 @@ class RulesManagementScreen:
             fg="gray"
         ).pack(side=tk.LEFT, padx=(0, 10))
 
-        # Dropdown de conjuntos
-        self.selected_set_var = tk.StringVar(value=set_names[0] if set_names else "")
-        self.selected_set_var.trace_add("write", lambda *args: self._on_set_changed())
+        # Dropdown de conjuntos para dependencias
+        dependency_set_var = tk.StringVar(value=set_names[0] if set_names else "")
         sets_dropdown = ttk.Combobox(
             dropdown_frame,
-            textvariable=self.selected_set_var,
+            textvariable=dependency_set_var,
             values=set_names,
             state="readonly",
             width=30,
@@ -196,7 +195,7 @@ class RulesManagementScreen:
 
         # Botón para editar dependencias del conjunto seleccionado
         def open_dependencies():
-            selected = self.selected_set_var.get()
+            selected = dependency_set_var.get()
             if selected:
                 self._show_dependency_dialog(selected)
 
@@ -211,6 +210,52 @@ class RulesManagementScreen:
             command=open_dependencies,
             padx=15,
             pady=5
+        ).pack(side=tk.LEFT, padx=10)
+
+        # Frame de Selección de Conjunto para Configurar
+        config_set_frame = tk.LabelFrame(
+            main_frame,
+            text="Configuración de Reglas por Conjunto",
+            font=("Arial", 10, "bold"),
+            bg=BG_COLOR,
+            padx=10,
+            pady=10
+        )
+        config_set_frame.pack(fill=tk.X, padx=20, pady=10)
+
+        # Dropdown frame para configuración
+        config_dropdown_frame = tk.Frame(config_set_frame, bg=BG_COLOR)
+        config_dropdown_frame.pack(fill=tk.X, pady=5)
+
+        # Label
+        tk.Label(
+            config_dropdown_frame,
+            text="Selecciona conjunto para configurar reglas:",
+            font=("Arial", 9),
+            bg=BG_COLOR,
+            fg="gray"
+        ).pack(side=tk.LEFT, padx=(0, 10))
+
+        # Dropdown de conjuntos para configuración (este es el que filtra la tabla)
+        self.selected_set_var = tk.StringVar(value=set_names[0] if set_names else "")
+        self.selected_set_var.trace_add("write", lambda *args: self._on_set_changed())
+        config_sets_dropdown = ttk.Combobox(
+            config_dropdown_frame,
+            textvariable=self.selected_set_var,
+            values=set_names,
+            state="readonly",
+            width=30,
+            font=("Arial", 10)
+        )
+        config_sets_dropdown.pack(side=tk.LEFT, padx=5)
+
+        # Descripción
+        tk.Label(
+            config_dropdown_frame,
+            text="← Las reglas mostradas abajo corresponden a este conjunto",
+            font=("Arial", 8),
+            bg=BG_COLOR,
+            fg="gray"
         ).pack(side=tk.LEFT, padx=10)
 
         # Frame para tabla y panel de detalles
@@ -263,19 +308,24 @@ class RulesManagementScreen:
         self._load_rules()
 
     def _load_rules(self):
-        """Cargar reglas en la tabla (filtradas por conjunto seleccionado)"""
+        """Cargar reglas en la tabla del conjunto seleccionado"""
         # Limpiar tabla
         for item in self.tree.get_children():
             self.tree.delete(item)
 
         # Obtener conjunto seleccionado
         selected_set = getattr(self, 'selected_set_var', None)
-        filter_set = selected_set.get() if selected_set else None
-
-        # Obtener reglas (todas o filtradas por conjunto)
-        rules = self.rules_manager.get_all_rules()
+        if not selected_set:
+            return
         
-        # Insertar reglas (TODAS, sin filtrar)
+        set_name = selected_set.get()
+        if not set_name:
+            return
+
+        # Obtener reglas del conjunto con su configuración específica
+        rules = self.rules_manager.get_rules_by_set(set_name)
+        
+        # Insertar TODAS las reglas del conjunto
         for rule in rules:
             rule_id = rule.get('id', '')
             name = rule.get('name', '')
@@ -337,12 +387,20 @@ class RulesManagementScreen:
 
         item = self.tree.item(item_id)
         rule_id = item['values'][0]
+        
+        # Obtener conjunto seleccionado
+        set_name = self.selected_set_var.get()
+        if not set_name:
+            return
 
-        # Toggle enabled/disabled
-        rule = self.rules_manager.get_rule_by_id(rule_id)
+        # Obtener regla del conjunto específico
+        rules = self.rules_manager.get_rules_by_set(set_name)
+        rule = next((r for r in rules if r.get('id') == rule_id), None)
+        
         if rule:
             new_enabled = not rule.get('enabled', True)
-            self.rules_manager.update_rule(rule_id, {'enabled': new_enabled})
+            # Actualizar solo en el conjunto seleccionado
+            self.rules_manager.update_rule(rule_id, {'enabled': new_enabled}, set_name=set_name)
             self._load_rules()  # Recargar tabla
 
     def _on_rule_double_click(self, event):
@@ -1095,6 +1153,12 @@ class RulesManagementScreen:
         # Definir funciones de botones
         
         def on_accept():
+            # Obtener conjunto seleccionado
+            set_name = self.selected_set_var.get()
+            if not set_name:
+                messagebox.showerror("Error", "No hay conjunto seleccionado")
+                return
+            
             # Actualizar regla
             updates = {
                 'enabled': active_var.get(),
@@ -1107,10 +1171,13 @@ class RulesManagementScreen:
             sets = [available_sets[i] for i in selected_indices]
             updates['sets'] = sets
 
-            self.rules_manager.update_rule(rule_id, updates)
+            # Actualizar solo en el conjunto seleccionado
+            self.rules_manager.update_rule(rule_id, updates, set_name=set_name)
 
             # Actualizar parámetros de penalización personalizada
-            rule_obj = self.rules_manager.get_rule_by_id(rule_id)
+            rules = self.rules_manager.get_rules_by_set(set_name)
+            rule_obj = next((r for r in rules if r.get('id') == rule_id), None)
+            
             if rule_obj and 'parameters' in rule_obj:
                 rule_obj['parameters']['penalty_mode'] = penalty_mode_var.get()
                 rule_obj['parameters']['penalty_value'] = penalty_value_var.get()
@@ -1133,12 +1200,118 @@ class RulesManagementScreen:
                 if rule_obj and 'parameters' in rule_obj:
                     rule_obj['parameters']['exceptions'] = exceptions_list.copy()
 
-            # Guardar todos los cambios
-            self.rules_manager.save_rules()
+            # Guardar solo el conjunto seleccionado
+            self.rules_manager.save_rules(set_name=set_name)
 
             self._load_rules()
             dialog.destroy()
-            messagebox.showinfo("Éxito", "✅ Regla actualizada correctamente")
+            messagebox.showinfo("Éxito", f"✅ Regla actualizada en conjunto '{set_name}'")
+        
+        def on_copy_to_other_set():
+            """Copiar configuración actual a otro conjunto"""
+            # Obtener conjunto actual
+            current_set = self.selected_set_var.get()
+            if not current_set:
+                return
+            
+            # Obtener otros conjuntos disponibles
+            all_sets = list(self.rules_manager.sets.keys())
+            other_sets = [s for s in all_sets if s != current_set]
+            
+            if not other_sets:
+                messagebox.showinfo("Info", "No hay otros conjuntos disponibles")
+                return
+            
+            # Crear diálogo de selección
+            copy_dialog = tk.Toplevel(dialog)
+            copy_dialog.title("Copiar Configuración")
+            copy_dialog.geometry("400x300")
+            copy_dialog.transient(dialog)
+            copy_dialog.grab_set()
+            
+            # Centrar
+            copy_dialog.update_idletasks()
+            x = (copy_dialog.winfo_screenwidth() // 2) - 200
+            y = (copy_dialog.winfo_screenheight() // 2) - 150
+            copy_dialog.geometry(f"400x300+{x}+{y}")
+            
+            tk.Label(
+                copy_dialog,
+                text=f"Copiar configuración de '{rule.get('name')}'\ndesde '{current_set}' a:",
+                font=("Arial", 11, "bold"),
+                bg="white",
+                wraplength=360,
+                justify=tk.CENTER
+            ).pack(pady=20)
+            
+            # Listbox para seleccionar conjuntos destino
+            listbox_frame = tk.Frame(copy_dialog, bg="white")
+            listbox_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+            
+            scrollbar = tk.Scrollbar(listbox_frame)
+            scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+            
+            dest_listbox = tk.Listbox(
+                listbox_frame,
+                selectmode=tk.MULTIPLE,
+                font=("Arial", 10),
+                yscrollcommand=scrollbar.set
+            )
+            dest_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            scrollbar.config(command=dest_listbox.yview)
+            
+            for s in other_sets:
+                dest_listbox.insert(tk.END, s)
+            
+            def do_copy():
+                selected_indices = dest_listbox.curselection()
+                if not selected_indices:
+                    messagebox.showwarning("Advertencia", "Selecciona al menos un conjunto destino")
+                    return
+                
+                dest_sets = [other_sets[i] for i in selected_indices]
+                
+                # Obtener configuración actual de la regla
+                current_rules = self.rules_manager.get_rules_by_set(current_set)
+                current_rule = next((r for r in current_rules if r.get('id') == rule_id), None)
+                
+                if not current_rule:
+                    messagebox.showerror("Error", "No se pudo obtener la configuración actual")
+                    return
+                
+                # Copiar a cada conjunto destino
+                for dest_set in dest_sets:
+                    self.rules_manager.update_rule(rule_id, current_rule, set_name=dest_set)
+                    self.rules_manager.save_rules(set_name=dest_set)
+                
+                copy_dialog.destroy()
+                messagebox.showinfo("Éxito", f"✅ Configuración copiada a {len(dest_sets)} conjunto(s)")
+            
+            # Botones
+            btn_frame = tk.Frame(copy_dialog, bg="white")
+            btn_frame.pack(fill=tk.X, padx=20, pady=10)
+            
+            tk.Button(
+                btn_frame,
+                text="✅ Copiar",
+                command=do_copy,
+                bg=COLOR_SUCCESS,
+                fg="white",
+                font=("Arial", 10, "bold"),
+                padx=20,
+                pady=5
+            ).pack(side=tk.LEFT, padx=5)
+            
+            tk.Button(
+                btn_frame,
+                text="❌ Cancelar",
+                command=copy_dialog.destroy,
+                bg=COLOR_ERROR,
+                fg="white",
+                font=("Arial", 10),
+                padx=20,
+                pady=5
+            ).pack(side=tk.LEFT, padx=5)
         
         def on_cancel():
             dialog.destroy()
@@ -1156,6 +1329,21 @@ class RulesManagementScreen:
             pady=8
         )
         cancel_btn.pack(side=tk.RIGHT, padx=padding, pady=10)
+        
+        # Botón Copiar a otro conjunto
+        copy_btn = tk.Button(
+            buttons_frame,
+            text="📋 Copiar a Otro Conjunto",
+            command=on_copy_to_other_set,
+            bg=ACCENT_COLOR,
+            fg="white",
+            font=("Arial", 10),
+            relief=tk.FLAT,
+            cursor="hand2",
+            padx=15,
+            pady=8
+        )
+        copy_btn.pack(side=tk.LEFT, padx=padding, pady=10)
         
         accept_btn = tk.Button(
             buttons_frame,
@@ -1730,6 +1918,50 @@ class RulesManagementScreen:
             padx=20,
             pady=8
         ).pack(side=tk.RIGHT, padx=5)
+
+    def _save_rules(self):
+        """Guardar cambios del conjunto seleccionado"""
+        set_name = self.selected_set_var.get()
+        if not set_name:
+            messagebox.showerror("Error", "No hay conjunto seleccionado")
+            return
+        
+        self.rules_manager.save_rules(set_name=set_name)
+        messagebox.showinfo("Éxito", f"✅ Cambios guardados en conjunto '{set_name}'")
+    
+    def _reload_rules(self):
+        """Recargar reglas desde archivos"""
+        self.rules_manager.load_rules()
+        self._load_rules()
+        messagebox.showinfo("Info", "🔄 Reglas recargadas desde archivos")
+    
+    def _enable_all_rules(self):
+        """Activar todas las reglas del conjunto seleccionado"""
+        set_name = self.selected_set_var.get()
+        if not set_name:
+            messagebox.showerror("Error", "No hay conjunto seleccionado")
+            return
+        
+        rules = self.rules_manager.get_rules_by_set(set_name)
+        for rule in rules:
+            self.rules_manager.update_rule(rule.get('id'), {'enabled': True}, set_name=set_name)
+        
+        self._load_rules()
+        messagebox.showinfo("Éxito", f"✅ Todas las reglas de '{set_name}' activadas")
+    
+    def _disable_all_rules(self):
+        """Desactivar todas las reglas del conjunto seleccionado"""
+        set_name = self.selected_set_var.get()
+        if not set_name:
+            messagebox.showerror("Error", "No hay conjunto seleccionado")
+            return
+        
+        rules = self.rules_manager.get_rules_by_set(set_name)
+        for rule in rules:
+            self.rules_manager.update_rule(rule.get('id'), {'enabled': False}, set_name=set_name)
+        
+        self._load_rules()
+        messagebox.showinfo("Éxito", f"❌ Todas las reglas de '{set_name}' desactivadas")
 
 
 # Test standalone

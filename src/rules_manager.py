@@ -372,18 +372,24 @@ class RulesManager:
     def set_set_dependencies(self, set_name: str, dependencies: Dict[str, str]) -> bool:
         """
         Establecer dependencias para un conjunto
-        
+
         Args:
             set_name: Nombre del conjunto
             dependencies: Diccionario de dependencias
-            
+
         Returns:
             True si se actualizó correctamente
         """
         if set_name not in self.sets:
             return False
-            
+
+        # Actualizar en metadata de conjuntos
         self.sets[set_name]['dependencies'] = dependencies
+
+        # Actualizar en bbpp_sets para guardar en archivo
+        if set_name in self.bbpp_sets:
+            self.bbpp_sets[set_name]['dependencies'] = dependencies
+
         return True
 
 
