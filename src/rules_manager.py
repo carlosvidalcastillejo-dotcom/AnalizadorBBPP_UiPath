@@ -10,68 +10,119 @@ from typing import Dict, List, Optional
 class RulesManager:
     """Gestor centralizado de reglas BBPP"""
     
-    def __init__(self, config_path: Optional[Path] = None):
+    def __init__(self, bbpp_dir: Optional[Path] = None):
         """
         Inicializar gestor de reglas
         
         Args:
-            config_path: Ruta al archivo BBPP_Master.json
+            bbpp_dir: Directorio con archivos BBPP (BBPP_UiPath.json, BBPP_NTTData.json)
         """
-        if config_path is None:
+        if bbpp_dir is None:
             # Ruta por defecto
             base_path = Path(__file__).parent.parent
-            config_path = base_path / 'config' / 'bbpp' / 'BBPP_Master.json'
+            bbpp_dir = base_path / 'config' / 'bbpp'
         
-        self.config_path = Path(config_path)
-        self.rules = []
-        self.sets = {}
-        self.metadata = {}
+        self.bbpp_dir = Path(bbpp_dir)
+        
+        # Diccionario de configuraciones por conjunto
+        # Estructura: {"UiPath": {metadata, enabled, dependencies, rules}, "NTTData": {...}}
+        self.bbpp_sets = {}
+        
+        # Para compatibilidad con código existente
+        self.rules = []  # Todas las reglas (sin duplicados)
+        self.sets = {}   # Metadata de conjuntos
+        self.metadata = {}  # Metadata general
         
         self.load_rules()
     
     def load_rules(self) -> bool:
         """
-        Cargar reglas desde el archivo JSON
+        Cargar reglas desde archivos individuales de conjuntos
         
         Returns:
             True si se cargó correctamente
         """
         try:
-            with open(self.config_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
+            # Buscar archivos BBPP_*.json (excepto BBPP_Master.json)
+            bbpp_files = [f for f in self.bbpp_dir.glob('BBPP_*.json') 
+                         if f.name != 'BBPP_Master.json']
             
-            self.metadata = data.get('metadata', {})
-            self.sets = data.get('sets', {})
-            self.rules = data.get('rules', [])
+            if not bbpp_files:
+                print(f"ERROR: No se encontraron archivos BBPP en {self.bbpp_dir}")
+                return False
             
-            print(f"OK: Cargadas {len(self.rules)} reglas desde {self.config_path.name}")
+            # Cargar cada conjunto
+            all_rules_dict = {}  # Para evitar duplicados: {rule_id: rule}
+            
+            for bbpp_file in bbpp_files:
+                # Extraer nombre del conjunto del archivo (BBPP_UiPath.json -> UiPath)
+                set_name = bbpp_file.stem.replace('BBPP_', '')
+                
+                with open(bbpp_file, 'r', encoding='utf-8') as f:
+                    set_data = json.load(f)
+                
+                # Guardar configuración completa del conjunto
+                self.bbpp_sets[set_name] = set_data
+                
+                # Agregar metadata del conjunto
+                self.sets[set_name] = {
+                    'name': set_data.get('metadata', {}).get('name', set_name),
+                    'description': set_data.get('metadata', {}).get('description', ''),
+                    'enabled': set_data.get('enabled', True),
+                    'dependencies': set_data.get('dependencies', {})
+                }
+                
+                # Agregar reglas al diccionario global (evita duplicados)
+                for rule in set_data.get('rules', []):
+                    rule_id = rule.get('id')
+                    if rule_id and rule_id not in all_rules_dict:
+                        all_rules_dict[rule_id] = rule
+                
+                print(f"OK: Cargado conjunto '{set_name}' desde {bbpp_file.name}")
+            
+            # Convertir diccionario a lista para compatibilidad
+            self.rules = list(all_rules_dict.values())
+            
+            print(f"OK: Total {len(self.rules)} reglas únicas cargadas de {len(self.bbpp_sets)} conjuntos")
             return True
             
-        except FileNotFoundError:
-            print(f"ERROR: No se encontró {self.config_path}")
+        except FileNotFoundError as e:
+            print(f"ERROR: Archivo no encontrado: {e}")
             return False
         except json.JSONDecodeError as e:
             print(f"ERROR al parsear JSON: {e}")
             return False
+        except Exception as e:
+            print(f"ERROR inesperado al cargar reglas: {e}")
+            return False
     
-    def save_rules(self) -> bool:
+    def save_rules(self, set_name: Optional[str] = None) -> bool:
         """
-        Guardar reglas al archivo JSON
+        Guardar reglas a archivos individuales de conjuntos
+        
+        Args:
+            set_name: Nombre del conjunto a guardar. Si es None, guarda todos.
         
         Returns:
             True si se guardó correctamente
         """
         try:
-            data = {
-                'metadata': self.metadata,
-                'sets': self.sets,
-                'rules': self.rules
-            }
+            sets_to_save = [set_name] if set_name else list(self.bbpp_sets.keys())
             
-            with open(self.config_path, 'w', encoding='utf-8') as f:
-                json.dump(data, f, indent=2, ensure_ascii=False)
+            for sname in sets_to_save:
+                if sname not in self.bbpp_sets:
+                    print(f"ADVERTENCIA: Conjunto '{sname}' no existe")
+                    continue
+                
+                # Construir ruta del archivo
+                file_path = self.bbpp_dir / f"BBPP_{sname}.json"
+                
+                # Guardar archivo del conjunto
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    json.dump(self.bbpp_sets[sname], f, indent=2, ensure_ascii=False)
+                
+                print(f"OK: Conjunto '{sname}' guardado en {file_path.name}")
             
-            print(f"OK: Reglas guardadas en {self.config_path.name}")
             return True
             
         except Exception as e:
@@ -84,15 +135,18 @@ class RulesManager:
     
     def get_rules_by_set(self, set_name: str) -> List[Dict]:
         """
-        Obtener reglas de un conjunto específico
+        Obtener reglas de un conjunto específico con su configuración
         
         Args:
             set_name: Nombre del conjunto (UiPath, NTTData)
         
         Returns:
-            Lista de reglas que pertenecen al conjunto
+            Lista de reglas con configuración específica del conjunto
         """
-        return [rule for rule in self.rules if set_name in rule.get('sets', [])]
+        if set_name not in self.bbpp_sets:
+            return []
+        
+        return self.bbpp_sets[set_name].get('rules', [])
     
     def get_active_rules(self, active_sets: Optional[List[str]] = None) -> List[Dict]:
         """
@@ -130,22 +184,40 @@ class RulesManager:
                 return rule
         return None
     
-    def update_rule(self, rule_id: str, updates: Dict) -> bool:
+    def update_rule(self, rule_id: str, updates: Dict, set_name: Optional[str] = None) -> bool:
         """
-        Actualizar una regla
+        Actualizar una regla en un conjunto específico
         
         Args:
             rule_id: ID de la regla a actualizar
             updates: Diccionario con los campos a actualizar
+            set_name: Nombre del conjunto donde actualizar. Si es None, actualiza en todos.
         
         Returns:
             True si se actualizó correctamente
         """
+        updated = False
+        
+        # Determinar en qué conjuntos actualizar
+        sets_to_update = [set_name] if set_name else list(self.bbpp_sets.keys())
+        
+        for sname in sets_to_update:
+            if sname not in self.bbpp_sets:
+                continue
+            
+            # Actualizar en el conjunto específico
+            rules = self.bbpp_sets[sname].get('rules', [])
+            for i, rule in enumerate(rules):
+                if rule.get('id') == rule_id:
+                    self.bbpp_sets[sname]['rules'][i].update(updates)
+                    updated = True
+        
+        # También actualizar en self.rules para compatibilidad
         for i, rule in enumerate(self.rules):
             if rule.get('id') == rule_id:
                 self.rules[i].update(updates)
-                return True
-        return False
+        
+        return updated
     
     def get_sets_info(self) -> Dict:
         """Obtener información de los conjuntos"""
