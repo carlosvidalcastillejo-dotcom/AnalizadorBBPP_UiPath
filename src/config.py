@@ -18,10 +18,10 @@ except ImportError:
 # INFORMACIÓN DE LA APLICACIÓN
 # ============================================================================
 APP_NAME = "Analizador BBPP UiPath"
-APP_VERSION = "1.0.2"
-APP_VERSION_TYPE = "Beta"
+APP_VERSION = "1.1.0"
+APP_VERSION_TYPE = "Stable"
 APP_AUTHOR = "Carlos Vidal Castillejo"
-BUILD_DATE = "2025-12-06 21:47:19"
+BUILD_DATE = "2025-12-07 12:00:00"
 
 # EMPRESA (ahora configurable)
 if BRANDING_AVAILABLE:
