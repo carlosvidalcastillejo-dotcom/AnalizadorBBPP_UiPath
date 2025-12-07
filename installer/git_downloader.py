@@ -170,7 +170,11 @@ class GitDownloader:
             self._report_progress("Clonando repositorio con Git...", 20)
             
             repo_url = self.git_config.get('repository_url', '')
+            # En producción, siempre intentar usar main a menos que se fuerce otra cosa explícitamente
             branch = self.git_config.get('branch', 'main')
+            
+            self._report_progress(f"Configurando descarga desde rama: {branch}", 25)
+
             
             # Crear directorio padre si no existe
             os.makedirs(os.path.dirname(install_path), exist_ok=True)

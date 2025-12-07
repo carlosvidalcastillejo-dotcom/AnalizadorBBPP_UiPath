@@ -133,6 +133,8 @@ class MainWindow:
         self._create_menu_button(self.sidebar, "⚙️ Configuración", self._show_config_screen)
         self._create_menu_button(self.sidebar, "📈 Métricas", self._show_metrics_dashboard)
         self._create_menu_button(self.sidebar, "📝 Notas de Versión", self._show_version_notes)
+        self._create_menu_button(self.sidebar, "🔄 Buscar Actualizaciones", self._check_updates_gui)
+
         
         # Espaciador
         tk.Frame(self.sidebar, bg=PRIMARY_COLOR).pack(fill=tk.BOTH, expand=True)
@@ -252,6 +254,44 @@ class MainWindow:
             pady=5
         )
         self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
+
+    def _check_updates_gui(self):
+        """Verificar actualizaciones (GUI wrapper)"""
+        self.status_bar.config(text="🔍 Buscando actualizaciones...")
+        self.root.update_idletasks()
+        
+        def run_check():
+            try:
+                from src.updater import get_updater
+                from src.ui.update_dialog import UpdateDialog
+                from src.config import APP_VERSION
+                
+                updater = get_updater()
+                has_updates, release = updater.check_for_updates()
+                
+                def show_result():
+                    self.status_bar.config(text="Listo")
+                    if has_updates:
+                        UpdateDialog(self.root, release)
+                    else:
+                        messagebox.showinfo(
+                            "Sistema Actualizado",
+                            f"Ya tienes la última versión instalada (v{APP_VERSION}).",
+                            parent=self.root
+                        )
+                
+                self.root.after(0, show_result)
+                
+            except Exception as e:
+                def show_error():
+                    self.status_bar.config(text="Error buscando actualizaciones")
+                    print(f"Update error: {e}")
+                    messagebox.showerror("Error", f"Error al buscar actualizaciones: {e}", parent=self.root)
+                self.root.after(0, show_error)
+        
+        import threading
+        threading.Thread(target=run_check, daemon=True).start()
+
     
     def _ensure_sidebar_visible(self):
         """
@@ -720,6 +760,21 @@ class MainWindow:
             )
             error_label.pack()
         
+            error_label.pack()
+        
+        # ========== SECCIÓN 5: INTELIGENCIA ARTIFICIAL ==========
+        self._create_config_section(
+            scrollable_frame,
+            "🤖 Inteligencia Artificial",
+            "Configura la conexión con modelos de IA para análisis avanzado"
+        )
+        
+        try:
+            from src.ui.ai_config_component import AIConfigComponent
+            self.ai_component = AIConfigComponent(scrollable_frame)
+        except Exception as e:
+            tk.Label(scrollable_frame, text=f"Error cargando componente IA: {e}", fg="red").pack()
+
         # ========== BOTONES DE ACCIÓN ==========
         buttons_frame = tk.Frame(scrollable_frame, bg=BG_COLOR)
         buttons_frame.pack(pady=30)
@@ -729,6 +784,7 @@ class MainWindow:
             buttons_frame,
             text="💾 Guardar Configuración",
             command=self._save_configuration,
+
             bg=COLOR_SUCCESS,
             fg="white",
             font=("Arial", 12, "bold"),
@@ -975,6 +1031,10 @@ class MainWindow:
                 branding.set_logo_path(Path(self.custom_logo_path))
                 print(f"OK: Logo guardado en branding: {self.custom_logo_path}")
             
+            # Guardar configuración de IA
+            if hasattr(self, 'ai_component'):
+                self.ai_component.save()
+
             # Guardar user config
             if save_user_config(config):
                 messagebox.showinfo(

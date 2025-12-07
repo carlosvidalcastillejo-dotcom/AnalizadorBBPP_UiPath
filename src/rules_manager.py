@@ -392,6 +392,93 @@ class RulesManager:
 
         return True
 
+    def create_new_set(self, set_name: str, description: str, author: str, copy_from: Optional[str] = None, rules_to_copy: Optional[List[str]] = None) -> bool:
+        """
+        Crear un nuevo conjunto de BBPP
+        
+        Args:
+            set_name: Nombre del nuevo conjunto (sin espacios ni caracteres especiales)
+            description: Descripción del conjunto
+            author: Autor del conjunto
+            copy_from: Nombre del conjunto del que copiar reglas (opcional)
+            rules_to_copy: Lista de IDs de reglas a copiar (opcional)
+            
+        Returns:
+            True si se creó correctamente
+        """
+        try:
+            # Validar nombre
+            # Solo permitir alfanuméricos y guiones bajos
+            clean_name = "".join(c for c in set_name if c.isalnum() or c == '_')
+            if not clean_name:
+                print("ERROR: Nombre de conjunto inválido")
+                return False
+            
+            if clean_name in self.bbpp_sets:
+                print(f"ERROR: El conjunto '{clean_name}' ya existe")
+                return False
+            
+            # Crear estructura básica
+            new_set_data = {
+                "metadata": {
+                    "name": clean_name,
+                    "description": description,
+                    "version": "1.0.0",
+                    "author": author,
+                    "last_updated": "2025-12-07"
+                },
+                "enabled": True,
+                "dependencies": {},
+                "rules": []
+            }
+            
+            # Copiar reglas si se solicita
+            if copy_from and copy_from in self.bbpp_sets:
+                source_rules = self.bbpp_sets[copy_from].get('rules', [])
+                
+                for rule in source_rules:
+                    # Si rules_to_copy es None, copiamos todas. Si no, solo las que estén en la lista.
+                    if rules_to_copy is None or rule.get('id') in rules_to_copy:
+                        # Crear copia profunda de la regla
+                        new_rule = json.loads(json.dumps(rule))
+                        
+                        # Actualizar el array 'sets' en la regla para incluir el nuevo conjunto
+                        if 'sets' in new_rule:
+                            if clean_name not in new_rule['sets']:
+                                new_rule['sets'].append(clean_name)
+                        else:
+                            new_rule['sets'] = [clean_name]
+                            
+                        new_set_data["rules"].append(new_rule)
+            
+            # Guardar en memoria
+            self.bbpp_sets[clean_name] = new_set_data
+            
+            # Actualizar metadata
+            self.sets[clean_name] = {
+                'name': clean_name,
+                'description': description,
+                'enabled': True,
+                'dependencies': {}
+            }
+            
+            # Guardar archivo
+            file_path = self.bbpp_dir / f"BBPP_{clean_name}.json"
+            with open(file_path, 'w', encoding='utf-8') as f:
+                json.dump(new_set_data, f, indent=2, ensure_ascii=False)
+            
+            print(f"OK: Creado nuevo conjunto '{clean_name}' con {len(new_set_data['rules'])} reglas")
+            
+            # Recargar reglas para actualizar índices globales
+            self.load_rules()
+            
+            return True
+            
+        except Exception as e:
+            print(f"ERROR al crear conjunto: {e}")
+            return False
+
+
 
 # Función helper para obtener instancia global
 _rules_manager_instance = None

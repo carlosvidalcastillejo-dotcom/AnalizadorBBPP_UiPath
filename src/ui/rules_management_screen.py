@@ -22,6 +22,7 @@ try:
         PRIMARY_COLOR, SECONDARY_COLOR, BG_COLOR, TEXT_COLOR,
         ACCENT_COLOR, COLOR_SUCCESS, COLOR_WARNING, COLOR_ERROR
     )
+    from src.ui.bbpp_set_creator import BBPPSetCreatorDialog
 except ImportError:
     # Si falla, intentar import relativo
     from rules_manager import get_rules_manager
@@ -152,6 +153,20 @@ class RulesManagementScreen:
             command=self._show_sets_management_dialog
         )
         sets_mgmt_btn.pack(side=tk.LEFT, padx=5)
+
+        # Botón Nuevo Conjunto
+        new_set_btn = tk.Button(
+            buttons_frame,
+            text="➕ Nuevo Conjunto",
+            font=("Arial", 10, "bold"),
+            bg=COLOR_SUCCESS,
+            fg="white",
+            relief=tk.FLAT,
+            cursor="hand2",
+            command=self._show_create_set_dialog
+        )
+        new_set_btn.pack(side=tk.LEFT, padx=5)
+
         
         # Frame de Gestión de Dependencias
         sets_mgmt_frame = tk.LabelFrame(
@@ -1994,6 +2009,27 @@ class RulesManagementScreen:
 
 
 # Test standalone
+    def _show_create_set_dialog(self):
+        """Mostrar diálogo para crear nuevo conjunto"""
+        try:
+            # Importación local para evitar problemas circulares si falla arriba
+            from src.ui.bbpp_set_creator import BBPPSetCreatorDialog
+            
+            BBPPSetCreatorDialog(
+                self.parent,
+                on_create_callback=self._on_set_created
+            )
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo abrir el diálogo: {e}", parent=self.parent)
+    
+    def _on_set_created(self):
+        """Callback cuando se crea un conjunto"""
+        # Recargar la pantalla completa para actualizar listas
+        for widget in self.parent.winfo_children():
+            widget.destroy()
+        self.__init__(self.parent)
+
+
 if __name__ == '__main__':
     root = tk.Tk()
     root.title("Gestión de Reglas BBPP")
