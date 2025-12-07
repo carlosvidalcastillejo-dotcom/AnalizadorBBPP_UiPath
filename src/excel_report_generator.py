@@ -68,8 +68,8 @@ class ExcelReportGenerator:
     def _setup_styles(self):
         """Configurar estilos reutilizables"""
         self.header_font = Font(bold=True, color="FFFFFF", size=12)
-        self.header_fill = PatternFill(start_color=self.COLOR_PRIMARY, 
-                                        end_color=self.COLOR_PRIMARY, 
+        self.header_fill = PatternFill(start_color=self.COLOR_PRIMARY,
+                                        end_color=self.COLOR_PRIMARY,
                                         fill_type="solid")
         self.subheader_fill = PatternFill(start_color=self.COLOR_HEADER,
                                            end_color=self.COLOR_HEADER,
@@ -80,6 +80,7 @@ class ExcelReportGenerator:
             top=Side(style='thin'),
             bottom=Side(style='thin')
         )
+        self.thin_border = self.border  # Alias para compatibilidad
         self.center_align = Alignment(horizontal='center', vertical='center')
         self.left_align = Alignment(horizontal='left', vertical='center')
     
