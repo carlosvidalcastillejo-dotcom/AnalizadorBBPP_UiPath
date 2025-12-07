@@ -89,7 +89,15 @@ class ProjectScanner:
         # 3.5 Analizar dependencias y proyecto global
         project_findings = analyzer.analyze_project(self.project_info)
         self.all_findings.extend(project_findings)
-        
+
+        # 3.6 Validar compatibilidad de versiones (NUEVO)
+        from src.version_validator import validate_dependency_compatibility
+        selected_studio_version = self.config.get('selected_studio_version', None)
+        version_validation = validate_dependency_compatibility(
+            self.project_info,
+            selected_studio_version
+        )
+
         # 4. Calcular estadísticas
         stats = self._calculate_statistics()
         
@@ -108,6 +116,7 @@ class ProjectScanner:
             'findings': [f.to_dict() for f in self.all_findings],
             'parsed_files': self.parsed_files,
             'bbpp_sets': self.active_sets,  # Conjuntos de BBPP utilizados
+            'version_validation': version_validation,  # Validación de compatibilidad (NUEVO)
         }
         
         # 6. Guardar en base de datos de métricas (auto-save)

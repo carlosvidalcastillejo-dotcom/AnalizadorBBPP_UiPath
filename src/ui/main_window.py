@@ -474,7 +474,42 @@ class MainWindow:
                 self.conjunto_combo.current(idx)
             else:
                 self.conjunto_combo.current(0)
-        
+
+            # Selector de versión de UiPath Studio (NUEVO)
+            version_label = tk.Label(
+                combo_frame,
+                text="Versión de UiPath Studio del proyecto:",
+                bg=BG_COLOR,
+                fg=TEXT_COLOR,
+                font=("Arial", 10)
+            )
+            version_label.pack(anchor=tk.W, pady=(15, 5))
+
+            # Cargar versiones desde config
+            import json
+            version_config_path = Path(__file__).parent.parent.parent / 'config' / 'version_compatibility.json'
+            version_options = ["Predeterminado (del project.json)"]
+
+            try:
+                with open(version_config_path, 'r', encoding='utf-8') as f:
+                    version_data = json.load(f)
+                    for version_key in version_data.get('version_order', []):
+                        version_info = version_data['compatibility_matrix'].get(version_key, {})
+                        display_name = version_info.get('display_name', version_key)
+                        version_options.append(display_name)
+            except Exception as e:
+                print(f"Warning: No se pudo cargar version_compatibility.json: {e}")
+
+            self.studio_version_combo = ttk.Combobox(
+                combo_frame,
+                values=version_options,
+                state='readonly',
+                font=("Arial", 10),
+                width=50
+            )
+            self.studio_version_combo.pack(fill=tk.X, pady=5)
+            self.studio_version_combo.current(0)  # Predeterminado por defecto
+
         # Frame para botones de reportes
         reports_frame = tk.Frame(self.main_area, bg=BG_COLOR)
         reports_frame.pack(pady=5)
@@ -1278,8 +1313,22 @@ class MainWindow:
 
                 # Guardar último conjunto seleccionado
                 user_config['last_selected_bbpp_set'] = active_sets[0]
+
+                # Obtener versión de Studio seleccionada (NUEVO)
+                selected_studio_version = None
+                if hasattr(self, 'studio_version_combo'):
+                    selected_text = self.studio_version_combo.get()
+                    if selected_text != "Predeterminado (del project.json)":
+                        # Extraer clave de versión (ej: "2023.10.x (LTS)" -> "2023.10")
+                        # El formato es: "YYYY.MM.x (TYPE)"
+                        import re
+                        match = re.match(r'(\d{4}\.\d+)', selected_text)
+                        if match:
+                            selected_studio_version = match.group(1)
+
+                user_config['selected_studio_version'] = selected_studio_version
                 save_user_config(user_config)
-                
+
                 scanner = ProjectScanner(self.project_path, user_config, active_sets=active_sets)
                 results = scanner.scan(progress_callback)
                 

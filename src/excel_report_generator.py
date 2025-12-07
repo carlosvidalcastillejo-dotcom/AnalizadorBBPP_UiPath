@@ -101,10 +101,11 @@ class ExcelReportGenerator:
         
         # Crear hojas
         self._create_summary_sheet()
+        self._create_version_validation_sheet()  # NUEVO
         self._create_findings_sheet()
         self._create_statistics_sheet()
         self._create_files_sheet()
-        
+
         # Eliminar hoja por defecto si existe
         if "Sheet" in self.wb.sheetnames:
             del self.wb["Sheet"]
@@ -279,7 +280,103 @@ class ExcelReportGenerator:
         
         # Posición del gráfico
         ws.add_chart(chart, f"{get_column_letter(start_col + 3)}{start_row}")
-    
+
+    def _create_version_validation_sheet(self):
+        """Crear hoja de validación de compatibilidad de versiones"""
+        version_validation = self.results.get('version_validation', {})
+
+        if not version_validation or 'error' in version_validation:
+            return  # No crear hoja si no hay datos
+
+        validation_results = version_validation.get('validation_results', [])
+        if not validation_results:
+            return  # No crear hoja si no hay resultados
+
+        ws = self.wb.create_sheet("Validación Versiones", 1)
+
+        # Título
+        ws.merge_cells('A1:E1')
+        ws['A1'] = "🔍 VALIDACIÓN DE COMPATIBILIDAD DE VERSIONES"
+        ws['A1'].font = Font(bold=True, size=16, color=self.COLOR_PRIMARY)
+        ws['A1'].alignment = self.center_align
+        ws.row_dimensions[1].height = 30
+
+        # Información de versión de Studio
+        studio_version_used = version_validation.get('studio_version_used', 'Unknown')
+        studio_version_from_project = version_validation.get('studio_version_from_project', 'Unknown')
+        selected_manually = version_validation.get('selected_manually', False)
+
+        row = 3
+        ws.merge_cells(f'A{row}:E{row}')
+        if selected_manually:
+            ws[f'A{row}'] = f"Versión seleccionada manualmente: {studio_version_used} (Versión en project.json: {studio_version_from_project})"
+        else:
+            ws[f'A{row}'] = f"Versión de UiPath Studio: {studio_version_used} (desde project.json)"
+
+        ws[f'A{row}'].font = Font(bold=True, size=11)
+        ws[f'A{row}'].alignment = self.left_align
+        row += 2
+
+        # Encabezados de tabla
+        headers = ["Paquete", "Versión Instalada", "Versión Mínima", "Estado", "Mensaje"]
+        for col_idx, header in enumerate(headers, start=1):
+            cell = ws.cell(row=row, column=col_idx, value=header)
+            cell.font = Font(bold=True, color="FFFFFF")
+            cell.fill = PatternFill(start_color=self.COLOR_PRIMARY, end_color=self.COLOR_PRIMARY, fill_type="solid")
+            cell.alignment = self.center_align
+            cell.border = self.thin_border
+
+        row += 1
+
+        # Datos
+        for result in validation_results:
+            package = result.get('package', '')
+            installed = result.get('installed_version', '-')
+            expected = result.get('expected_version', '-')
+            status = result.get('status', 'unknown')
+            message = result.get('message', '')
+
+            # Determinar texto y color de estado
+            if status == 'updated':
+                status_text = "✓ Actualizada"
+                status_color = self.COLOR_SUCCESS
+            elif status == 'outdated':
+                status_text = "¡Atención! Desactualizada"
+                status_color = self.COLOR_ERROR
+            else:
+                status_text = "Desconocido"
+                status_color = "808080"  # Gris
+
+            # Escribir fila
+            ws.cell(row=row, column=1, value=package).border = self.thin_border
+            ws.cell(row=row, column=2, value=installed).border = self.thin_border
+            ws.cell(row=row, column=3, value=expected).border = self.thin_border
+
+            status_cell = ws.cell(row=row, column=4, value=status_text)
+            status_cell.font = Font(bold=True, color="FFFFFF")
+            status_cell.fill = PatternFill(start_color=status_color, end_color=status_color, fill_type="solid")
+            status_cell.alignment = self.center_align
+            status_cell.border = self.thin_border
+
+            ws.cell(row=row, column=5, value=message).border = self.thin_border
+
+            row += 1
+
+        # Ajustar anchos de columna
+        ws.column_dimensions['A'].width = 40
+        ws.column_dimensions['B'].width = 20
+        ws.column_dimensions['C'].width = 20
+        ws.column_dimensions['D'].width = 25
+        ws.column_dimensions['E'].width = 50
+
+        # Nota al final
+        row += 1
+        ws.merge_cells(f'A{row}:E{row}')
+        ws[f'A{row}'] = "💡 Recomendación: Mantener las dependencias actualizadas garantiza acceso a las últimas mejoras, correcciones de errores y nuevas funcionalidades de UiPath Studio."
+        ws[f'A{row}'].font = Font(italic=True, size=10)
+        ws[f'A{row}'].alignment = Alignment(horizontal='left', vertical='center', wrap_text=True)
+        ws.row_dimensions[row].height = 30
+
     def _create_findings_sheet(self):
         """Crear hoja con todos los hallazgos"""
         ws = self.wb.create_sheet("Hallazgos")

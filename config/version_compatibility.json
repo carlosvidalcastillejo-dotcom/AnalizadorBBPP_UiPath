@@ -1,0 +1,89 @@
+{
+  "description": "Tabla de compatibilidad de versiones de UiPath Studio con dependencias principales",
+  "last_updated": "2025-12-07",
+  "compatibility_matrix": {
+    "2024.10": {
+      "display_name": "2024.10.x (LTS)",
+      "type": "LTS",
+      "min_versions": {
+        "UiPath.System.Activities": "24.10.0",
+        "UiPath.UIAutomation.Activities": "24.10.0"
+      }
+    },
+    "2024.4": {
+      "display_name": "2024.4.x (STS)",
+      "type": "STS",
+      "min_versions": {
+        "UiPath.System.Activities": "24.4.0",
+        "UiPath.UIAutomation.Activities": "24.4.0"
+      }
+    },
+    "2023.10": {
+      "display_name": "2023.10.x (LTS)",
+      "type": "LTS",
+      "min_versions": {
+        "UiPath.System.Activities": "23.10.0",
+        "UiPath.UIAutomation.Activities": "23.10.0"
+      }
+    },
+    "2023.4": {
+      "display_name": "2023.4.x (STS)",
+      "type": "STS",
+      "min_versions": {
+        "UiPath.System.Activities": "23.4.0",
+        "UiPath.UIAutomation.Activities": "23.4.0"
+      }
+    },
+    "2022.10": {
+      "display_name": "2022.10.x (LTS)",
+      "type": "LTS",
+      "min_versions": {
+        "UiPath.System.Activities": "22.10.0",
+        "UiPath.UIAutomation.Activities": "22.10.0"
+      }
+    },
+    "2022.4": {
+      "display_name": "2022.4.x (STS)",
+      "type": "STS",
+      "min_versions": {
+        "UiPath.System.Activities": "22.4.0",
+        "UiPath.UIAutomation.Activities": "22.4.0"
+      }
+    },
+    "2021.10": {
+      "display_name": "2021.10.x (LTS)",
+      "type": "LTS",
+      "min_versions": {
+        "UiPath.System.Activities": "21.10.0",
+        "UiPath.UIAutomation.Activities": "21.10.0"
+      }
+    },
+    "2020.10": {
+      "display_name": "2020.10.x (LTS)",
+      "type": "LTS",
+      "min_versions": {
+        "UiPath.System.Activities": "20.10.0",
+        "UiPath.UIAutomation.Activities": "20.10.0"
+      }
+    },
+    "2019.10": {
+      "display_name": "2019.10.x (LTS)",
+      "type": "LTS",
+      "min_versions": {
+        "UiPath.System.Activities": "19.10.0",
+        "UiPath.UIAutomation.Activities": "19.10.0"
+      }
+    }
+  },
+  "version_order": [
+    "2024.10",
+    "2024.4",
+    "2023.10",
+    "2023.4",
+    "2022.10",
+    "2022.4",
+    "2021.10",
+    "2020.10",
+    "2019.10"
+  ]
+}

@@ -228,6 +228,7 @@ class HTMLReportGenerator:
             <div id="tab-resumen" class="tab-content" style="display: block;">
                 {self._build_summary(score, stats)}
                 {self._build_dependencies(project_info)}
+                {self._build_version_validation()}
                 {self._build_statistics(stats)}
             </div>
 
@@ -305,6 +306,7 @@ class HTMLReportGenerator:
         {self._build_header(project_info)}
         {self._build_summary(score, stats)}
         {self._build_dependencies(project_info)}
+        {self._build_version_validation()}
         {self._build_statistics(stats)}
         {self._build_findings_normal(findings, stats)}
         {self._build_footer()}
@@ -1062,9 +1064,87 @@ class HTMLReportGenerator:
             </p>
         </div>
         """
-        
+
         return deps_html
-    
+
+    def _build_version_validation(self) -> str:
+        """Construir sección de validación de compatibilidad de versiones"""
+        version_validation = self.results.get('version_validation', {})
+
+        if not version_validation or 'error' in version_validation:
+            return ""  # No mostrar si no hay datos o hubo error
+
+        validation_results = version_validation.get('validation_results', [])
+        if not validation_results:
+            return ""  # No mostrar si no hay resultados
+
+        studio_version_used = version_validation.get('studio_version_used', 'Unknown')
+        studio_version_from_project = version_validation.get('studio_version_from_project', 'Unknown')
+        selected_manually = version_validation.get('selected_manually', False)
+
+        # Texto explicativo de la versión usada
+        if selected_manually:
+            version_note = f"Versión seleccionada manualmente: <strong>{html.escape(studio_version_used)}</strong><br>(Versión en project.json: {html.escape(studio_version_from_project)})"
+        else:
+            version_note = f"Versión de UiPath Studio: <strong>{html.escape(studio_version_used)}</strong> (desde project.json)"
+
+        validation_html = f"""
+        <div class="section" style="margin-top: 30px;">
+            <h2>🔍 Validación de Compatibilidad de Versiones</h2>
+            <p style="margin: 15px 0; color: #666; font-size: 14px;">
+                {version_note}
+            </p>
+            <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                <thead>
+                    <tr style="background: #f8f9fa; border-bottom: 2px solid #0067B1;">
+                        <th style="padding: 12px; text-align: left; width: 35%;">Paquete</th>
+                        <th style="padding: 12px; text-align: left; width: 20%;">Versión Instalada</th>
+                        <th style="padding: 12px; text-align: left; width: 20%;">Versión Mínima</th>
+                        <th style="padding: 12px; text-align: left; width: 25%;">Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+        """
+
+        for result in validation_results:
+            package = result.get('package', '')
+            installed = result.get('installed_version', '-')
+            expected = result.get('expected_version', '-')
+            status = result.get('status', 'unknown')
+            message = result.get('message', '')
+
+            # Determinar estilo según estado
+            if status == 'updated':
+                badge_html = '<span class="dep-badge dep-ok" style="background: #28a745; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">✓ Actualizada</span>'
+            elif status == 'outdated':
+                badge_html = '<span class="dep-badge dep-outdated" style="background: #dc3545; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">¡Atención! Desactualizada</span>'
+            else:
+                badge_html = '<span class="dep-badge dep-unknown" style="background: #6c757d; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">Desconocido</span>'
+
+            validation_html += f"""
+                <tr>
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">{html.escape(package)}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd; font-family: monospace;">{html.escape(installed)}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd; font-family: monospace;">{html.escape(expected)}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">
+                        {badge_html}
+                        <br><small style="color: #666;">{html.escape(message)}</small>
+                    </td>
+                </tr>
+            """
+
+        validation_html += """
+                </tbody>
+            </table>
+            <p style="margin-top: 15px; color: #666; font-size: 14px;">
+                💡 <strong>Recomendación:</strong> Mantener las dependencias actualizadas garantiza acceso a las últimas mejoras,
+                correcciones de errores y nuevas funcionalidades de UiPath Studio.
+            </p>
+        </div>
+        """
+
+        return validation_html
+
     def _build_summary(self, score: Dict, stats: Dict) -> str:
         """Construir resumen ejecutivo"""
         score_value = score.get('score', 0)
