@@ -21,6 +21,53 @@ def load_compatibility_matrix() -> Dict:
         return {'compatibility_matrix': {}, 'version_order': []}
 
 
+def extract_dependencies_from_project(project_info: Dict) -> Dict[str, str]:
+    """
+    Extraer dependencias directamente del project.json
+
+    Args:
+        project_info: Información del proyecto (debe contener 'path')
+
+    Returns:
+        Dict con {package_name: version_limpia}
+    """
+    dependencies_clean = {}
+
+    # Obtener ruta del proyecto
+    project_dir = project_info.get('path', '')
+    if not project_dir:
+        print("Warning: No se encontró 'path' en project_info")
+        return dependencies_clean
+
+    # Construir ruta completa al project.json
+    project_json_path = Path(project_dir) / 'project.json'
+
+    # Verificar que existe
+    if not project_json_path.exists():
+        print(f"Warning: No se encontró project.json en {project_json_path}")
+        return dependencies_clean
+
+    try:
+        # Leer project.json
+        with open(project_json_path, 'r', encoding='utf-8') as f:
+            project_data = json.load(f)
+
+        # Extraer dependencias (puede estar en diferentes ubicaciones)
+        dependencies = project_data.get('dependencies', {})
+
+        # Limpiar versiones (quitar corchetes y espacios)
+        for package_name, version_str in dependencies.items():
+            if isinstance(version_str, str):
+                # Quitar corchetes: "[25.10.3]" -> "25.10.3"
+                clean_version = version_str.strip().strip('[]').strip()
+                dependencies_clean[package_name] = clean_version
+
+    except Exception as e:
+        print(f"Error al extraer dependencias de {project_json_path}: {e}")
+
+    return dependencies_clean
+
+
 def extract_version_key(studio_version: str) -> Optional[str]:
     """
     Extraer clave de versión de UiPath Studio
@@ -63,7 +110,7 @@ def validate_dependency_compatibility(
     Validar compatibilidad de dependencias con versión de Studio
 
     Args:
-        project_info: Información del proyecto (contiene studio_version y dependencies)
+        project_info: Información del proyecto (contiene studio_version y project_path)
         selected_studio_version: Versión de Studio seleccionada manualmente (opcional)
 
     Returns:
@@ -85,6 +132,9 @@ def validate_dependency_compatibility(
     # Cargar matriz de compatibilidad
     compat_data = load_compatibility_matrix()
     compat_matrix = compat_data.get('compatibility_matrix', {})
+
+    # Extraer dependencias DIRECTAMENTE del project.json (más confiable)
+    dependencies_dict = extract_dependencies_from_project(project_info)
 
     # Determinar versión de Studio a usar
     studio_version_from_project = project_info.get('studio_version', 'Unknown')
@@ -110,26 +160,21 @@ def validate_dependency_compatibility(
     # Obtener versiones mínimas esperadas
     expected_versions = compat_matrix[studio_version_key].get('min_versions', {})
 
-    # Validar dependencias
-    dependencies = project_info.get('dependencies', [])
+    # Validar dependencias usando el dict extraído directamente
     validation_results = []
 
     # Dependencias críticas a validar
     critical_packages = ['UiPath.System.Activities', 'UiPath.UIAutomation.Activities']
 
-    for dep in dependencies:
-        package_name = dep.get('name', '')
-        installed_version = dep.get('version', '')
-
-        # Solo validar paquetes críticos
-        if package_name not in critical_packages:
-            continue
-
+    for package_name in critical_packages:
         # Obtener versión mínima esperada
         expected_version = expected_versions.get(package_name, None)
 
         if not expected_version:
             continue
+
+        # Obtener versión instalada del dict extraído
+        installed_version = dependencies_dict.get(package_name, '')
 
         # Si no hay versión instalada, marcar como desconocido
         if not installed_version or installed_version.strip() == '':
