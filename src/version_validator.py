@@ -131,6 +131,19 @@ def validate_dependency_compatibility(
         if not expected_version:
             continue
 
+        # Si no hay versión instalada, marcar como desconocido
+        if not installed_version or installed_version.strip() == '':
+            status = 'unknown'
+            message = 'No se pudo detectar la versión instalada'
+            validation_results.append({
+                'package': package_name,
+                'installed_version': 'No detectada',
+                'expected_version': expected_version,
+                'status': status,
+                'message': message
+            })
+            continue
+
         # Comparar versiones
         try:
             installed_ver = version.parse(installed_version)
@@ -145,7 +158,7 @@ def validate_dependency_compatibility(
 
         except Exception as e:
             status = 'unknown'
-            message = f'No se pudo comparar versiones: {e}'
+            message = f'No se pudo comparar versiones: {str(e)}'
 
         validation_results.append({
             'package': package_name,
