@@ -19,8 +19,10 @@
       "category": "nomenclatura",
       "severity": "warning",
       "penalty": 0.0,
-      "enabled": true,
-      "sets": [],
+      "enabled": false,
+      "sets": [
+        "NTTData"
+      ],
       "implementation_status": "implemented",
       "rule_type": "variable_naming",
       "parameters": {
@@ -92,7 +94,9 @@
       "severity": "warning",
       "penalty": 1.0,
       "enabled": true,
-      "sets": [],
+      "sets": [
+        "NTTData"
+      ],
       "implementation_status": "implemented",
       "rule_type": "generic_names",
       "parameters": {
@@ -192,7 +196,9 @@
       "severity": "warning",
       "penalty": 1.0,
       "enabled": true,
-      "sets": [],
+      "sets": [
+        "NTTData"
+      ],
       "implementation_status": "implemented",
       "rule_type": "argument_prefixes",
       "parameters": {
@@ -270,7 +276,9 @@
       "severity": "info",
       "penalty": 1.0,
       "enabled": true,
-      "sets": [],
+      "sets": [
+        "NTTData"
+      ],
       "implementation_status": "implemented",
       "rule_type": "argument_description",
       "parameters": {
@@ -342,7 +350,9 @@
       "severity": "warning",
       "penalty": 2.0,
       "enabled": true,
-      "sets": [],
+      "sets": [
+        "NTTData"
+      ],
       "implementation_status": "implemented",
       "rule_type": "variable_naming_pascal",
       "parameters": {
@@ -415,7 +425,6 @@
       "penalty": 0.0,
       "enabled": true,
       "sets": [
-        "UiPath",
         "NTTData"
       ],
       "implementation_status": "implemented",
@@ -444,7 +453,6 @@
       "penalty": 0.0,
       "enabled": true,
       "sets": [
-        "UiPath",
         "NTTData"
       ],
       "implementation_status": "implemented",
@@ -466,7 +474,6 @@
       "penalty": 0.0,
       "enabled": true,
       "sets": [
-        "UiPath",
         "NTTData"
       ],
       "implementation_status": "implemented",
@@ -501,7 +508,6 @@
       "penalty": 0.0,
       "enabled": true,
       "sets": [
-        "UiPath",
         "NTTData"
       ],
       "implementation_status": "implemented",
@@ -529,7 +535,6 @@
       "penalty": 0,
       "enabled": true,
       "sets": [
-        "UiPath",
         "NTTData"
       ],
       "implementation_status": "implemented",
@@ -558,7 +563,6 @@
       "penalty": 0.0,
       "enabled": true,
       "sets": [
-        "UiPath",
         "NTTData"
       ],
       "implementation_status": "implemented",
@@ -580,7 +584,6 @@
       "penalty": 0.0,
       "enabled": true,
       "sets": [
-        "UiPath",
         "NTTData"
       ],
       "implementation_status": "implemented",
@@ -609,7 +612,6 @@
       "penalty": 0.0,
       "enabled": true,
       "sets": [
-        "UiPath",
         "NTTData"
       ],
       "implementation_status": "implemented",
@@ -638,7 +640,6 @@
       "penalty": 0.0,
       "enabled": true,
       "sets": [
-        "UiPath",
         "NTTData"
       ],
       "implementation_status": "implemented",
@@ -674,7 +675,6 @@
       "penalty": 0.0,
       "enabled": true,
       "sets": [
-        "UiPath",
         "NTTData"
       ],
       "implementation_status": "implemented",
@@ -696,7 +696,6 @@
       "penalty": 0.0,
       "enabled": true,
       "sets": [
-        "UiPath",
         "NTTData"
       ],
       "implementation_status": "implemented",
@@ -734,7 +733,6 @@
       "penalty": 0.0,
       "enabled": true,
       "sets": [
-        "UiPath",
         "NTTData"
       ],
       "implementation_status": "implemented",

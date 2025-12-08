@@ -26,7 +26,9 @@
       "severity": "warning",
       "penalty": 0.0,
       "enabled": true,
-      "sets": [],
+      "sets": [
+        "UiPath"
+      ],
       "implementation_status": "implemented",
       "rule_type": "variable_naming",
       "parameters": {
@@ -98,7 +100,9 @@
       "severity": "warning",
       "penalty": 1.0,
       "enabled": true,
-      "sets": [],
+      "sets": [
+        "UiPath"
+      ],
       "implementation_status": "implemented",
       "rule_type": "generic_names",
       "parameters": {
@@ -198,7 +202,9 @@
       "severity": "warning",
       "penalty": 1.0,
       "enabled": true,
-      "sets": [],
+      "sets": [
+        "UiPath"
+      ],
       "implementation_status": "implemented",
       "rule_type": "argument_prefixes",
       "parameters": {
@@ -276,7 +282,9 @@
       "severity": "info",
       "penalty": 1.0,
       "enabled": true,
-      "sets": [],
+      "sets": [
+        "UiPath"
+      ],
       "implementation_status": "implemented",
       "rule_type": "argument_description",
       "parameters": {
@@ -348,7 +356,9 @@
       "severity": "warning",
       "penalty": 2.0,
       "enabled": true,
-      "sets": [],
+      "sets": [
+        "UiPath"
+      ],
       "implementation_status": "implemented",
       "rule_type": "variable_naming_pascal",
       "parameters": {
@@ -421,8 +431,7 @@
       "penalty": 0.0,
       "enabled": true,
       "sets": [
-        "UiPath",
-        "NTTData"
+        "UiPath"
       ],
       "implementation_status": "implemented",
       "rule_type": "nested_ifs",
@@ -450,8 +459,7 @@
       "penalty": 0.0,
       "enabled": true,
       "sets": [
-        "UiPath",
-        "NTTData"
+        "UiPath"
       ],
       "implementation_status": "implemented",
       "rule_type": "empty_catch",
@@ -472,8 +480,7 @@
       "penalty": 0.0,
       "enabled": true,
       "sets": [
-        "UiPath",
-        "NTTData"
+        "UiPath"
       ],
       "implementation_status": "implemented",
       "rule_type": "critical_in_try_catch",
@@ -507,8 +514,7 @@
       "penalty": 0.0,
       "enabled": true,
       "sets": [
-        "UiPath",
-        "NTTData"
+        "UiPath"
       ],
       "implementation_status": "implemented",
       "rule_type": "long_sequence",
@@ -535,8 +541,7 @@
       "penalty": 0,
       "enabled": true,
       "sets": [
-        "UiPath",
-        "NTTData"
+        "UiPath"
       ],
       "implementation_status": "implemented",
       "rule_type": "invoke_workflow_usage",
@@ -564,8 +569,7 @@
       "penalty": 0.0,
       "enabled": true,
       "sets": [
-        "UiPath",
-        "NTTData"
+        "UiPath"
       ],
       "implementation_status": "implemented",
       "rule_type": "init_end_pattern",
@@ -586,8 +590,7 @@
       "penalty": 0.0,
       "enabled": true,
       "sets": [
-        "UiPath",
-        "NTTData"
+        "UiPath"
       ],
       "implementation_status": "implemented",
       "rule_type": "commented_code",
@@ -615,8 +618,7 @@
       "penalty": 0.0,
       "enabled": true,
       "sets": [
-        "UiPath",
-        "NTTData"
+        "UiPath"
       ],
       "implementation_status": "implemented",
       "rule_type": "insufficient_logging",
@@ -644,8 +646,7 @@
       "penalty": 0.0,
       "enabled": true,
       "sets": [
-        "UiPath",
-        "NTTData"
+        "UiPath"
       ],
       "implementation_status": "implemented",
       "rule_type": "adequate_logging",
@@ -680,8 +681,7 @@
       "penalty": 0.0,
       "enabled": true,
       "sets": [
-        "UiPath",
-        "NTTData"
+        "UiPath"
       ],
       "implementation_status": "implemented",
       "rule_type": "orchestrator_assets",
@@ -702,8 +702,7 @@
       "penalty": 0.0,
       "enabled": true,
       "sets": [
-        "UiPath",
-        "NTTData"
+        "UiPath"
       ],
       "implementation_status": "implemented",
       "rule_type": "explicit_timeouts",
@@ -740,8 +739,7 @@
       "penalty": 0.0,
       "enabled": true,
       "sets": [
-        "UiPath",
-        "NTTData"
+        "UiPath"
       ],
       "implementation_status": "implemented",
       "rule_type": "stable_selectors",
