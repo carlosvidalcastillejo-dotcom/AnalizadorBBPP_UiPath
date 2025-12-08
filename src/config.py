@@ -21,7 +21,7 @@ APP_NAME = "Analizador BBPP UiPath"
 APP_VERSION = "1.2.0"
 APP_VERSION_TYPE = "Stable"
 APP_AUTHOR = "Carlos Vidal Castillejo"
-BUILD_DATE = "2025-12-07 20:59:00"
+BUILD_DATE = "2025-12-08 09:51:07"
 
 # EMPRESA (ahora configurable)
 if BRANDING_AVAILABLE:
