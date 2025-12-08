@@ -195,7 +195,7 @@
       "category": "nomenclatura",
       "severity": "warning",
       "penalty": 1.0,
-      "enabled": true,
+      "enabled": false,
       "sets": [
         "NTTData"
       ],
