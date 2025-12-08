@@ -5,9 +5,9 @@
     "version": "2.0.0",
     "author": "Carlos Vidal Castillejo",
     "company": "Your Company",
-    "created": "2025-12-06",
-    "last_updated": "2025-12-06",
-    "changelog": "v2.0.0: Sincronización completa con 17 reglas del Master"
+    "created": "2025-12-07",
+    "last_updated": "2025-12-07",
+    "changelog": "v2.0.0: Sincronización automática con Master"
   },
   "enabled": true,
   "dependencies": {},
@@ -78,7 +78,7 @@
           "io_FilePath",
           "io_dt_TransactionData"
         ],
-        "penalty_mode": "severity_default",
+        "penalty_mode": "global",
         "penalty_value": 0.0,
         "use_penalty_cap": false,
         "penalty_cap": 10.0
@@ -89,7 +89,7 @@
       "name": "Evitar nombres genéricos",
       "description": "Evitar nombres de variables genéricos que no indican su propósito (var, temp, data, etc.)",
       "category": "nomenclatura",
-      "severity": "error",
+      "severity": "warning",
       "penalty": 1.0,
       "enabled": true,
       "sets": [],
@@ -268,7 +268,7 @@
       "description": "Todos los argumentos deben tener una descripción clara",
       "category": "nomenclatura",
       "severity": "info",
-      "penalty": 10.0,
+      "penalty": 1.0,
       "enabled": true,
       "sets": [],
       "implementation_status": "implemented",
@@ -329,7 +329,7 @@
           "io_dt_TransactionData"
         ],
         "penalty_mode": "global",
-        "penalty_value": 10.0,
+        "penalty_value": 1.0,
         "use_penalty_cap": false,
         "penalty_cap": 10.0
       }
@@ -498,11 +498,11 @@
       "description": "Los Sequences no deben tener más de N actividades (configurable, default: 20). Cuenta recursivamente hasta encontrar Invoke.",
       "category": "modularizacion",
       "severity": "info",
-      "penalty": 1.5,
+      "penalty": 0.0,
       "enabled": true,
       "sets": [
-        "NTTData",
-        "UiPath"
+        "UiPath",
+        "NTTData"
       ],
       "implementation_status": "implemented",
       "rule_type": "long_sequence",
@@ -514,9 +514,9 @@
           "max": 200,
           "description": "Máximo número de actividades permitidas en un Sequence (cuenta recursivamente)"
         },
-        "penalty_mode": "individual",
-        "penalty_value": 1.5,
-        "use_penalty_cap": true,
+        "penalty_mode": "global",
+        "penalty_value": 0.0,
+        "use_penalty_cap": false,
         "penalty_cap": 10.0
       }
     },
@@ -580,8 +580,8 @@
       "penalty": 0.0,
       "enabled": true,
       "sets": [
-        "NTTData",
-        "UiPath"
+        "UiPath",
+        "NTTData"
       ],
       "implementation_status": "implemented",
       "rule_type": "commented_code",

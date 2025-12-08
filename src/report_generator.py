@@ -65,6 +65,13 @@ class HTMLReportGenerator:
         stats = self.results.get('statistics', {})
         score = self.results.get('score', {})
         findings = self.results.get('findings', [])
+        
+        # Preparar botón IA condicional (Mostrar siempre que haya datos, incluso error)
+        ai_data = self.results.get('ai_analysis')
+        ai_button_html = ""
+        if ai_data:
+            state_icon = "⚠️" if ai_data.get('error') else "🤖"
+            ai_button_html = f'<button class="tab-button" onclick="switchTab(\'tab-ia\')">{state_icon} Análisis IA</button>'
 
         html_content = f"""<!DOCTYPE html>
 <html lang="es">
@@ -222,6 +229,7 @@ class HTMLReportGenerator:
                 <button class="tab-button" onclick="switchTab('tab-hallazgos')">📄 Hallazgos</button>
                 <button class="tab-button" onclick="switchTab('tab-archivos')">📂 Archivos</button>
                 <button class="tab-button" onclick="switchTab('tab-graficos')">📈 Gráficos</button>
+                {ai_button_html}
             </div>
 
             <!-- Pestaña: Resumen -->
@@ -246,6 +254,9 @@ class HTMLReportGenerator:
             <div id="tab-graficos" class="tab-content" style="display: none;">
                 {self._build_charts(findings, stats, score)}
             </div>
+            
+            <!-- Pestaña: Análisis IA (Condicional) -->
+            {self._build_ai_tab(self.results.get('ai_analysis'))}
         </div>
 
         {self._build_footer()}
@@ -1839,6 +1850,77 @@ class HTMLReportGenerator:
         """
 
         return charts_html
+
+    def _build_ai_tab(self, ai_data: Dict) -> str:
+        """Construir contenido de la pestaña de IA"""
+        if not ai_data:
+            return ""
+            
+        # Si hay error, mostrarlo
+        if ai_data.get('error'):
+            return f"""
+            <div id="tab-ia" class="tab-content" style="display: none;">
+                <div class="section">
+                    <h2>⚠️ Error en Análisis IA</h2>
+                    <div style="background: #FFF3CD; color: #856404; padding: 20px; border-radius: 8px; border-left: 5px solid #ffc107;">
+                        <h3>No se pudo completar el análisis inteligente</h3>
+                        <p style="margin-top: 10px; font-family: monospace;">Detalle: {html.escape(str(ai_data.get('error')))}</p>
+                        <p style="margin-top: 20px; font-size: 14px;">Verifique su conexión a internet, su API Key y la disponibilidad del servicio.</p>
+                    </div>
+                </div>
+            </div>
+            """
+
+        analysis_raw = ai_data.get('analysis', 'Sin análisis general')
+        # Escapar HTML pero preservar saltos de línea visualmente
+        analysis_safe = html.escape(analysis_raw).replace('\n', '<br>')
+        
+        suggestions = ai_data.get('suggestions', [])
+        model = html.escape(ai_data.get('model', 'IA Desconocida'))
+        
+        # Construir sección de sugerencias
+        suggestions_html = ""
+        for s in suggestions:
+            prio = s.get('priority', 'Media')
+            color_class = 'badge-info'
+            if 'Alta' in prio or 'High' in prio: color_class = 'badge-error'
+            elif 'Media' in prio or 'Medium' in prio: color_class = 'badge-warning'
+            
+            suggestions_html += f"""
+            <div class="finding-item">
+                <div class="finding-header">
+                    <div class="finding-title-wrapper">
+                        <span class="severity-badge {color_class}">{html.escape(prio)}</span>
+                        <span class="finding-title">{html.escape(s.get('title', 'Sugerencia'))}</span>
+                    </div>
+                </div>
+                <div class="finding-details">
+                    <p>{html.escape(s.get('description', ''))}</p>
+                    <p><strong>Beneficio:</strong> {html.escape(s.get('benefit', ''))}</p>
+                </div>
+            </div>
+            """
+            
+        return f"""
+        <div id="tab-ia" class="tab-content" style="display: none;">
+            <div class="section">
+                <h2>🧠 Análisis de Inteligencia Artificial</h2>
+                <div style="background: #E3F2FD; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid #2196F3;">
+                    <p><strong>Modelo utilizado:</strong> {model}</p>
+                    <div style="margin-top: 10px; line-height: 1.6;">{analysis_safe}</div>
+                </div>
+                
+                <h3>💡 Sugerencias de Mejora</h3>
+                <div class="findings-list">
+                    {suggestions_html}
+                </div>
+                
+                <div style="margin-top: 20px; font-size: 12px; color: #999; text-align: center;">
+                    <em>Nota: Este análisis es generado por IA y puede contener imprecisiones. Revise siempre el código manualmente.</em>
+                </div>
+            </div>
+        </div>
+        """
 
     def _build_footer(self) -> str:
         """Construir pie de página"""

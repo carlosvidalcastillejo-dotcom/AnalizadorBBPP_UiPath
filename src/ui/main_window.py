@@ -1293,34 +1293,27 @@ class MainWindow:
 
                 # Obtener conjunto seleccionado de la UI (Combobox)
                 if hasattr(self, 'conjunto_combo'):
-                    # Nuevo sistema: Combobox (selección simple)
                     selected_idx = self.conjunto_combo.current()
                     if selected_idx >= 0:
                         active_sets = [self.bbpp_set_names[selected_idx]]
                     else:
                         active_sets = []
                 else:
-                    # Fallback: sistema antiguo
                     active_sets = []
 
                 # Si no hay ninguno seleccionado, mostrar error
                 if not active_sets:
-                    messagebox.showerror(
-                        "Error",
-                        "Por favor, seleccione un conjunto de BBPP antes de analizar."
-                    )
+                    messagebox.showerror("Error", "Por favor, seleccione un conjunto de BBPP antes de analizar.")
                     return
 
                 # Guardar último conjunto seleccionado
                 user_config['last_selected_bbpp_set'] = active_sets[0]
 
-                # Obtener versión de Studio seleccionada (NUEVO)
+                # Obtener versión de Studio
                 selected_studio_version = None
                 if hasattr(self, 'studio_version_combo'):
                     selected_text = self.studio_version_combo.get()
                     if selected_text != "Predeterminado (del project.json)":
-                        # Extraer clave de versión (ej: "2023.10.x (LTS)" -> "2023.10")
-                        # El formato es: "YYYY.MM.x (TYPE)"
                         import re
                         match = re.match(r'(\d{4}\.\d+)', selected_text)
                         if match:
@@ -1329,9 +1322,61 @@ class MainWindow:
                 user_config['selected_studio_version'] = selected_studio_version
                 save_user_config(user_config)
 
+                # 1. ANÁLISIS ESTÁTICO (BBPP)
                 scanner = ProjectScanner(self.project_path, user_config, active_sets=active_sets)
                 results = scanner.scan(progress_callback)
                 
+                # 2. ANÁLISIS DE IA (OPCIONAL)
+                try:
+                    from src.ai.ai_manager import get_ai_manager
+                    ai_manager = get_ai_manager()
+                    
+                    if ai_manager.config.get('enabled', False) and results.get('success'):
+                        # Actualizar progreso para indicar IA
+                        if not self.analysis_cancelled:
+                            self.root.after(0, lambda: self.progress_label.config(text="🤖 Consultando a la IA (Esto puede tardar)..."))
+                            self.root.after(0, lambda: self.progress_bar.configure(mode='indeterminate'))
+                            self.root.after(0, lambda: self.progress_bar.start(10))
+                        
+                        # Preparar datos para IA
+                        findings = results.get('findings', [])
+                        
+                        # Estrategia: Tomar archivo con más errores o más relevante
+                        # Limitación: Por ahora solo analizamos un archivo representativo para no saturar tokens/tiempo
+                        target_file = None
+                        if findings:
+                            # Priorizar errores
+                            for f in findings:
+                                if f.get('severity') == 'error':
+                                    target_file = f.get('file_path')
+                                    break
+                            if not target_file:
+                                target_file = findings[0].get('file_path')
+                        
+                        xaml_content = ""
+                        filename = "N/A"
+                        if target_file and Path(target_file).exists():
+                            try:
+                                filename = Path(target_file).name
+                                with open(target_file, 'r', encoding='utf-8') as f:
+                                    xaml_content = f.read()
+                            except:
+                                xaml_content = "<Error leyendo archivo>"
+                                
+                        context = {
+                            'filename': filename,
+                            'project_type': results.get('project_info', {}).get('projectType', 'UiPath Project')
+                        }
+
+                        # Ejecutar análisis IA
+                        ai_result = ai_manager.analyze_code(xaml_content, findings, context)
+                        results['ai_analysis'] = ai_result
+                        
+                except Exception as e:
+                    print(f"Error en módulo IA: {e}")
+                    # No fallar todo el análisis por error de IA
+                    results['ai_analysis'] = {'error': str(e)}
+
                 # Al terminar, actualizar UI en el thread principal
                 self.root.after(0, lambda r=results, s=scanner: self._show_results(r, s))
                 
@@ -1438,7 +1483,7 @@ class MainWindow:
             f"Hallazgos: {results['statistics']['total_findings']}\n"
             f"Archivos analizados: {results['analyzed_files']}"
         )
-    
+
     def _generate_report(self):
         """Generar reporte HTML con selección de tipo"""
         if not self.last_results:

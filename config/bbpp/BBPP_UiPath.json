@@ -5,9 +5,9 @@
     "version": "2.0.0",
     "author": "Carlos Vidal Castillejo",
     "company": "Your Company",
-    "created": "2025-12-06",
-    "last_updated": "2025-12-06",
-    "changelog": "v2.0.0: Sincronización completa con 17 reglas del Master"
+    "created": "2025-12-07",
+    "last_updated": "2025-12-07",
+    "changelog": "v2.0.0: Sincronización automática con Master"
   },
   "enabled": true,
   "dependencies": {
@@ -23,7 +23,7 @@
       "name": "Variables en camelCase",
       "description": "Las variables deben seguir el patrón camelCase (primera letra minúscula, resto PascalCase)",
       "category": "nomenclatura",
-      "severity": "info",
+      "severity": "warning",
       "penalty": 0.0,
       "enabled": true,
       "sets": [],
@@ -84,7 +84,7 @@
           "io_FilePath",
           "io_dt_TransactionData"
         ],
-        "penalty_mode": "severity_default",
+        "penalty_mode": "global",
         "penalty_value": 0.0,
         "use_penalty_cap": false,
         "penalty_cap": 10.0
@@ -196,7 +196,7 @@
       "description": "Los argumentos deben tener prefijos según su dirección (in_, out_, io_) y seguir el formato especificado después del prefijo",
       "category": "nomenclatura",
       "severity": "warning",
-      "penalty": 3.0,
+      "penalty": 1.0,
       "enabled": true,
       "sets": [],
       "implementation_status": "implemented",
@@ -262,10 +262,10 @@
           "io_FilePath",
           "io_dt_TransactionData"
         ],
-        "penalty_mode": "individual",
-        "penalty_value": 3.0,
-        "use_penalty_cap": true,
-        "penalty_cap": 8.0
+        "penalty_mode": "global",
+        "penalty_value": 1.0,
+        "use_penalty_cap": false,
+        "penalty_cap": 10.0
       }
     },
     {
@@ -273,8 +273,8 @@
       "name": "Argumentos con descripción",
       "description": "Todos los argumentos deben tener una descripción clara",
       "category": "nomenclatura",
-      "severity": "error",
-      "penalty": 10.0,
+      "severity": "info",
+      "penalty": 1.0,
       "enabled": true,
       "sets": [],
       "implementation_status": "implemented",
@@ -334,8 +334,8 @@
           "io_FilePath",
           "io_dt_TransactionData"
         ],
-        "penalty_mode": "severity_default",
-        "penalty_value": 10.0,
+        "penalty_mode": "global",
+        "penalty_value": 1.0,
         "use_penalty_cap": false,
         "penalty_cap": 10.0
       }
@@ -560,19 +560,19 @@
       "name": "Patrón Init/End en State Machines",
       "description": "Las State Machines deben tener estados Init (primero) y End (último)",
       "category": "modularizacion",
-      "severity": "error",
-      "penalty": 10.5,
+      "severity": "warning",
+      "penalty": 0.0,
       "enabled": true,
       "sets": [
-        "NTTData",
-        "UiPath"
+        "UiPath",
+        "NTTData"
       ],
       "implementation_status": "implemented",
       "rule_type": "init_end_pattern",
       "old_id": "STATE_MACHINE_001",
       "parameters": {
         "penalty_mode": "global",
-        "penalty_value": 10.5,
+        "penalty_value": 0.0,
         "use_penalty_cap": false,
         "penalty_cap": 10.0
       }
@@ -586,8 +586,8 @@
       "penalty": 0.0,
       "enabled": true,
       "sets": [
-        "NTTData",
-        "UiPath"
+        "UiPath",
+        "NTTData"
       ],
       "implementation_status": "implemented",
       "rule_type": "commented_code",
@@ -600,7 +600,7 @@
           "max": 50,
           "description": "Porcentaje máximo de código comentado permitido"
         },
-        "penalty_mode": "severity_default",
+        "penalty_mode": "global",
         "penalty_value": 0.0,
         "use_penalty_cap": false,
         "penalty_cap": 10.0

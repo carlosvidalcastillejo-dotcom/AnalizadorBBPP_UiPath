@@ -336,44 +336,201 @@ class AIManager:
             
         return prompts.get(active_name, self._get_default_prompt_text())
 
+    def _get_active_bbpp_rules(self, bbpp_set_name: str = None) -> List[Dict]:
+        """
+        Cargar reglas BBPP activas del conjunto especificado
+
+        Args:
+            bbpp_set_name: Nombre del conjunto (UiPath, NTTData). Si es None, usa el activo en user_config.
+
+        Returns:
+            Lista de diccionarios con reglas activas: [{'id': ..., 'name': ..., 'description': ...}]
+        """
+        try:
+            # Determinar qué conjunto BBPP cargar
+            if bbpp_set_name is None:
+                # Intentar obtener del user_config
+                if self.config_path.exists():
+                    with open(self.config_path, 'r', encoding='utf-8') as f:
+                        user_config = json.load(f)
+                        bbpp_set_name = user_config.get('last_selected_bbpp_set', 'UiPath')
+                else:
+                    bbpp_set_name = 'UiPath'
+
+            # Ruta al archivo BBPP
+            bbpp_path = Path(__file__).parent.parent.parent / 'config' / 'bbpp' / f'BBPP_{bbpp_set_name}.json'
+
+            if not bbpp_path.exists():
+                return []
+
+            # Cargar JSON
+            with open(bbpp_path, 'r', encoding='utf-8') as f:
+                bbpp_data = json.load(f)
+
+            # Extraer reglas activas
+            rules = []
+            for rule in bbpp_data.get('rules', []):
+                if rule.get('enabled', False):
+                    rules.append({
+                        'id': rule.get('id', ''),
+                        'name': rule.get('name', ''),
+                        'description': rule.get('description', ''),
+                        'category': rule.get('category', ''),
+                        'severity': rule.get('severity', 'info')
+                    })
+
+            return rules
+        except Exception as e:
+            print(f"Error cargando reglas BBPP: {e}")
+            return []
+
     def _get_default_prompt_text(self) -> str:
-        """Texto del prompt por defecto"""
-        return """Eres un experto auditor de UiPath.
-Analiza el siguiente código XAML y los hallazgos. Sé conciso y directo (estilo bullet-points).
+        """Texto del prompt por defecto - General BBPP"""
+        return """Eres un auditor experto de UiPath especializado en Buenas Prácticas (BBPP).
 
-**Objetivo:**
-1. Crear un 'analysis' (Resumen ejecutivo muy breve: estado general, riesgo principal y calidad). Máximo 4 líneas.
-2. Listar 'suggestions' concretas para arreglar los errores críticos detectados.
+**INSTRUCCIÓN CRÍTICA: Sé extremadamente CONCISO. Si algo se puede explicar en 1-2 líneas, NO uses más.**
 
-**Contexto:**
-- Archivo: {filename}
-- Tipo de Proyecto: {project_type}
+**Archivo:** {filename}
+**Proyecto:** {project_type}
 
-**Hallazgos detectados ({findings_count}):**
+**Hallazgos BBPP ({findings_count}):**
 {findings_list}
 
-**Código XAML (fragmento):**
+**Fragmento XAML:**
 ```xml
 {xaml_content}
 ```
 
-**Instrucciones:**
-1. Analiza la gravedad de los hallazgos.
-2. Proporciona una solución específica para cada hallazgo crítico.
-3. Sugiere mejoras de rendimiento o legibilidad si aplica.
-4. Identifica posibles riesgos de mantenimiento.
+**TAREA:**
+1. **analysis**: Resumen ejecutivo de 2-3 líneas máximo. Formato: "Estado: [OK/Crítico/Aceptable]. Riesgo principal: [X]. Calidad general: [Y/10]."
+2. **suggestions**: Máximo 5 sugerencias. Cada una debe ser ULTRA-CONCISA:
+   - **priority**: "Alta" / "Media" / "Baja"
+   - **title**: Máximo 4-5 palabras (ej: "Renombrar variables genéricas")
+   - **description**: 1-2 líneas máximo. Formato: "Acción concreta → Beneficio inmediato"
+   - **benefit**: 1 línea (ej: "Reduce errores en 40%")
 
-**Formato JSON estricto:**
+**REGLAS ESTRICTAS:**
+- NO escribas párrafos largos
+- NO expliques lo obvio
+- NO repitas información de los hallazgos
+- SÍ proporciona acciones específicas y cuantificables
+- SÍ ordena por impacto real
+
+**Respuesta JSON:**
 {
-  "analysis": "Resumen ejecutivo corto y directo...",
+  "analysis": "Estado: X. Riesgo: Y. Calidad: Z/10.",
   "suggestions": [
-    {"priority": "Alta", "title": "Acción Corta", "description": "Instrucción precisa de corrección.", "benefit": "Beneficio claro"}
+    {"priority": "Alta", "title": "Título corto", "description": "Acción → Beneficio", "benefit": "Resultado medible"}
+  ]
+}
+"""
+
+    def _get_uipath_bbpp_prompt_text(self) -> str:
+        """Prompt especializado en Buenas Prácticas UiPath Oficiales"""
+        return """Eres un auditor senior certificado en UiPath, especializado en las Buenas Prácticas OFICIALES de UiPath.
+
+**INSTRUCCIÓN CRÍTICA: Sé ULTRA-CONCISO. Máximo 1-2 líneas por punto. Sin parrafadas.**
+
+**Archivo:** {filename}
+**Proyecto:** {project_type}
+
+**Hallazgos Detectados ({findings_count}):**
+{findings_list}
+
+**Reglas BBPP UiPath Activas:**
+{bbpp_rules}
+
+**Fragmento XAML:**
+```xml
+{xaml_content}
+```
+
+**ENFOQUE DE ANÁLISIS:**
+Analiza el código contra las reglas BBPP de UiPath listadas arriba. Prioriza:
+1. Nomenclatura (camelCase, prefijos in_/out_/io_, nombres descriptivos)
+2. Estructura (anidamiento IFs, Try-Catch, actividades críticas protegidas)
+3. Modularización (Sequences largos, uso de Invoke, patrón Init/End)
+4. Logging (suficiente, inicio/fin de workflows)
+5. Configuración (Assets vs hardcoded)
+6. Rendimiento (timeouts explícitos, selectores estables)
+
+**TAREA:**
+1. **analysis**: 2-3 líneas. "Estado: [OK/Crítico/Aceptable]. Principales incumplimientos: [lista IDs reglas]. Calidad: [X/10]."
+2. **suggestions**: Máximo 5. Referencia el ID de la regla BBPP incumplida:
+   - **priority**: "Alta"/"Media"/"Baja"
+   - **title**: 4-5 palabras (ej: "Aplicar regla NOMENCLATURA_002")
+   - **description**: "Acción → Beneficio" (1-2 líneas)
+   - **benefit**: Métrica concreta (ej: "+15% mantenibilidad")
+
+**REGLAS ESTRICTAS:**
+- MENCIONA el ID de la regla BBPP violada (ej: NOMENCLATURA_001)
+- NO expliques lo que ya está en los hallazgos
+- SÍ proporciona el CÓMO arreglarlo específicamente
+- SÍ cuantifica el impacto (%, tiempo, errores evitados)
+
+**Respuesta JSON:**
+{
+  "analysis": "Estado: X. Incumplimientos: [IDs]. Calidad: Y/10.",
+  "suggestions": [
+    {"priority": "Alta", "title": "Aplicar REGLA_XXX", "description": "Cambiar X por Y → Beneficio Z", "benefit": "Métrica cuantificable"}
+  ]
+}
+"""
+
+    def _get_nttdata_bbpp_prompt_text(self) -> str:
+        """Prompt especializado en Estándares NTT Data"""
+        return """Eres un auditor corporativo de NTT Data especializado en los estándares internos de desarrollo RPA.
+
+**INSTRUCCIÓN CRÍTICA: CONCISIÓN ABSOLUTA. Si algo cabe en 1 línea, NO uses 2.**
+
+**Archivo:** {filename}
+**Proyecto:** {project_type}
+
+**Hallazgos Detectados ({findings_count}):**
+{findings_list}
+
+**Estándares BBPP NTT Data Activos:**
+{bbpp_rules}
+
+**Fragmento XAML:**
+```xml
+{xaml_content}
+```
+
+**ENFOQUE DE ANÁLISIS:**
+Verifica cumplimiento de estándares corporativos NTT Data. Prioriza:
+1. Cumplimiento estricto de nomenclatura corporativa
+2. Arquitectura REFramework y patrones empresariales
+3. Logging corporativo y trazabilidad completa
+4. Seguridad (Assets obligatorios, sin credenciales hardcoded)
+5. Resiliencia (Try-Catch en actividades críticas, timeouts configurados)
+6. Mantenibilidad (modularización, código limpio, sin código comentado)
+
+**TAREA:**
+1. **analysis**: 2-3 líneas. "Compliance: [OK/Crítico/Aceptable]. Estándares violados: [IDs]. Score corporativo: [X/10]."
+2. **suggestions**: Máximo 5. Relaciona con estándar NTT Data específico:
+   - **priority**: "Alta"/"Media"/"Baja" (Alta = bloquea deploy)
+   - **title**: 4-5 palabras (ej: "Cumplir estándar LOGGING_001")
+   - **description**: "Acción específica → Impacto en compliance" (1-2 líneas)
+   - **benefit**: Resultado medible (ej: "Compliance +20%")
+
+**REGLAS ESTRICTAS:**
+- CITA el ID del estándar NTT Data violado
+- NO repitas los hallazgos literalmente
+- SÍ explica CÓMO cumplir el estándar específicamente
+- SÍ indica el impacto en auditorías corporativas
+
+**Respuesta JSON:**
+{
+  "analysis": "Compliance: X. Violaciones: [IDs]. Score: Y/10.",
+  "suggestions": [
+    {"priority": "Alta", "title": "Cumplir ESTANDAR_XXX", "description": "Implementar X → Compliance Y", "benefit": "Impacto cuantificable"}
   ]
 }
 """
 
     def get_all_prompts(self) -> Dict[str, str]:
-        """Obtener diccionario de todos los prompts disponibles"""
+        """Obtener diccionario de todos los prompts disponibles (incluye prompts especializados automáticos)"""
         # Estructura en config: 'ai_prompts': {'Nombre': 'Contenido'}
         prompts = self.config.get('ai_prompts', {})
 
@@ -403,38 +560,50 @@ Analiza el siguiente código XAML y los hallazgos. Sé conciso y directo (estilo
             del self.config['prompt_template']
             self.save_config(**self.config)
 
+        # AGREGAR PROMPTS ESPECIALIZADOS AUTOMÁTICOS (no se guardan en config, se generan dinámicamente)
+        # Estos prompts incluyen las reglas BBPP activas inyectadas automáticamente
+        prompts['BBPP UiPath Especializado'] = self._get_uipath_bbpp_prompt_text()
+        prompts['BBPP NTT Data Especializado'] = self._get_nttdata_bbpp_prompt_text()
+
         return prompts
 
     def save_prompt(self, name: str, content: str) -> bool:
-        """Guardar o actualizar un prompt"""
+        """Guardar o actualizar un prompt (protege prompts especializados del sistema)"""
+        # Proteger prompts especializados (no se pueden sobrescribir)
+        protected_prompts = ['BBPP UiPath Especializado', 'BBPP NTT Data Especializado']
+        if name in protected_prompts:
+            return False  # No se pueden modificar prompts especializados automáticos
+
         try:
             if 'ai_prompts' not in self.config:
                 self.config['ai_prompts'] = {}
-            
+
             self.config['ai_prompts'][name] = content
-            
+
             # Si es el primero o único, marcarlo como activo
             if len(self.config['ai_prompts']) == 1:
                 self.config['active_prompt'] = name
-                
+
             return self.save_config(**self.config)
         except Exception as e:
             print(f"Error al guardar prompt: {e}")
             return False
 
     def delete_prompt(self, name: str) -> bool:
-        """Eliminar un prompt (no permite eliminar Default si es el único)"""
-        if name == 'Default':
-            return False # Proteger Default
-            
+        """Eliminar un prompt (protege Default y prompts especializados)"""
+        # Proteger prompts del sistema
+        protected_prompts = ['Default', 'BBPP UiPath Especializado', 'BBPP NTT Data Especializado']
+        if name in protected_prompts:
+            return False  # No se pueden eliminar prompts del sistema
+
         try:
             if 'ai_prompts' in self.config and name in self.config['ai_prompts']:
                 del self.config['ai_prompts'][name]
-                
+
                 # Si borramos el activo, resetear a Default
                 if self.config.get('active_prompt') == name:
                     self.config['active_prompt'] = 'Default'
-                    
+
                 return self.save_config(**self.config)
             return False
         except Exception as e:
@@ -460,24 +629,64 @@ Analiza el siguiente código XAML y los hallazgos. Sé conciso y directo (estilo
         findings_txt = ""
         for i, finding in enumerate(findings[:10], 1):
             findings_txt += f"\n{i}. [{finding.get('severity', 'info').upper()}] {finding.get('rule_name', '')}: {finding.get('message', '')}"
-        
+
         if len(findings) > 10:
             findings_txt += f"\n... y {len(findings) - 10} findings más"
 
-        # Obtener template
+        # Obtener template y nombre del prompt activo
         template = self.get_prompt_template()
-        
+        active_prompt_name = self.get_active_prompt_name()
+
+        # Inyectar reglas BBPP si el prompt es especializado
+        bbpp_rules_txt = ""
+        if active_prompt_name == 'BBPP UiPath Especializado':
+            # Cargar reglas UiPath activas
+            rules = self._get_active_bbpp_rules('UiPath')
+            bbpp_rules_txt = self._format_bbpp_rules_for_prompt(rules)
+        elif active_prompt_name == 'BBPP NTT Data Especializado':
+            # Cargar reglas NTT Data activas
+            rules = self._get_active_bbpp_rules('NTTData')
+            bbpp_rules_txt = self._format_bbpp_rules_for_prompt(rules)
+
         # Reemplazar variables (usando format o replace para ser más robusto ante llaves json)
         # Nota: El template tiene {{ }} para el JSON format, así que usamos replace manual para evitar conflictos
         # o usamos format() con cuidado. Para seguridad, haremos replaces manuales de nuestros placeholders.
-        
+
         prompt = template.replace("{filename}", context.get('filename', 'Unknown') if context else 'Unknown')
         prompt = prompt.replace("{project_type}", context.get('project_type', 'Unknown') if context else 'Unknown')
         prompt = prompt.replace("{findings_count}", str(len(findings)))
         prompt = prompt.replace("{findings_list}", findings_txt)
         prompt = prompt.replace("{xaml_content}", xaml_content[:2000])
-        
+        prompt = prompt.replace("{bbpp_rules}", bbpp_rules_txt)
+
         return prompt
+
+    def _format_bbpp_rules_for_prompt(self, rules: List[Dict]) -> str:
+        """
+        Formatear lista de reglas BBPP para inyectar en el prompt
+
+        Args:
+            rules: Lista de reglas BBPP activas
+
+        Returns:
+            String formateado con las reglas
+        """
+        if not rules:
+            return "No hay reglas BBPP activas configuradas."
+
+        formatted = ""
+        for i, rule in enumerate(rules, 1):
+            severity_emoji = {
+                'error': '🔴',
+                'warning': '🟡',
+                'info': '🔵'
+            }.get(rule['severity'], '⚪')
+
+            formatted += f"\n{i}. {severity_emoji} **{rule['id']}** - {rule['name']}"
+            formatted += f"\n   Categoría: {rule['category']} | Severidad: {rule['severity'].upper()}"
+            formatted += f"\n   Descripción: {rule['description']}\n"
+
+        return formatted
 
     def _analyze_openai(self, xaml_content: str, findings: List[Dict], context: Dict) -> Dict:
         """Análisis con OpenAI"""

@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "last_updated": "2025-12-06",
+  "last_updated": "2025-12-07",
   "active_bbpp_sets": [],
   "thresholds": {
     "max_activities_sequence": 20,
@@ -25,5 +25,16 @@
   },
   "build_author": "Carlos Vidal Castillejo",
   "custom_logo": "C:/Users/Imrik/Downloads/Gemini_Generated_Image_e5dss7e5dss7e5ds.png",
-  "last_selected_bbpp_set": "UiPath"
+  "last_selected_bbpp_set": "UiPath",
+  "selected_studio_version": null,
+  "ai_config": {
+    "enabled": true,
+    "provider": "gemini",
+    "api_key": "__ENC__QUl6YVN5QW00ZlpORzFIWnQtd0FTWE1zWXpRc0lkWURncG9iSlpr",
+    "model": "gemini-2.0-flash",
+    "temperature": 0.7,
+    "ai_prompts": {
+      "Default": "Eres un experto en UiPath y análisis de código de automatización RPA.\n\nAnaliza el siguiente código XAML de UiPath y los hallazgos detectados por el analizador estático.\nGenera sugerencias concretas y accionables para mejorar la calidad del código.\n\n**Contexto:**\n- Archivo: {filename}\n- Tipo de Proyecto: {project_type}\n\n**Hallazgos detectados ({findings_count}):**\n{findings_list}\n\n**Código XAML (fragmento):**\n```xml\n{xaml_content}\n```\n\n**Instrucciones:**\n1. Analiza la gravedad de los hallazgos.\n2. Proporciona una solución específica para cada hallazgo crítico.\n3. Sugiere mejoras de rendimiento o legibilidad si aplica.\n4. Identifica posibles riesgos de mantenimiento.\n\n**Formato de respuesta (JSON):**\n{\n  \"analysis\": \"Resumen ejecutivo del estado del archivo...\",\n  \"suggestions\": [\n    {\"priority\": \"Alta/Media/Baja\", \"title\": \"Título sugerencia\", \"description\": \"Descripción detallada...\", \"benefit\": \"Por qué aplicar esto\"}\n  ],\n  \"score_adjustment\": 0  // Sugerencia de ajuste de puntaje (-10 a +10)\n}\n"
+    }
+  }
 }
