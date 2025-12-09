@@ -750,6 +750,29 @@
         "use_penalty_cap": false,
         "penalty_cap": 10.0
       }
+    },
+    {
+      "id": "DESARROLLO_001",
+      "name": "Uso de Actividades Modernas",
+      "description": "Usar paquete de actividades modernas (Modern Design Experience). Actividades clásicas próximas a descontinuación.",
+      "category": "desarrollo",
+      "severity": "warning",
+      "penalty": 5.0,
+      "enabled": true,
+      "sets": [
+        "UiPath"
+      ],
+      "implementation_status": "implemented",
+      "rule_type": "modern_activities",
+      "old_id": "CG.3",
+      "parameters": {
+        "require_modern_activities": true,
+        "required_project_profile": "Simplified",
+        "penalty_mode": "global",
+        "penalty_value": 5.0,
+        "use_penalty_cap": false,
+        "penalty_cap": 10.0
+      }
     }
   ]
 }

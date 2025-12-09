@@ -106,17 +106,20 @@ class BBPPAnalyzer:
     def analyze_project(self, project_info: Dict) -> List[Finding]:
         """
         Analizar dependencias y configuración del proyecto
-        
+
         Args:
             project_info: Información extraída del project.json
-            
+
         Returns:
             Lista de hallazgos
         """
         # Usar conjuntos activos del constructor
         # Verificar dependencias
         self._check_dependencies(project_info, self.active_sets)
-        
+
+        # Verificar que use actividades modernas
+        self._check_modern_activities(project_info)
+
         return self.findings
     
     def _apply_rules(self, data: Dict):
@@ -1325,5 +1328,35 @@ class BBPPAnalyzer:
                     'found_states': [s.get('name', '') for s in states],
                     'missing_pattern': missing,
                     'suggestion': f'Agregar estados faltantes: {", ".join(missing)}'
+                }
+            )
+
+    def _check_modern_activities(self, project_info: Dict):
+        """
+        Verificar que el proyecto use actividades modernas (Modern Design Experience)
+
+        Args:
+            project_info: Información extraída del project.json
+        """
+        # Buscar regla DESARROLLO_001
+        rule = next((r for r in self.rules if r.get('rule_type') == 'modern_activities'), None)
+        if not rule or not rule.get('enabled'):
+            return
+
+        # Obtener projectProfile del project_info
+        project_profile = project_info.get('project_profile', 'Legacy')
+        required_profile = rule.get('parameters', {}).get('required_project_profile', 'Simplified')
+
+        # Validar que use actividades modernas
+        if project_profile != required_profile:
+            self._add_finding(
+                rule=rule,
+                file_path="project.json",
+                location="designOptions > projectProfile",
+                details={
+                    'current_profile': project_profile,
+                    'required_profile': required_profile,
+                    'issue': f'El proyecto usa actividades clásicas ({project_profile}). Se recomienda migrar a Modern Design Experience ({required_profile}).',
+                    'suggestion': 'Convertir el proyecto a Modern Design Experience desde UiPath Studio: Project Settings > General > Design Experience > Simplified'
                 }
             )

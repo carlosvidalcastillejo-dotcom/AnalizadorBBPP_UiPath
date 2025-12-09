@@ -225,7 +225,11 @@ class ProjectScanner:
                     # Extraer información adicional
                     info['project_version'] = data.get('projectVersion', 'Unknown')
                     info['entry_points'] = data.get('entryPoints', [])
-                    
+
+                    # Extraer projectProfile (Modern/Legacy)
+                    design_options = data.get('designOptions', {})
+                    info['project_profile'] = design_options.get('projectProfile', 'Legacy')
+
             except Exception as e:
                 info['error_reading_project_json'] = str(e)
         
