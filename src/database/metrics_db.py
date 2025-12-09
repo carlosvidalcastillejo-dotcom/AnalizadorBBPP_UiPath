@@ -137,6 +137,14 @@ class MetricsDatabase:
                 ''')
                 print("✅ Columna 'excel_report_path' añadida a la base de datos")
             
+            # Añadir bbpp_sets si no existe
+            if 'bbpp_sets' not in columns:
+                cursor.execute('''
+                    ALTER TABLE analysis_history 
+                    ADD COLUMN bbpp_sets TEXT
+                ''')
+                print("✅ Columna 'bbpp_sets' añadida a la base de datos")
+            
             self.conn.commit()
         except Exception as e:
             print(f"⚠️  Error en migración de BD: {e}")
@@ -156,6 +164,10 @@ class MetricsDatabase:
         
         # Extraer datos principales
         project_name = Path(analysis_data.get('project_path', '')).name
+        
+        # Extraer versión de Studio desde project_info
+        project_info = analysis_data.get('project_info', {})
+        studio_version = project_info.get('studio_version', 'Unknown')
         
         # Mapeo de severidades: analyzer → metrics
         # error → HIGH, warning → MEDIUM, info → LOW
@@ -190,18 +202,23 @@ class MetricsDatabase:
             'statistics': analysis_data.get('statistics', {})
         }
         
+        # Extraer conjuntos de BBPP para columna dedicada
+        bbpp_sets = analysis_data.get('bbpp_sets', [])
+        bbpp_sets_str = ', '.join(bbpp_sets) if bbpp_sets else 'N/A'
+        
         # Insertar análisis principal
         cursor.execute('''
             INSERT INTO analysis_history (
-                project_name, project_path, version,
+                project_name, project_path, version, bbpp_sets,
                 total_files, analyzed_files, total_findings,
                 critical_findings, high_findings, medium_findings, low_findings,
                 score, execution_time, metadata
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             project_name,
             analysis_data.get('project_path', ''),
-            analysis_data.get('version', ''),
+            studio_version,  # Usar versión de Studio extraída
+            bbpp_sets_str,  # Conjuntos de BBPP utilizados
             analysis_data.get('total_files', 0),
             analysis_data.get('analyzed_files', 0),
             len(findings),

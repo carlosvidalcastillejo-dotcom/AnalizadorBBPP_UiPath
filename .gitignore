@@ -22,8 +22,6 @@ wheels/
 
 # PyInstaller
 *.manifest
-# Mantener .spec para reconstrucción
-# *.spec
 
 # Environments
 .env
@@ -40,6 +38,7 @@ venv.bak/
 *.swp
 *.swo
 *~
+.claude/
 
 # OS
 .DS_Store
@@ -53,6 +52,9 @@ output/
 temp/
 tmp/
 
+# Assets personalizados (cada instalación tiene su propio logo)
+assets/branding/
+
 # Backups
 *.backup
 *.broken
@@ -60,38 +62,14 @@ tmp/
 
 # Build artifacts
 build_info.json
-
-# Installer (moved to separate repo)
-installer/
-AnalizadorBBPP_Installer.exe
-
-# Test files
-test_*.py
-dummy_project/
-
-# Session documentation (keep in separate docs repo or local only)
-RESUMEN_*.md
-ANALISIS_*.md
-DOCUMENTACION_*.md
-IMPLEMENTACION_*.md
-ROADMAP_*.md
-SISTEMA_*.md
-CREAR_*.md
-GUIA_*.md
-
-# Temporary scripts
-add_*.py
-fix_*.py
-generate_*.py
-update_*.py
-verify_*.py
-run_full_*.py
+nul
+*.nul
 
 # Temporary files
-nul
+temp_*.json
 output.txt
 src.zip
-temp_*.json
+dummy_project/
 
-# Claude AI
-.claude/
+# Compiled installer
+AnalizadorBBPP_Installer.exe

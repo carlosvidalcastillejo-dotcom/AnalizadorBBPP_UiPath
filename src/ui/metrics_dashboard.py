@@ -208,39 +208,47 @@ class MetricsDashboard(tk.Frame):
         table_frame = tk.Frame(main_container, bg=self.BG_COLOR)
         table_frame.pack(fill=tk.BOTH, expand=True)
 
-        # Scrollbar
-        scrollbar = ttk.Scrollbar(table_frame)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        
-        # Treeview
-        columns = ("Fecha", "Proyecto", "Versión", "Score", "Errors", "Warnings", "Info")
+        # Treeview con columna adicional "Conjunto BBPP"
+        columns = ("Fecha", "Proyecto", "Conjunto BBPP", "Versión", "Score", "Errors", "Warnings", "Info")
         self.tree = ttk.Treeview(
             table_frame,
             columns=columns,
             show="headings",
-            yscrollcommand=scrollbar.set,
             height=10
         )
-        scrollbar.config(command=self.tree.yview)
-        
-        # Configurar columnas
+
+        # Scrollbars (vertical y horizontal)
+        vsb = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=self.tree.yview)
+        hsb = ttk.Scrollbar(table_frame, orient=tk.HORIZONTAL, command=self.tree.xview)
+        self.tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+
+        # Configurar columnas con minwidth y stretch
         self.tree.heading("Fecha", text="Fecha")
         self.tree.heading("Proyecto", text="Proyecto")
+        self.tree.heading("Conjunto BBPP", text="Conjunto BBPP")
         self.tree.heading("Versión", text="Versión")
         self.tree.heading("Score", text="Score")
         self.tree.heading("Errors", text="Errors")
         self.tree.heading("Warnings", text="Warnings")
         self.tree.heading("Info", text="Info")
-        
-        self.tree.column("Fecha", width=130)
-        self.tree.column("Proyecto", width=150)
-        self.tree.column("Versión", width=80)
-        self.tree.column("Score", width=70)
-        self.tree.column("Errors", width=70)
-        self.tree.column("Warnings", width=80)
-        self.tree.column("Info", width=70)
-        
-        self.tree.pack(fill=tk.BOTH, expand=True)
+
+        self.tree.column("Fecha", width=140, minwidth=100, stretch=False)
+        self.tree.column("Proyecto", width=180, minwidth=150, stretch=True)
+        self.tree.column("Conjunto BBPP", width=150, minwidth=120, stretch=False)
+        self.tree.column("Versión", width=100, minwidth=80, stretch=False)
+        self.tree.column("Score", width=80, minwidth=70, stretch=False)
+        self.tree.column("Errors", width=80, minwidth=70, stretch=False)
+        self.tree.column("Warnings", width=90, minwidth=80, stretch=False)
+        self.tree.column("Info", width=80, minwidth=70, stretch=False)
+
+        # Layout con grid para ambas scrollbars
+        self.tree.grid(row=0, column=0, sticky='nsew')
+        vsb.grid(row=0, column=1, sticky='ns')
+        hsb.grid(row=1, column=0, sticky='ew')
+
+        # Configurar grid responsive
+        table_frame.grid_rowconfigure(0, weight=1)
+        table_frame.grid_columnconfigure(0, weight=1)
         
         # Bind doble-click para abrir reportes
         self.tree.bind("<Double-Button-1>", self._on_double_click)
@@ -364,6 +372,7 @@ class MetricsDashboard(tk.Frame):
                     date_str = analysis['analysis_date'][:16]  # YYYY-MM-DD HH:MM
                 
                 project = analysis.get('project_name', 'N/A')
+                bbpp_sets = analysis.get('bbpp_sets', 'N/A')  # Conjuntos de BBPP
                 version = analysis.get('version', 'N/A')
                 score = f"{analysis['score']:.1f}"
                 # Mapeo: HIGH=Errors, MEDIUM=Warnings, LOW=Info
@@ -373,7 +382,7 @@ class MetricsDashboard(tk.Frame):
                 
                 # Insertar en tree y guardar datos completos
                 item_id = self.tree.insert('', 'end', 
-                               values=(date_str, project, version, score, errors, warnings, info),
+                               values=(date_str, project, bbpp_sets, version, score, errors, warnings, info),
                                tags=(str(analysis['id']),))
                 
                 # Guardar datos completos del análisis para acceso posterior
@@ -418,14 +427,16 @@ class MetricsDashboard(tk.Frame):
         for item in self.all_tree_items:
             try:
                 values = self.tree.item(item)['values']
-                # Buscar en fecha (0), proyecto (1), y versión (2)
-                project_name = str(values[1]).lower() if len(values) > 1 else ""
+                # Buscar en fecha (0), proyecto (1), conjunto BBPP (2), y versión (3)
                 date_str = str(values[0]).lower() if len(values) > 0 else ""
-                version_str = str(values[2]).lower() if len(values) > 2 else ""
+                project_name = str(values[1]).lower() if len(values) > 1 else ""
+                bbpp_sets_str = str(values[2]).lower() if len(values) > 2 else ""
+                version_str = str(values[3]).lower() if len(values) > 3 else ""
                 
                 # Si coincide con la búsqueda, mantener visible
                 if (search_text in project_name or 
                     search_text in date_str or 
+                    search_text in bbpp_sets_str or
                     search_text in version_str):
                     # Asegurarse de que esté visible
                     self.tree.reattach(item, '', 'end')

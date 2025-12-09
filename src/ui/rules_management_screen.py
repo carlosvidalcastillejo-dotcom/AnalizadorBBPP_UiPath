@@ -22,6 +22,7 @@ try:
         PRIMARY_COLOR, SECONDARY_COLOR, BG_COLOR, TEXT_COLOR,
         ACCENT_COLOR, COLOR_SUCCESS, COLOR_WARNING, COLOR_ERROR
     )
+    from src.ui.bbpp_set_creator import BBPPSetCreatorDialog
 except ImportError:
     # Si falla, intentar import relativo
     from rules_manager import get_rules_manager
@@ -152,8 +153,22 @@ class RulesManagementScreen:
             command=self._show_sets_management_dialog
         )
         sets_mgmt_btn.pack(side=tk.LEFT, padx=5)
+
+        # Botón Nuevo Conjunto
+        new_set_btn = tk.Button(
+            buttons_frame,
+            text="➕ Nuevo Conjunto",
+            font=("Arial", 10, "bold"),
+            bg=COLOR_SUCCESS,
+            fg="white",
+            relief=tk.FLAT,
+            cursor="hand2",
+            command=self._show_create_set_dialog
+        )
+        new_set_btn.pack(side=tk.LEFT, padx=5)
+
         
-        # Frame de Gestión de Conjuntos
+        # Frame de Gestión de Dependencias
         sets_mgmt_frame = tk.LabelFrame(
             main_frame,
             text="Gestión de Dependencias por Conjunto",
@@ -168,7 +183,7 @@ class RulesManagementScreen:
         sets_info = self.rules_manager.get_sets_info()
         set_names = list(sets_info.keys())
 
-        # Dropdown frame
+        # Dropdown frame para dependencias
         dropdown_frame = tk.Frame(sets_mgmt_frame, bg=BG_COLOR)
         dropdown_frame.pack(fill=tk.X, pady=5)
 
@@ -181,11 +196,11 @@ class RulesManagementScreen:
             fg="gray"
         ).pack(side=tk.LEFT, padx=(0, 10))
 
-        # Dropdown de conjuntos
-        selected_set_var = tk.StringVar(value=set_names[0] if set_names else "")
+        # Dropdown de conjuntos para dependencias
+        dependency_set_var = tk.StringVar(value=set_names[0] if set_names else "")
         sets_dropdown = ttk.Combobox(
             dropdown_frame,
-            textvariable=selected_set_var,
+            textvariable=dependency_set_var,
             values=set_names,
             state="readonly",
             width=30,
@@ -195,7 +210,7 @@ class RulesManagementScreen:
 
         # Botón para editar dependencias del conjunto seleccionado
         def open_dependencies():
-            selected = selected_set_var.get()
+            selected = dependency_set_var.get()
             if selected:
                 self._show_dependency_dialog(selected)
 
@@ -212,6 +227,52 @@ class RulesManagementScreen:
             pady=5
         ).pack(side=tk.LEFT, padx=10)
 
+        # Frame de Selección de Conjunto para Configurar
+        config_set_frame = tk.LabelFrame(
+            main_frame,
+            text="Configuración de Reglas por Conjunto",
+            font=("Arial", 10, "bold"),
+            bg=BG_COLOR,
+            padx=10,
+            pady=10
+        )
+        config_set_frame.pack(fill=tk.X, padx=20, pady=10)
+
+        # Dropdown frame para configuración
+        config_dropdown_frame = tk.Frame(config_set_frame, bg=BG_COLOR)
+        config_dropdown_frame.pack(fill=tk.X, pady=5)
+
+        # Label
+        tk.Label(
+            config_dropdown_frame,
+            text="Selecciona conjunto para configurar reglas:",
+            font=("Arial", 9),
+            bg=BG_COLOR,
+            fg="gray"
+        ).pack(side=tk.LEFT, padx=(0, 10))
+
+        # Dropdown de conjuntos para configuración (este es el que filtra la tabla)
+        self.selected_set_var = tk.StringVar(value=set_names[0] if set_names else "")
+        self.selected_set_var.trace_add("write", lambda *args: self._on_set_changed())
+        config_sets_dropdown = ttk.Combobox(
+            config_dropdown_frame,
+            textvariable=self.selected_set_var,
+            values=set_names,
+            state="readonly",
+            width=30,
+            font=("Arial", 10)
+        )
+        config_sets_dropdown.pack(side=tk.LEFT, padx=5)
+
+        # Descripción
+        tk.Label(
+            config_dropdown_frame,
+            text="← Las reglas mostradas abajo corresponden a este conjunto",
+            font=("Arial", 8),
+            bg=BG_COLOR,
+            fg="gray"
+        ).pack(side=tk.LEFT, padx=10)
+
         # Frame para tabla y panel de detalles
         content_frame = tk.Frame(main_frame, bg=BG_COLOR)
         content_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
@@ -220,8 +281,8 @@ class RulesManagementScreen:
         table_frame = tk.Frame(content_frame, bg=BG_COLOR)
         table_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
-        # Crear Treeview
-        columns = ("id", "name", "category", "severity", "penalty", "enabled", "status")
+        # Crear Treeview (sin columna "status")
+        columns = ("id", "name", "category", "severity", "penalty", "enabled")
         self.tree = ttk.Treeview(
             table_frame,
             columns=columns,
@@ -236,56 +297,84 @@ class RulesManagementScreen:
         self.tree.heading("severity", text="Severidad")
         self.tree.heading("penalty", text="Penalización")
         self.tree.heading("enabled", text="Activa")
-        self.tree.heading("status", text="Estado")
 
-        # Anchos de columna
-        self.tree.column("id", width=120, anchor="w")
-        self.tree.column("name", width=300, anchor="w")
-        self.tree.column("category", width=130, anchor="center")
-        self.tree.column("severity", width=100, anchor="center")
-        self.tree.column("penalty", width=110, anchor="center")
-        self.tree.column("enabled", width=80, anchor="center")
-        self.tree.column("status", width=150, anchor="center")
+        # Anchos de columna (optimizados para mejor visualización)
+        self.tree.column("id", width=160, minwidth=120, anchor="w", stretch=False)
+        self.tree.column("name", width=350, minwidth=250, anchor="w", stretch=True)
+        self.tree.column("category", width=140, minwidth=100, anchor="center", stretch=False)
+        self.tree.column("severity", width=110, minwidth=90, anchor="center", stretch=False)
+        self.tree.column("penalty", width=220, minwidth=180, anchor="center", stretch=False)
+        self.tree.column("enabled", width=80, minwidth=70, anchor="center", stretch=False)
+
+        # Scrollbars (vertical y horizontal)
+        vsb = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=self.tree.yview)
+        hsb = ttk.Scrollbar(table_frame, orient=tk.HORIZONTAL, command=self.tree.xview)
+        self.tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+
+        # Layout con ambas scrollbars
+        self.tree.grid(row=0, column=0, sticky='nsew')
+        vsb.grid(row=0, column=1, sticky='ns')
+        hsb.grid(row=1, column=0, sticky='ew')
+
+        # Configurar grid para que sea responsive
+        table_frame.grid_rowconfigure(0, weight=1)
+        table_frame.grid_columnconfigure(0, weight=1)
         
-        # Scrollbar
-        scrollbar = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=self.tree.yview)
-        self.tree.configure(yscrollcommand=scrollbar.set)
-        
-        self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        
-        # Bind evento de doble-click para abrir diálogo de edición
+        # Bind eventos
         self.tree.bind("<Double-Button-1>", self._on_rule_double_click)
+        self.tree.bind("<Button-1>", self._on_tree_click)
     
     
+    def _on_set_changed(self):
+        """Callback cuando cambia el conjunto seleccionado"""
+        self._load_rules()
+
     def _load_rules(self):
-        """Cargar reglas en la tabla"""
+        """Cargar reglas en la tabla del conjunto seleccionado"""
         # Limpiar tabla
         for item in self.tree.get_children():
             self.tree.delete(item)
+
+        # Obtener conjunto seleccionado
+        selected_set = getattr(self, 'selected_set_var', None)
+        if not selected_set:
+            return
         
-        # Obtener reglas
-        rules = self.rules_manager.get_all_rules()
+        set_name = selected_set.get()
+        if not set_name:
+            return
+
+        # Obtener reglas del conjunto con su configuración específica
+        rules = self.rules_manager.get_rules_by_set(set_name)
         
-        # Insertar reglas
+        # Insertar TODAS las reglas del conjunto
         for rule in rules:
             rule_id = rule.get('id', '')
             name = rule.get('name', '')
             category = rule.get('category', '')
             severity = rule.get('severity', 'warning').upper()
-            penalty = f"{rule.get('penalty', 0)}%"
-            
+
+            # Construir texto de penalización descriptivo
+            params = rule.get('parameters', {})
+            penalty_mode = params.get('penalty_mode', 'severity_default')
+            penalty_value = params.get('penalty_value', rule.get('penalty', 0))
+            use_cap = params.get('use_penalty_cap', False)
+            penalty_cap = params.get('penalty_cap', 10)
+
+            if penalty_mode == 'severity_default':
+                penalty_text = "Predeterminado"
+            elif penalty_mode == 'global':
+                penalty_text = f"{penalty_value}% Global"
+            elif penalty_mode == 'individual':
+                if use_cap:
+                    penalty_text = f"{penalty_value}%/hallazgo (Límite {penalty_cap}%)"
+                else:
+                    penalty_text = f"{penalty_value}%/hallazgo"
+            else:
+                penalty_text = f"{penalty_value}%"
+
             # Estado enabled/disabled
             enabled = "✅" if rule.get('enabled', True) else "❌"
-
-            # Estado de implementación
-            status = rule.get('implementation_status', 'pending')
-            status_text = {
-                'implemented': '✅ Implementada',
-                'pending': '⏳ Pendiente',
-                'duplicate': '🔄 Duplicada',
-                'manual': '👤 Manual'
-            }.get(status, status)
 
             # Color según severidad
             tag = severity.lower()
@@ -293,7 +382,7 @@ class RulesManagementScreen:
             self.tree.insert(
                 "",
                 tk.END,
-                values=(rule_id, name, category, severity, penalty, enabled, status_text),
+                values=(rule_id, name, category, severity, penalty_text, enabled),
                 tags=(tag,)
             )
         
@@ -319,16 +408,51 @@ class RulesManagementScreen:
         self.stats_label.config(text=text)
     
     
+    def _on_tree_click(self, event):
+        """Manejar clic simple en la tabla para toggle enabled/disabled"""
+        # Identificar qué columna se clickeó
+        region = self.tree.identify_region(event.x, event.y)
+        if region != "cell":
+            return
+
+        column = self.tree.identify_column(event.x)
+        # Columna "enabled" es la #6 (índice comienza en #1)
+        if column != "#6":
+            return
+
+        # Obtener regla clickeada
+        item_id = self.tree.identify_row(event.y)
+        if not item_id:
+            return
+
+        item = self.tree.item(item_id)
+        rule_id = item['values'][0]
+        
+        # Obtener conjunto seleccionado
+        set_name = self.selected_set_var.get()
+        if not set_name:
+            return
+
+        # Obtener regla del conjunto específico
+        rules = self.rules_manager.get_rules_by_set(set_name)
+        rule = next((r for r in rules if r.get('id') == rule_id), None)
+        
+        if rule:
+            new_enabled = not rule.get('enabled', True)
+            # Actualizar solo en el conjunto seleccionado
+            self.rules_manager.update_rule(rule_id, {'enabled': new_enabled}, set_name=set_name)
+            self._load_rules()  # Recargar tabla
+
     def _on_rule_double_click(self, event):
         """Manejar doble-click en una regla para abrir diálogo de edición"""
         selection = self.tree.selection()
         if not selection:
             return
-        
+
         # Obtener ID de la regla seleccionada
         item = self.tree.item(selection[0])
         rule_id = item['values'][0]
-        
+
         self._show_edit_dialog(rule_id)
     
     def _show_edit_dialog(self, rule_id):
@@ -1069,6 +1193,12 @@ class RulesManagementScreen:
         # Definir funciones de botones
         
         def on_accept():
+            # Obtener conjunto seleccionado
+            set_name = self.selected_set_var.get()
+            if not set_name:
+                messagebox.showerror("Error", "No hay conjunto seleccionado")
+                return
+            
             # Actualizar regla
             updates = {
                 'enabled': active_var.get(),
@@ -1081,11 +1211,18 @@ class RulesManagementScreen:
             sets = [available_sets[i] for i in selected_indices]
             updates['sets'] = sets
 
-            self.rules_manager.update_rule(rule_id, updates)
+            # Actualizar solo en el conjunto seleccionado
+            self.rules_manager.update_rule(rule_id, updates, set_name=set_name)
 
             # Actualizar parámetros de penalización personalizada
-            rule_obj = self.rules_manager.get_rule_by_id(rule_id)
-            if rule_obj and 'parameters' in rule_obj:
+            rules = self.rules_manager.get_rules_by_set(set_name)
+            rule_obj = next((r for r in rules if r.get('id') == rule_id), None)
+
+            if rule_obj:
+                # Asegurar que existe el diccionario parameters
+                if 'parameters' not in rule_obj:
+                    rule_obj['parameters'] = {}
+
                 rule_obj['parameters']['penalty_mode'] = penalty_mode_var.get()
                 rule_obj['parameters']['penalty_value'] = penalty_value_var.get()
                 rule_obj['parameters']['use_penalty_cap'] = use_cap_var.get()
@@ -1107,12 +1244,118 @@ class RulesManagementScreen:
                 if rule_obj and 'parameters' in rule_obj:
                     rule_obj['parameters']['exceptions'] = exceptions_list.copy()
 
-            # Guardar todos los cambios
-            self.rules_manager.save_rules()
+            # Guardar solo el conjunto seleccionado
+            self.rules_manager.save_rules(set_name=set_name)
 
             self._load_rules()
             dialog.destroy()
-            messagebox.showinfo("Éxito", "✅ Regla actualizada correctamente")
+            messagebox.showinfo("Éxito", f"✅ Regla actualizada en conjunto '{set_name}'")
+        
+        def on_copy_to_other_set():
+            """Copiar configuración actual a otro conjunto"""
+            # Obtener conjunto actual
+            current_set = self.selected_set_var.get()
+            if not current_set:
+                return
+            
+            # Obtener otros conjuntos disponibles
+            all_sets = list(self.rules_manager.sets.keys())
+            other_sets = [s for s in all_sets if s != current_set]
+            
+            if not other_sets:
+                messagebox.showinfo("Info", "No hay otros conjuntos disponibles")
+                return
+            
+            # Crear diálogo de selección
+            copy_dialog = tk.Toplevel(dialog)
+            copy_dialog.title("Copiar Configuración")
+            copy_dialog.geometry("400x300")
+            copy_dialog.transient(dialog)
+            copy_dialog.grab_set()
+            
+            # Centrar
+            copy_dialog.update_idletasks()
+            x = (copy_dialog.winfo_screenwidth() // 2) - 200
+            y = (copy_dialog.winfo_screenheight() // 2) - 150
+            copy_dialog.geometry(f"400x300+{x}+{y}")
+            
+            tk.Label(
+                copy_dialog,
+                text=f"Copiar configuración de '{rule.get('name')}'\ndesde '{current_set}' a:",
+                font=("Arial", 11, "bold"),
+                bg="white",
+                wraplength=360,
+                justify=tk.CENTER
+            ).pack(pady=20)
+            
+            # Listbox para seleccionar conjuntos destino
+            listbox_frame = tk.Frame(copy_dialog, bg="white")
+            listbox_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+            
+            scrollbar = tk.Scrollbar(listbox_frame)
+            scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+            
+            dest_listbox = tk.Listbox(
+                listbox_frame,
+                selectmode=tk.MULTIPLE,
+                font=("Arial", 10),
+                yscrollcommand=scrollbar.set
+            )
+            dest_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            scrollbar.config(command=dest_listbox.yview)
+            
+            for s in other_sets:
+                dest_listbox.insert(tk.END, s)
+            
+            def do_copy():
+                selected_indices = dest_listbox.curselection()
+                if not selected_indices:
+                    messagebox.showwarning("Advertencia", "Selecciona al menos un conjunto destino")
+                    return
+                
+                dest_sets = [other_sets[i] for i in selected_indices]
+                
+                # Obtener configuración actual de la regla
+                current_rules = self.rules_manager.get_rules_by_set(current_set)
+                current_rule = next((r for r in current_rules if r.get('id') == rule_id), None)
+                
+                if not current_rule:
+                    messagebox.showerror("Error", "No se pudo obtener la configuración actual")
+                    return
+                
+                # Copiar a cada conjunto destino
+                for dest_set in dest_sets:
+                    self.rules_manager.update_rule(rule_id, current_rule, set_name=dest_set)
+                    self.rules_manager.save_rules(set_name=dest_set)
+                
+                copy_dialog.destroy()
+                messagebox.showinfo("Éxito", f"✅ Configuración copiada a {len(dest_sets)} conjunto(s)")
+            
+            # Botones
+            btn_frame = tk.Frame(copy_dialog, bg="white")
+            btn_frame.pack(fill=tk.X, padx=20, pady=10)
+            
+            tk.Button(
+                btn_frame,
+                text="✅ Copiar",
+                command=do_copy,
+                bg=COLOR_SUCCESS,
+                fg="white",
+                font=("Arial", 10, "bold"),
+                padx=20,
+                pady=5
+            ).pack(side=tk.LEFT, padx=5)
+            
+            tk.Button(
+                btn_frame,
+                text="❌ Cancelar",
+                command=copy_dialog.destroy,
+                bg=COLOR_ERROR,
+                fg="white",
+                font=("Arial", 10),
+                padx=20,
+                pady=5
+            ).pack(side=tk.LEFT, padx=5)
         
         def on_cancel():
             dialog.destroy()
@@ -1130,6 +1373,21 @@ class RulesManagementScreen:
             pady=8
         )
         cancel_btn.pack(side=tk.RIGHT, padx=padding, pady=10)
+        
+        # Botón Copiar a otro conjunto
+        copy_btn = tk.Button(
+            buttons_frame,
+            text="📋 Copiar a Otro Conjunto",
+            command=on_copy_to_other_set,
+            bg=ACCENT_COLOR,
+            fg="white",
+            font=("Arial", 10),
+            relief=tk.FLAT,
+            cursor="hand2",
+            padx=15,
+            pady=8
+        )
+        copy_btn.pack(side=tk.LEFT, padx=padding, pady=10)
         
         accept_btn = tk.Button(
             buttons_frame,
@@ -1705,8 +1963,73 @@ class RulesManagementScreen:
             pady=8
         ).pack(side=tk.RIGHT, padx=5)
 
+    def _save_rules(self):
+        """Guardar cambios del conjunto seleccionado"""
+        set_name = self.selected_set_var.get()
+        if not set_name:
+            messagebox.showerror("Error", "No hay conjunto seleccionado")
+            return
+        
+        self.rules_manager.save_rules(set_name=set_name)
+        messagebox.showinfo("Éxito", f"✅ Cambios guardados en conjunto '{set_name}'")
+    
+    def _reload_rules(self):
+        """Recargar reglas desde archivos"""
+        self.rules_manager.load_rules()
+        self._load_rules()
+        messagebox.showinfo("Info", "🔄 Reglas recargadas desde archivos")
+    
+    def _enable_all_rules(self):
+        """Activar todas las reglas del conjunto seleccionado"""
+        set_name = self.selected_set_var.get()
+        if not set_name:
+            messagebox.showerror("Error", "No hay conjunto seleccionado")
+            return
+        
+        rules = self.rules_manager.get_rules_by_set(set_name)
+        for rule in rules:
+            self.rules_manager.update_rule(rule.get('id'), {'enabled': True}, set_name=set_name)
+        
+        self._load_rules()
+        messagebox.showinfo("Éxito", f"✅ Todas las reglas de '{set_name}' activadas")
+    
+    def _disable_all_rules(self):
+        """Desactivar todas las reglas del conjunto seleccionado"""
+        set_name = self.selected_set_var.get()
+        if not set_name:
+            messagebox.showerror("Error", "No hay conjunto seleccionado")
+            return
+        
+        rules = self.rules_manager.get_rules_by_set(set_name)
+        for rule in rules:
+            self.rules_manager.update_rule(rule.get('id'), {'enabled': False}, set_name=set_name)
+        
+        self._load_rules()
+        messagebox.showinfo("Éxito", f"❌ Todas las reglas de '{set_name}' desactivadas")
+
 
 # Test standalone
+    def _show_create_set_dialog(self):
+        """Mostrar diálogo para crear nuevo conjunto"""
+        try:
+            # Importación local para evitar problemas circulares si falla arriba
+            from src.ui.bbpp_set_creator import BBPPSetCreatorDialog
+            
+            BBPPSetCreatorDialog(
+                self.parent,
+                on_create_callback=self._on_set_created
+            )
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo abrir el diálogo: {e}", parent=self.parent)
+    
+    def _on_set_created(self):
+        """Callback cuando se crea un conjunto"""
+        # Recargar la pantalla completa para actualizar listas
+        for widget in self.parent.winfo_children():
+            widget.destroy()
+        self.__init__(self.parent)
+
+
 if __name__ == '__main__':
     root = tk.Tk()
     root.title("Gestión de Reglas BBPP")

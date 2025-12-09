@@ -65,6 +65,13 @@ class HTMLReportGenerator:
         stats = self.results.get('statistics', {})
         score = self.results.get('score', {})
         findings = self.results.get('findings', [])
+        
+        # Preparar botón IA condicional (Mostrar siempre que haya datos, incluso error)
+        ai_data = self.results.get('ai_analysis')
+        ai_button_html = ""
+        if ai_data:
+            state_icon = "⚠️" if ai_data.get('error') else "🤖"
+            ai_button_html = f'<button class="tab-button" onclick="switchTab(\'tab-ia\')">{state_icon} Análisis IA</button>'
 
         html_content = f"""<!DOCTYPE html>
 <html lang="es">
@@ -222,12 +229,14 @@ class HTMLReportGenerator:
                 <button class="tab-button" onclick="switchTab('tab-hallazgos')">📄 Hallazgos</button>
                 <button class="tab-button" onclick="switchTab('tab-archivos')">📂 Archivos</button>
                 <button class="tab-button" onclick="switchTab('tab-graficos')">📈 Gráficos</button>
+                {ai_button_html}
             </div>
 
             <!-- Pestaña: Resumen -->
             <div id="tab-resumen" class="tab-content" style="display: block;">
                 {self._build_summary(score, stats)}
                 {self._build_dependencies(project_info)}
+                {self._build_version_validation()}
                 {self._build_statistics(stats)}
             </div>
 
@@ -245,6 +254,9 @@ class HTMLReportGenerator:
             <div id="tab-graficos" class="tab-content" style="display: none;">
                 {self._build_charts(findings, stats, score)}
             </div>
+            
+            <!-- Pestaña: Análisis IA (Condicional) -->
+            {self._build_ai_tab(self.results.get('ai_analysis'))}
         </div>
 
         {self._build_footer()}
@@ -305,6 +317,7 @@ class HTMLReportGenerator:
         {self._build_header(project_info)}
         {self._build_summary(score, stats)}
         {self._build_dependencies(project_info)}
+        {self._build_version_validation()}
         {self._build_statistics(stats)}
         {self._build_findings_normal(findings, stats)}
         {self._build_footer()}
@@ -503,7 +516,7 @@ class HTMLReportGenerator:
         }
         
         .finding-info {
-            border-left-color: #17a2b8;
+            border-left-color: #0d6efd;
         }
         
         .finding-header {
@@ -569,7 +582,7 @@ class HTMLReportGenerator:
         }
         
         .badge-info {
-            background: #17a2b8;
+            background: #0d6efd;
             color: white;
         }
         
@@ -778,7 +791,7 @@ class HTMLReportGenerator:
         }
 
         .file-score-card.score-good {
-            border-left-color: #17a2b8;
+            border-left-color: #0d6efd;
             background: linear-gradient(to right, #e3f2fd 0%, white 50%);
         }
 
@@ -1062,9 +1075,87 @@ class HTMLReportGenerator:
             </p>
         </div>
         """
-        
+
         return deps_html
-    
+
+    def _build_version_validation(self) -> str:
+        """Construir sección de validación de compatibilidad de versiones"""
+        version_validation = self.results.get('version_validation', {})
+
+        if not version_validation or 'error' in version_validation:
+            return ""  # No mostrar si no hay datos o hubo error
+
+        validation_results = version_validation.get('validation_results', [])
+        if not validation_results:
+            return ""  # No mostrar si no hay resultados
+
+        studio_version_used = version_validation.get('studio_version_used', 'Unknown')
+        studio_version_from_project = version_validation.get('studio_version_from_project', 'Unknown')
+        selected_manually = version_validation.get('selected_manually', False)
+
+        # Texto explicativo de la versión usada
+        if selected_manually:
+            version_note = f"Versión seleccionada manualmente: <strong>{html.escape(studio_version_used)}</strong><br>(Versión en project.json: {html.escape(studio_version_from_project)})"
+        else:
+            version_note = f"Versión de UiPath Studio: <strong>{html.escape(studio_version_used)}</strong> (desde project.json)"
+
+        validation_html = f"""
+        <div class="section" style="margin-top: 30px;">
+            <h2>🔍 Validación de Compatibilidad de Versiones</h2>
+            <p style="margin: 15px 0; color: #666; font-size: 14px;">
+                {version_note}
+            </p>
+            <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                <thead>
+                    <tr style="background: #f8f9fa; border-bottom: 2px solid #0067B1;">
+                        <th style="padding: 12px; text-align: left; width: 35%;">Paquete</th>
+                        <th style="padding: 12px; text-align: left; width: 20%;">Versión Instalada</th>
+                        <th style="padding: 12px; text-align: left; width: 20%;">Versión Mínima</th>
+                        <th style="padding: 12px; text-align: left; width: 25%;">Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+        """
+
+        for result in validation_results:
+            package = result.get('package', '')
+            installed = result.get('installed_version', '-')
+            expected = result.get('expected_version', '-')
+            status = result.get('status', 'unknown')
+            message = result.get('message', '')
+
+            # Determinar estilo según estado
+            if status == 'updated':
+                badge_html = '<span class="dep-badge dep-ok" style="background: #28a745; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">✓ Actualizada</span>'
+            elif status == 'outdated':
+                badge_html = '<span class="dep-badge dep-outdated" style="background: #dc3545; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">¡Atención! Desactualizada</span>'
+            else:
+                badge_html = '<span class="dep-badge dep-unknown" style="background: #6c757d; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">Desconocido</span>'
+
+            validation_html += f"""
+                <tr>
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">{html.escape(package)}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd; font-family: monospace;">{html.escape(installed)}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd; font-family: monospace;">{html.escape(expected)}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">
+                        {badge_html}
+                        <br><small style="color: #666;">{html.escape(message)}</small>
+                    </td>
+                </tr>
+            """
+
+        validation_html += """
+                </tbody>
+            </table>
+            <p style="margin-top: 15px; color: #666; font-size: 14px;">
+                💡 <strong>Recomendación:</strong> Mantener las dependencias actualizadas garantiza acceso a las últimas mejoras,
+                correcciones de errores y nuevas funcionalidades de UiPath Studio.
+            </p>
+        </div>
+        """
+
+        return validation_html
+
     def _build_summary(self, score: Dict, stats: Dict) -> str:
         """Construir resumen ejecutivo"""
         score_value = score.get('score', 0)
@@ -1324,7 +1415,7 @@ class HTMLReportGenerator:
         severity_labels = {
             'error': ('❌ Errores', '#dc3545'),
             'warning': ('⚠️ Warnings', '#ffc107'),
-            'info': ('ℹ️ Info', '#17a2b8')
+            'info': ('ℹ️ Info', '#0d6efd')
         }
 
         for sev in ['error', 'warning', 'info']:
@@ -1596,7 +1687,7 @@ class HTMLReportGenerator:
                             backgroundColor: [
                                 '#dc3545',  // Rojo para errores
                                 '#ffc107',  // Amarillo para warnings
-                                '#17a2b8'   // Azul para info
+                                '#0d6efd'   // Azul para info
                             ],
                             borderWidth: 2,
                             borderColor: '#fff'
@@ -1759,6 +1850,77 @@ class HTMLReportGenerator:
         """
 
         return charts_html
+
+    def _build_ai_tab(self, ai_data: Dict) -> str:
+        """Construir contenido de la pestaña de IA"""
+        if not ai_data:
+            return ""
+            
+        # Si hay error, mostrarlo
+        if ai_data.get('error'):
+            return f"""
+            <div id="tab-ia" class="tab-content" style="display: none;">
+                <div class="section">
+                    <h2>⚠️ Error en Análisis IA</h2>
+                    <div style="background: #FFF3CD; color: #856404; padding: 20px; border-radius: 8px; border-left: 5px solid #ffc107;">
+                        <h3>No se pudo completar el análisis inteligente</h3>
+                        <p style="margin-top: 10px; font-family: monospace;">Detalle: {html.escape(str(ai_data.get('error')))}</p>
+                        <p style="margin-top: 20px; font-size: 14px;">Verifique su conexión a internet, su API Key y la disponibilidad del servicio.</p>
+                    </div>
+                </div>
+            </div>
+            """
+
+        analysis_raw = ai_data.get('analysis', 'Sin análisis general')
+        # Escapar HTML pero preservar saltos de línea visualmente
+        analysis_safe = html.escape(analysis_raw).replace('\n', '<br>')
+        
+        suggestions = ai_data.get('suggestions', [])
+        model = html.escape(ai_data.get('model', 'IA Desconocida'))
+        
+        # Construir sección de sugerencias
+        suggestions_html = ""
+        for s in suggestions:
+            prio = s.get('priority', 'Media')
+            color_class = 'badge-info'
+            if 'Alta' in prio or 'High' in prio: color_class = 'badge-error'
+            elif 'Media' in prio or 'Medium' in prio: color_class = 'badge-warning'
+            
+            suggestions_html += f"""
+            <div class="finding-item">
+                <div class="finding-header">
+                    <div class="finding-title-wrapper">
+                        <span class="severity-badge {color_class}">{html.escape(prio)}</span>
+                        <span class="finding-title">{html.escape(s.get('title', 'Sugerencia'))}</span>
+                    </div>
+                </div>
+                <div class="finding-details">
+                    <p>{html.escape(s.get('description', ''))}</p>
+                    <p><strong>Beneficio:</strong> {html.escape(s.get('benefit', ''))}</p>
+                </div>
+            </div>
+            """
+            
+        return f"""
+        <div id="tab-ia" class="tab-content" style="display: none;">
+            <div class="section">
+                <h2>🧠 Análisis de Inteligencia Artificial</h2>
+                <div style="background: #E3F2FD; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid #2196F3;">
+                    <p><strong>Modelo utilizado:</strong> {model}</p>
+                    <div style="margin-top: 10px; line-height: 1.6;">{analysis_safe}</div>
+                </div>
+                
+                <h3>💡 Sugerencias de Mejora</h3>
+                <div class="findings-list">
+                    {suggestions_html}
+                </div>
+                
+                <div style="margin-top: 20px; font-size: 12px; color: #999; text-align: center;">
+                    <em>Nota: Este análisis es generado por IA y puede contener imprecisiones. Revise siempre el código manualmente.</em>
+                </div>
+            </div>
+        </div>
+        """
 
     def _build_footer(self) -> str:
         """Construir pie de página"""
@@ -1925,7 +2087,7 @@ class HTMLReportGenerator:
         }
 
         .finding-info {
-            border-left-color: #17a2b8;
+            border-left-color: #0d6efd;
         }
 
         .finding-header {
@@ -2044,7 +2206,7 @@ class HTMLReportGenerator:
         }
 
         .badge-info {
-            background: #17a2b8;
+            background: #0d6efd;
             color: white;
         }
 
@@ -2246,3 +2408,4 @@ class HTMLReportGenerator:
         """
 
         return findings_html
+

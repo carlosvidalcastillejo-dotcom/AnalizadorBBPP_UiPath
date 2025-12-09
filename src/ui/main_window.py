@@ -40,18 +40,17 @@ class MainWindow:
         
     def _setup_ui(self):
         """Configurar la interfaz de usuario"""
-        # IMPORTANTE: Crear sidebar PRIMERO para evitar conflictos de empaquetado
-        # El orden correcto es: sidebar (LEFT) -> main_area (RIGHT) -> status_bar (BOTTOM)
-        
-        # Menú lateral (PRIMERO)
-        self._create_sidebar()
-        
-        # Área principal
-        self._create_main_area()
-        
-        # Barra de estado (ÚLTIMO para que quede abajo)
+        # Estructura de 3 áreas: sidebar (izq), contenido (derecha), status bar (abajo global)
+
+        # Barra de estado PRIMERO (abajo) para reservar espacio
         self._create_status_bar()
-        
+
+        # Menú lateral (izquierda)
+        self._create_sidebar()
+
+        # Área principal (derecha, rellena el espacio restante)
+        self._create_main_area()
+
         # Verificar que el sidebar está correctamente empaquetado
         self._ensure_sidebar_visible()
         
@@ -63,17 +62,57 @@ class MainWindow:
         self.sidebar.pack_propagate(False)
         print(f"DEBUG: Sidebar creado - Existe: {self.sidebar.winfo_exists()}, Visible: {self.sidebar.winfo_viewable()}")
         
-        # Título de la aplicación
-        title_label = tk.Label(
-            self.sidebar,
-            text="Analizador BBPP\nUiPath",
+        # Branding en la parte superior (Logo + Nombre de Empresa)
+        from src.branding_manager import get_branding_manager
+        branding = get_branding_manager()
+
+        # Frame contenedor para branding
+        branding_frame = tk.Frame(self.sidebar, bg=PRIMARY_COLOR)
+        branding_frame.pack(pady=20)
+
+        # Intentar cargar y mostrar logo si está configurado
+        logo_path = branding.get_logo_path()
+        if logo_path and logo_path.exists() and branding.use_logo_in_ui():
+            try:
+                from PIL import Image, ImageTk
+
+                # Cargar imagen
+                img = Image.open(logo_path)
+
+                # Obtener dimensiones configuradas
+                logo_width, logo_height = branding.get_logo_dimensions()
+
+                # Redimensionar manteniendo aspecto
+                img.thumbnail((logo_width, logo_height), Image.Resampling.LANCZOS)
+
+                # Convertir a PhotoImage
+                photo = ImageTk.PhotoImage(img)
+
+                # Crear label con imagen
+                logo_label = tk.Label(
+                    branding_frame,
+                    image=photo,
+                    bg=PRIMARY_COLOR
+                )
+                logo_label.image = photo  # Mantener referencia
+                logo_label.pack(pady=(0, 10))
+
+            except Exception as e:
+                print(f"WARNING: No se pudo cargar el logo: {e}")
+
+        # Nombre de empresa
+        company_name = branding.get_company_name()
+        self.company_label = tk.Label(
+            branding_frame,
+            text=company_name,
             bg=PRIMARY_COLOR,
             fg="white",
             font=("Arial", 16, "bold"),
-            pady=20
+            wraplength=180,
+            justify=tk.CENTER
         )
-        title_label.pack()
-        
+        self.company_label.pack()
+
         # Versión
         version_label = tk.Label(
             self.sidebar,
@@ -94,6 +133,8 @@ class MainWindow:
         self._create_menu_button(self.sidebar, "⚙️ Configuración", self._show_config_screen)
         self._create_menu_button(self.sidebar, "📈 Métricas", self._show_metrics_dashboard)
         self._create_menu_button(self.sidebar, "📝 Notas de Versión", self._show_version_notes)
+        self._create_menu_button(self.sidebar, "🔄 Buscar Actualizaciones", self._check_updates_gui)
+
         
         # Espaciador
         tk.Frame(self.sidebar, bg=PRIMARY_COLOR).pack(fill=tk.BOTH, expand=True)
@@ -111,73 +152,6 @@ class MainWindow:
             pady=10
         )
         exit_btn.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=10)
-        
-        # Logo y nombre de empresa
-        self._create_company_branding()
-    
-    def _create_company_branding(self):
-        """Crear sección de branding (logo + nombre de empresa)"""
-        try:
-            from src.branding_manager import get_branding_manager
-            branding = get_branding_manager()
-            
-            # Frame contenedor para logo y nombre
-            branding_frame = tk.Frame(self.sidebar, bg=PRIMARY_COLOR)
-            branding_frame.pack(side=tk.BOTTOM, pady=10)
-            
-            # Intentar cargar y mostrar logo si está configurado
-            logo_path = branding.get_logo_path()
-            if logo_path and logo_path.exists() and branding.use_logo_in_ui():
-                try:
-                    from PIL import Image, ImageTk
-                    
-                    # Cargar imagen
-                    img = Image.open(logo_path)
-                    
-                    # Obtener dimensiones configuradas
-                    logo_width, logo_height = branding.get_logo_dimensions()
-                    
-                    # Redimensionar manteniendo aspecto
-                    img.thumbnail((logo_width, logo_height), Image.Resampling.LANCZOS)
-                    
-                    # Convertir a PhotoImage
-                    photo = ImageTk.PhotoImage(img)
-                    
-                    # Crear label con imagen
-                    logo_label = tk.Label(
-                        branding_frame,
-                        image=photo,
-                        bg=PRIMARY_COLOR
-                    )
-                    logo_label.image = photo  # Mantener referencia
-                    logo_label.pack(pady=(0, 5))
-                    
-                except Exception as e:
-                    print(f"WARNING: No se pudo cargar el logo: {e}")
-                    # Continuar sin logo
-            
-            # Nombre de empresa (siempre se muestra)
-            company_name = branding.get_company_name()
-            self.company_label = tk.Label(
-                branding_frame,
-                text=company_name,
-                bg=PRIMARY_COLOR,
-                fg="white",
-                font=("Arial", 10, "bold")
-            )
-            self.company_label.pack()
-            
-        except Exception as e:
-            print(f"WARNING: Error al cargar branding: {e}")
-            # Fallback: mostrar solo el nombre de empresa por defecto
-            self.company_label = tk.Label(
-                self.sidebar,
-                text=COMPANY,
-                bg=PRIMARY_COLOR,
-                fg="white",
-                font=("Arial", 10, "bold")
-            )
-            self.company_label.pack(side=tk.BOTTOM, pady=10)
     
     def refresh_sidebar(self):
         """Refrescar sidebar para mostrar cambios de branding"""
@@ -280,6 +254,44 @@ class MainWindow:
             pady=5
         )
         self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
+
+    def _check_updates_gui(self):
+        """Verificar actualizaciones (GUI wrapper)"""
+        self.status_bar.config(text="🔍 Buscando actualizaciones...")
+        self.root.update_idletasks()
+        
+        def run_check():
+            try:
+                from src.updater import get_updater
+                from src.ui.update_dialog import UpdateDialog
+                from src.config import APP_VERSION
+                
+                updater = get_updater()
+                has_updates, release = updater.check_for_updates()
+                
+                def show_result():
+                    self.status_bar.config(text="Listo")
+                    if has_updates:
+                        UpdateDialog(self.root, release)
+                    else:
+                        messagebox.showinfo(
+                            "Sistema Actualizado",
+                            f"Ya tienes la última versión instalada (v{APP_VERSION}).",
+                            parent=self.root
+                        )
+                
+                self.root.after(0, show_result)
+                
+            except Exception as e:
+                def show_error():
+                    self.status_bar.config(text="Error buscando actualizaciones")
+                    print(f"Update error: {e}")
+                    messagebox.showerror("Error", f"Error al buscar actualizaciones: {e}", parent=self.root)
+                self.root.after(0, show_error)
+        
+        import threading
+        threading.Thread(target=run_check, daemon=True).start()
+
     
     def _ensure_sidebar_visible(self):
         """
@@ -404,10 +416,10 @@ class MainWindow:
             filename = bbpp_set['filename']
             set_name = filename.replace('BBPP_', '').replace('.json', '')
 
-            # Verificar si el conjunto está activo en BBPP_Master.json
-            bbpp_data = rules_manager.sets.get(set_name, {})
-            metadata = bbpp_data.get('metadata', {})
-            is_enabled = metadata.get('enabled', True)
+            # Verificar si el conjunto está activo
+            # rules_manager.sets tiene estructura: {set_name: {'name': ..., 'enabled': ..., 'dependencies': ...}}
+            set_info = rules_manager.sets.get(set_name, {})
+            is_enabled = set_info.get('enabled', True)
 
             if is_enabled:
                 active_sets_only.append({
@@ -462,7 +474,42 @@ class MainWindow:
                 self.conjunto_combo.current(idx)
             else:
                 self.conjunto_combo.current(0)
-        
+
+            # Selector de versión de UiPath Studio (NUEVO)
+            version_label = tk.Label(
+                combo_frame,
+                text="Versión de UiPath Studio del proyecto:",
+                bg=BG_COLOR,
+                fg=TEXT_COLOR,
+                font=("Arial", 10)
+            )
+            version_label.pack(anchor=tk.W, pady=(15, 5))
+
+            # Cargar versiones desde config
+            import json
+            version_config_path = Path(__file__).parent.parent.parent / 'config' / 'version_compatibility.json'
+            version_options = ["Predeterminado (del project.json)"]
+
+            try:
+                with open(version_config_path, 'r', encoding='utf-8') as f:
+                    version_data = json.load(f)
+                    for version_key in version_data.get('version_order', []):
+                        version_info = version_data['compatibility_matrix'].get(version_key, {})
+                        display_name = version_info.get('display_name', version_key)
+                        version_options.append(display_name)
+            except Exception as e:
+                print(f"Warning: No se pudo cargar version_compatibility.json: {e}")
+
+            self.studio_version_combo = ttk.Combobox(
+                combo_frame,
+                values=version_options,
+                state='readonly',
+                font=("Arial", 10),
+                width=50
+            )
+            self.studio_version_combo.pack(fill=tk.X, pady=5)
+            self.studio_version_combo.current(0)  # Predeterminado por defecto
+
         # Frame para botones de reportes
         reports_frame = tk.Frame(self.main_area, bg=BG_COLOR)
         reports_frame.pack(pady=5)
@@ -711,28 +758,17 @@ class MainWindow:
                 font=("Arial", 10)
             )
             company_name_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
-            
-            # Nombre Corto
-            short_name_row = tk.Frame(company_frame, bg=BG_COLOR)
-            short_name_row.pack(fill=tk.X, pady=5)
-            
+
+            # Ayuda sobre el nombre
             tk.Label(
-                short_name_row,
-                text="Nombre Corto:",
-                font=("Arial", 10),
+                company_frame,
+                text="ℹ️ Este nombre aparecerá en el sidebar y en los reportes generados",
+                font=("Arial", 8, "italic"),
                 bg=BG_COLOR,
-                fg=TEXT_COLOR,
-                width=25,
-                anchor="w"
-            ).pack(side=tk.LEFT, padx=(0, 10))
-            
-            self.company_short_name_var = tk.StringVar(value=branding.get_company_short_name())
-            short_name_entry = tk.Entry(
-                short_name_row,
-                textvariable=self.company_short_name_var,
-                font=("Arial", 10)
-            )
-            short_name_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+                fg="gray",
+                wraplength=500,
+                justify=tk.LEFT
+            ).pack(anchor="w", pady=(5, 10))
             
             # Botón Guardar Configuración de Empresa
             save_company_btn = tk.Button(
@@ -759,6 +795,21 @@ class MainWindow:
             )
             error_label.pack()
         
+            error_label.pack()
+        
+        # ========== SECCIÓN 5: INTELIGENCIA ARTIFICIAL ==========
+        self._create_config_section(
+            scrollable_frame,
+            "🤖 Inteligencia Artificial",
+            "Configura la conexión con modelos de IA para análisis avanzado"
+        )
+        
+        try:
+            from src.ui.ai_config_component import AIConfigComponent
+            self.ai_component = AIConfigComponent(scrollable_frame)
+        except Exception as e:
+            tk.Label(scrollable_frame, text=f"Error cargando componente IA: {e}", fg="red").pack()
+
         # ========== BOTONES DE ACCIÓN ==========
         buttons_frame = tk.Frame(scrollable_frame, bg=BG_COLOR)
         buttons_frame.pack(pady=30)
@@ -768,6 +819,7 @@ class MainWindow:
             buttons_frame,
             text="💾 Guardar Configuración",
             command=self._save_configuration,
+
             bg=COLOR_SUCCESS,
             fg="white",
             font=("Arial", 12, "bold"),
@@ -905,26 +957,51 @@ class MainWindow:
         checkbox.pack(fill=tk.X, pady=3, padx=5)
         
     def _select_custom_logo(self):
-        """Seleccionar logo personalizado"""
+        """Seleccionar logo personalizado y copiarlo a carpeta interna"""
+        import shutil
+        from pathlib import Path
+
         filetypes = [
             ("Imágenes", "*.png *.jpg *.jpeg *.gif"),
             ("Todos los archivos", "*.*")
         ]
-        
+
         filepath = filedialog.askopenfilename(
             title="Seleccionar Logo",
             filetypes=filetypes
         )
-        
+
         if filepath:
-            # Actualizar label
-            self.logo_path_label.config(text=f"Logo actual: {filepath}")
-            # Guardar en configuración temporal
-            self.custom_logo_path = filepath
-            messagebox.showinfo(
-                "Logo Seleccionado",
-                f"Logo seleccionado correctamente.\nNo olvides guardar la configuración."
-            )
+            try:
+                # Crear carpeta de assets si no existe
+                assets_dir = Path(__file__).parent.parent.parent / "assets" / "branding"
+                assets_dir.mkdir(parents=True, exist_ok=True)
+
+                # Copiar archivo a carpeta interna con nombre fijo
+                source = Path(filepath)
+                extension = source.suffix  # .png, .jpg, etc.
+                dest = assets_dir / f"company_logo{extension}"
+
+                # Copiar archivo
+                shutil.copy2(source, dest)
+
+                # Actualizar label con ruta interna
+                self.logo_path_label.config(text=f"Logo actual: {dest.name}")
+                # Guardar ruta interna en configuración temporal
+                self.custom_logo_path = str(dest)
+
+                messagebox.showinfo(
+                    "Logo Guardado",
+                    f"Logo copiado a la carpeta interna del proyecto:\n\n"
+                    f"{dest.relative_to(Path(__file__).parent.parent.parent)}\n\n"
+                    f"El logo está ahora embebido en la aplicación.\n"
+                    f"No olvides guardar la configuración."
+                )
+            except Exception as e:
+                messagebox.showerror(
+                    "Error al Copiar Logo",
+                    f"No se pudo copiar el logo a la carpeta interna:\n\n{e}"
+                )
             
     def _reset_logo(self):
         """Restaurar logo por defecto"""
@@ -989,6 +1066,10 @@ class MainWindow:
                 branding.set_logo_path(Path(self.custom_logo_path))
                 print(f"OK: Logo guardado en branding: {self.custom_logo_path}")
             
+            # Guardar configuración de IA
+            if hasattr(self, 'ai_component'):
+                self.ai_component.save()
+
             # Guardar user config
             if save_user_config(config):
                 messagebox.showinfo(
@@ -1049,30 +1130,23 @@ class MainWindow:
             
             # Obtener valores de los campos
             company_name = self.company_name_var.get().strip()
-            company_short_name = self.company_short_name_var.get().strip()
-            
-            # Validar que no estén vacíos
+
+            # Validar que no esté vacío
             if not company_name:
                 messagebox.showwarning("Advertencia", "El nombre de empresa no puede estar vacío")
                 return
-            
-            if not company_short_name:
-                messagebox.showwarning("Advertencia", "El nombre corto no puede estar vacío")
-                return
-            
+
             # Guardar en branding_manager
-            success_name = branding.set_company_name(company_name)
-            success_short = branding.set_company_short_name(company_short_name)
-            
-            if success_name and success_short:
+            success = branding.set_company_name(company_name)
+
+            if success:
                 messagebox.showinfo(
-                    "OK: Configuración Guardada",
-                    f"La configuración de empresa se ha guardado correctamente:\n\n"
-                    f"Nombre: {company_name}\n"
-                    f"Nombre Corto: {company_short_name}\n\n"
-                    f"El sidebar se actualizará ahora."
+                    "Configuración Guardada",
+                    f"El nombre de empresa se ha guardado correctamente:\n\n"
+                    f"'{company_name}'\n\n"
+                    f"Este nombre aparecerá en el sidebar y en los reportes."
                 )
-                
+
                 # Refrescar sidebar para mostrar cambios inmediatamente
                 try:
                     self.refresh_sidebar()
@@ -1083,7 +1157,7 @@ class MainWindow:
                     traceback.print_exc()
             else:
                 messagebox.showerror(
-                    "ERROR: Error",
+                    "Error",
                     "No se pudo guardar la configuración de empresa."
                 )
         except Exception as e:
@@ -1219,31 +1293,90 @@ class MainWindow:
 
                 # Obtener conjunto seleccionado de la UI (Combobox)
                 if hasattr(self, 'conjunto_combo'):
-                    # Nuevo sistema: Combobox (selección simple)
                     selected_idx = self.conjunto_combo.current()
                     if selected_idx >= 0:
                         active_sets = [self.bbpp_set_names[selected_idx]]
                     else:
                         active_sets = []
                 else:
-                    # Fallback: sistema antiguo
                     active_sets = []
 
                 # Si no hay ninguno seleccionado, mostrar error
                 if not active_sets:
-                    messagebox.showerror(
-                        "Error",
-                        "Por favor, seleccione un conjunto de BBPP antes de analizar."
-                    )
+                    messagebox.showerror("Error", "Por favor, seleccione un conjunto de BBPP antes de analizar.")
                     return
 
                 # Guardar último conjunto seleccionado
                 user_config['last_selected_bbpp_set'] = active_sets[0]
+
+                # Obtener versión de Studio
+                selected_studio_version = None
+                if hasattr(self, 'studio_version_combo'):
+                    selected_text = self.studio_version_combo.get()
+                    if selected_text != "Predeterminado (del project.json)":
+                        import re
+                        match = re.match(r'(\d{4}\.\d+)', selected_text)
+                        if match:
+                            selected_studio_version = match.group(1)
+
+                user_config['selected_studio_version'] = selected_studio_version
                 save_user_config(user_config)
-                
+
+                # 1. ANÁLISIS ESTÁTICO (BBPP)
                 scanner = ProjectScanner(self.project_path, user_config, active_sets=active_sets)
                 results = scanner.scan(progress_callback)
                 
+                # 2. ANÁLISIS DE IA (OPCIONAL)
+                try:
+                    from src.ai.ai_manager import get_ai_manager
+                    ai_manager = get_ai_manager()
+                    
+                    if ai_manager.config.get('enabled', False) and results.get('success'):
+                        # Actualizar progreso para indicar IA
+                        if not self.analysis_cancelled:
+                            self.root.after(0, lambda: self.progress_label.config(text="🤖 Consultando a la IA (Esto puede tardar)..."))
+                            self.root.after(0, lambda: self.progress_bar.configure(mode='indeterminate'))
+                            self.root.after(0, lambda: self.progress_bar.start(10))
+                        
+                        # Preparar datos para IA
+                        findings = results.get('findings', [])
+                        
+                        # Estrategia: Tomar archivo con más errores o más relevante
+                        # Limitación: Por ahora solo analizamos un archivo representativo para no saturar tokens/tiempo
+                        target_file = None
+                        if findings:
+                            # Priorizar errores
+                            for f in findings:
+                                if f.get('severity') == 'error':
+                                    target_file = f.get('file_path')
+                                    break
+                            if not target_file:
+                                target_file = findings[0].get('file_path')
+                        
+                        xaml_content = ""
+                        filename = "N/A"
+                        if target_file and Path(target_file).exists():
+                            try:
+                                filename = Path(target_file).name
+                                with open(target_file, 'r', encoding='utf-8') as f:
+                                    xaml_content = f.read()
+                            except:
+                                xaml_content = "<Error leyendo archivo>"
+                                
+                        context = {
+                            'filename': filename,
+                            'project_type': results.get('project_info', {}).get('projectType', 'UiPath Project')
+                        }
+
+                        # Ejecutar análisis IA
+                        ai_result = ai_manager.analyze_code(xaml_content, findings, context)
+                        results['ai_analysis'] = ai_result
+                        
+                except Exception as e:
+                    print(f"Error en módulo IA: {e}")
+                    # No fallar todo el análisis por error de IA
+                    results['ai_analysis'] = {'error': str(e)}
+
                 # Al terminar, actualizar UI en el thread principal
                 self.root.after(0, lambda r=results, s=scanner: self._show_results(r, s))
                 
@@ -1350,7 +1483,7 @@ class MainWindow:
             f"Hallazgos: {results['statistics']['total_findings']}\n"
             f"Archivos analizados: {results['analyzed_files']}"
         )
-    
+
     def _generate_report(self):
         """Generar reporte HTML con selección de tipo"""
         if not self.last_results:
@@ -1368,15 +1501,16 @@ class MainWindow:
         # Crear ventana modal
         dialog = tk.Toplevel(self.root)
         dialog.title("Seleccionar Tipo de Reporte HTML")
-        dialog.geometry("500x350")
+        dialog.geometry("550x500")
         dialog.transient(self.root)
         dialog.grab_set()
+        dialog.resizable(False, False)
 
         # Centrar ventana
         dialog.update_idletasks()
-        x = (dialog.winfo_screenwidth() // 2) - (500 // 2)
-        y = (dialog.winfo_screenheight() // 2) - (350 // 2)
-        dialog.geometry(f"500x350+{x}+{y}")
+        x = (dialog.winfo_screenwidth() // 2) - (550 // 2)
+        y = (dialog.winfo_screenheight() // 2) - (500 // 2)
+        dialog.geometry(f"550x500+{x}+{y}")
 
         # Frame principal
         main_frame = tk.Frame(dialog, bg="white", padx=30, pady=20)

@@ -18,10 +18,10 @@ except ImportError:
 # INFORMACIÓN DE LA APLICACIÓN
 # ============================================================================
 APP_NAME = "Analizador BBPP UiPath"
-APP_VERSION = "0.12.0"
-APP_VERSION_TYPE = "Beta"
+APP_VERSION = "1.2.0"
+APP_VERSION_TYPE = "Stable"
 APP_AUTHOR = "Carlos Vidal Castillejo"
-BUILD_DATE = "2025-11-30 13:15:02"
+BUILD_DATE = "2025-12-08 22:52:35"
 
 # EMPRESA (ahora configurable)
 if BRANDING_AVAILABLE:
@@ -229,13 +229,13 @@ def load_all_bbpp_sets() -> List[Dict]:
         print(f"WARNING: Directorio de BBPP no encontrado: {BBPP_DIR}")
         return bbpp_sets
     
-    # Buscar todos los archivos .json en el directorio
-    json_files = list(BBPP_DIR.glob("*.json"))
-    
+    # Buscar todos los archivos .json en el directorio (excepto BBPP_Master.json)
+    json_files = [f for f in BBPP_DIR.glob("*.json") if f.name != "BBPP_Master.json"]
+
     if not json_files:
         print(f"WARNING: No se encontraron archivos JSON en {BBPP_DIR}")
         return bbpp_sets
-    
+
     for json_file in json_files:
         bbpp_data = load_bbpp_file(json_file)
         if bbpp_data and bbpp_data.get("rules"):

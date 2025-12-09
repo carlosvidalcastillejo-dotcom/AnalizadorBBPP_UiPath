@@ -1,12 +1,12 @@
 {
     "company": {
-        "name": "Nombre de Empresa",
+        "name": "Nombre EMpresa",
         "short_name": "Nombre Corto",
         "website": "https://yourcompany.com",
         "email": "contact@yourcompany.com"
     },
     "branding": {
-        "logo_path": null,
+        "logo_path": "C:\\Users\\Imrik\\Documents\\Proyectos Git\\AnalizadorBBPP_UiPath\\assets\\branding\\company_logo.png",
         "logo_width": 150,
         "logo_height": 50,
         "use_logo_in_reports": true,
@@ -33,7 +33,7 @@
     },
     "metadata": {
         "version": "1.0.0",
-        "last_updated": "2025-11-30 12:15:58",
+        "last_updated": "2025-12-07 21:45:13",
         "description": "Configuración de branding personalizable para el Analizador BBPP UiPath"
     }
 }
