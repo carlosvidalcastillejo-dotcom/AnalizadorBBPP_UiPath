@@ -5,6 +5,10 @@
 openpyxl>=3.0.0  # Para generar reportes Excel con gráficos
 Pillow>=9.0.0  # Para manejo de imágenes (logos)
 packaging>=21.0  # Para manejo de versiones
+google-generativeai>=0.3.0  # Para IA Gemini (opcional)
+openai>=1.0.0  # Para IA OpenAI (opcional)
+anthropic>=0.1.0  # Para IA Claude (opcional)
+requests>=2.0.0  # Para IA local y utilidades
 
 # Tkinter viene incluido con Python 3.x (no requiere instalación)
 
