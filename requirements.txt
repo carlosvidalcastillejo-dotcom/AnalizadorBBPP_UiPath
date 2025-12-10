@@ -1,10 +1,15 @@
 # Dependencias del Analizador BBPP UiPath
-# Versión 0.2.5
+# Versión 1.2.0
 
-# Dependencias requeridas para v0.2.5
-openpyxl>=3.0.0  # Para generar reportes Excel con gráficos
-Pillow>=9.0.0  # Para manejo de imágenes (logos)
-packaging>=21.0  # Para manejo de versiones
+# Dependencias críticas
+packaging>=21.0  # Para validación de versiones (requerido)
+openpyxl>=3.0.0  # Para generar reportes Excel con gráficos (requerido)
+Pillow>=9.0.0  # Para manejo de imágenes y logos (requerido)
+
+# Bibliotecas de IA (para funcionalidad de prompts especializados)
+google-generativeai>=0.3.0  # Para Google Gemini
+openai>=1.0.0  # Para OpenAI GPT
+anthropic>=0.7.0  # Para Claude
 
 # Tkinter viene incluido con Python 3.x (no requiere instalación)
 
