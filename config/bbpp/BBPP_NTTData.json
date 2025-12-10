@@ -767,6 +767,35 @@
         "use_penalty_cap": false,
         "penalty_cap": 10.0
       }
+    },
+    {
+      "id": "NOMENCLATURA_006",
+      "name": "Nombre del Proceso/Step",
+      "description": "El nombre del proyecto debe seguir nomenclatura estandarizada. Soporta dos formatos: (1) Procesos generales AAA_BBB_NombreProceso, (2) Steps transaccionales AAA_BBB_CCDD_Aplicacion_NombreStep",
+      "category": "nomenclatura",
+      "severity": "warning",
+      "penalty": 3.0,
+      "enabled": true,
+      "sets": ["NTTData"],
+      "implementation_status": "implemented",
+      "rule_type": "project_name",
+      "old_id": "N.1, N.2",
+      "parameters": {
+        "patterns": [
+          "^[A-Z]{3}_[A-Z0-9]{3}_[A-Za-z0-9_]+$",
+          "^[A-Z]{3}_[A-Z0-9]{3}_\\d{4}_[A-Za-z0-9]+_[A-Za-z0-9_]+$"
+        ],
+        "pattern_descriptions": [
+          "AAA_BBB_NombreProceso",
+          "AAA_BBB_CCDD_Aplicacion_NombreStep"
+        ],
+        "examples_valid": "FIN_003_GenerarFactura, FIN_001_Dispatcher, ACC_001_0100_App1_ConsultarOrden, LOG_CRM_0210_Portal_CrearSolicitud",
+        "examples_invalid": "proceso1, fin_001_test, FIN_001_01_Consultar (CCDD debe ser 4 dígitos)",
+        "penalty_mode": "global",
+        "penalty_value": 3.0,
+        "use_penalty_cap": false,
+        "penalty_cap": 10.0
+      }
     }
   ]
 }

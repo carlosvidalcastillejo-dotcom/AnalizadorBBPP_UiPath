@@ -75,9 +75,15 @@ class RulesManager:
                 # Agregar reglas al diccionario global (COPIAS PROFUNDAS para evitar referencias compartidas)
                 for rule in set_data.get('rules', []):
                     rule_id = rule.get('id')
-                    if rule_id and rule_id not in all_rules_dict:
-                        # Hacer copia profunda para evitar referencias compartidas
-                        all_rules_dict[rule_id] = json.loads(json.dumps(rule))
+                    if rule_id:
+                        if rule_id not in all_rules_dict:
+                            # Hacer copia profunda para evitar referencias compartidas
+                            all_rules_dict[rule_id] = json.loads(json.dumps(rule))
+                        else:
+                            # Si la regla ya existe, combinar los sets
+                            existing_sets = set(all_rules_dict[rule_id].get('sets', []))
+                            new_sets = set(rule.get('sets', []))
+                            all_rules_dict[rule_id]['sets'] = list(existing_sets | new_sets)
 
                 print(f"OK: Cargado conjunto '{set_name}' desde {bbpp_file.name}")
 

@@ -14,7 +14,7 @@ Aplicación de escritorio profesional desarrollada en Python con Tkinter que per
 - ✅ **17 Reglas BBPP implementadas** (Nomenclatura, Estructura, Modularización, Código Limpio, Rendimiento)
 - ✅ **Sistema de penalización personalizable** con 3 modos (severity_default, individual, global)
 - ✅ **Sistema de excepciones** para REFramework (50 variables/argumentos predefinidos)
-- ✅ **Gestión de conjuntos de BBPP** (UiPath, NTT Data, Custom)
+- ✅ **Gestión de conjuntos de BBPP** (UiPath, Custom)
 - ✅ **Reportes profesionales** (HTML Normal, HTML Detallado con gráficos Chart.js, Excel)
 - ✅ **Dashboard de métricas** con histórico de análisis y filtros
 - ✅ **Sistema de branding personalizable** (logo, empresa, colores)
@@ -300,11 +300,14 @@ Proyecto de código abierto.
 
 ---
 
+<<<<<<< HEAD
 ## 📞 Contacto
 
 Para consultas o contribuciones, abrir un issue en el repositorio de GitHub.
 
 ---
 
+=======
+>>>>>>> bfff680d14e127510897c16c93ca905fb95f3a04
 **Última actualización:** 30 de Noviembre de 2024
 **Versión:** 1.0.0
