@@ -181,8 +181,10 @@ class GitDownloader:
 
             self._report_progress(f"Conectando con GitHub (rama {branch})...", 20)
 
-            # Descargar el ZIP
-            zip_path = os.path.join(os.path.dirname(install_path), 'temp_download.zip')
+            # Descargar el ZIP en carpeta temporal del sistema
+            import tempfile
+            temp_dir = tempfile.gettempdir()
+            zip_path = os.path.join(temp_dir, 'analizador_bbpp_download.zip')
 
             def download_progress(block_num, block_size, total_size):
                 """Callback para progreso de descarga"""
@@ -201,7 +203,7 @@ class GitDownloader:
             # Extraer el ZIP
             with zipfile.ZipFile(zip_path, 'r') as zip_ref:
                 # GitHub crea una carpeta con el nombre repo-branch
-                temp_extract = os.path.join(os.path.dirname(install_path), 'temp_extract')
+                temp_extract = os.path.join(temp_dir, 'analizador_bbpp_extract')
                 os.makedirs(temp_extract, exist_ok=True)
                 zip_ref.extractall(temp_extract)
 
@@ -218,7 +220,11 @@ class GitDownloader:
                 if os.path.exists(install_path):
                     shutil.rmtree(install_path)
 
-                os.makedirs(os.path.dirname(install_path), exist_ok=True)
+                # Crear directorio padre solo si install_path tiene ruta
+                parent_dir = os.path.dirname(install_path)
+                if parent_dir and not os.path.exists(parent_dir):
+                    os.makedirs(parent_dir, exist_ok=True)
+
                 shutil.move(source_folder, install_path)
 
             # Limpiar archivos temporales
