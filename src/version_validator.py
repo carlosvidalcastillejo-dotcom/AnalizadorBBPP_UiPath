@@ -6,7 +6,14 @@ Verifica que las dependencias sean compatibles con la versión de Studio
 import json
 from pathlib import Path
 from typing import Dict, Optional, Tuple
-from packaging import version
+try:
+    from packaging import version
+    PACKAGING_AVAILABLE = True
+except ImportError:
+    PACKAGING_AVAILABLE = False
+    class MockVersion:
+        def parse(self, v): raise ImportError("packaging not installed")
+    version = MockVersion()
 
 
 def load_compatibility_matrix() -> Dict:
@@ -202,8 +209,12 @@ def validate_dependency_compatibility(
                 message = f'Versión desactualizada. Se recomienda {expected_version} o superior'
 
         except Exception as e:
-            status = 'unknown'
-            message = f'No se pudo comparar versiones: {str(e)}'
+            if not PACKAGING_AVAILABLE:
+                status = 'unknown'
+                message = 'Módulo packaging no instalado. No se puede validar versiones.'
+            else:
+                status = 'unknown'
+                message = f'No se pudo comparar versiones: {str(e)}'
 
         validation_results.append({
             'package': package_name,
