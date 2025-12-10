@@ -4,6 +4,7 @@
 # Dependencias requeridas para v0.2.5
 openpyxl>=3.0.0  # Para generar reportes Excel con gráficos
 Pillow>=9.0.0  # Para manejo de imágenes (logos)
+packaging>=21.0  # Para manejo de versiones
 
 # Tkinter viene incluido con Python 3.x (no requiere instalación)
 
