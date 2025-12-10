@@ -50,7 +50,10 @@ class DependencyChecker:
         Returns:
             True si está instalado
         """
-        return importlib.util.find_spec(module_name) is not None
+        try:
+            return importlib.util.find_spec(module_name) is not None
+        except (ModuleNotFoundError, ImportError, ValueError):
+            return False
 
     def check_all(self) -> Tuple[bool, List[str], List[str]]:
         """
