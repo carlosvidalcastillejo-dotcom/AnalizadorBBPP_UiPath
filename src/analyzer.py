@@ -120,6 +120,9 @@ class BBPPAnalyzer:
         # Verificar que use actividades modernas
         self._check_modern_activities(project_info)
 
+        # Verificar nomenclatura del nombre del proyecto
+        self._check_project_name(project_info)
+
         return self.findings
     
     def _apply_rules(self, data: Dict):
@@ -1358,5 +1361,72 @@ class BBPPAnalyzer:
                     'required_profile': required_profile,
                     'issue': f'El proyecto usa actividades clásicas ({project_profile}). Se recomienda migrar a Modern Design Experience ({required_profile}).',
                     'suggestion': 'Convertir el proyecto a Modern Design Experience desde UiPath Studio: Project Settings > General > Design Experience > Simplified'
+                }
+            )
+
+    def _check_project_name(self, project_info: Dict):
+        """
+        Verificar que el nombre del proyecto siga la nomenclatura estandarizada
+        Soporta múltiples patrones: valida si coincide con al menos uno
+
+        Args:
+            project_info: Información extraída del project.json
+        """
+        import re
+
+        # Buscar regla NOMENCLATURA_006
+        rule = next((r for r in self.rules if r.get('rule_type') == 'project_name'), None)
+        if not rule or not rule.get('enabled'):
+            return
+
+        # Obtener nombre del proyecto
+        project_name = project_info.get('name', '')
+        if not project_name:
+            return
+
+        # Obtener patrones configurables desde la regla (soporta array o string único)
+        params = rule.get('parameters', {})
+        patterns = params.get('patterns', [])
+
+        # Backward compatibility: si no hay 'patterns', buscar 'pattern' único
+        if not patterns:
+            single_pattern = params.get('pattern')
+            if single_pattern:
+                patterns = [single_pattern]
+
+        if not patterns:
+            # Sin patrones configurados, usar patrón por defecto
+            patterns = [r'^[A-Z]{3}_[A-Z0-9]{3}_[A-Za-z0-9_]+$']
+
+        # Obtener descripciones y ejemplos
+        pattern_descriptions = params.get('pattern_descriptions', params.get('description_pattern', 'AAA_BBB_NombreProceso'))
+        if isinstance(pattern_descriptions, str):
+            pattern_descriptions = [pattern_descriptions]
+
+        examples_valid = params.get('examples_valid', '')
+
+        # Validar nombre contra TODOS los patrones (OR lógico: basta que coincida con uno)
+        matches_any = False
+        for pattern in patterns:
+            if re.match(pattern, project_name):
+                matches_any = True
+                break
+
+        # Solo generar finding si NO coincide con NINGUNO de los patrones
+        if not matches_any:
+            # Formatear patrones para el mensaje
+            patterns_str = ' O '.join(pattern_descriptions)
+
+            self._add_finding(
+                rule=rule,
+                file_path="project.json",
+                location="name",
+                details={
+                    'current_name': project_name,
+                    'expected_patterns': patterns_str,
+                    'regex_patterns': patterns,
+                    'examples_valid': examples_valid,
+                    'issue': f'El nombre del proyecto "{project_name}" no cumple con ninguna nomenclatura estandarizada.',
+                    'suggestion': f'Renombrar el proyecto siguiendo alguno de estos patrones: {patterns_str}. Ejemplos válidos: {examples_valid}'
                 }
             )
