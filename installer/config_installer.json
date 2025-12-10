@@ -8,7 +8,7 @@
     "git_config": {
         "repository_url": "https://github.com/carlosvidalcastillejo-dotcom/AnalizadorBBPP_UiPath.git",
         "branch": "main",
-        "use_releases": true,
+        "use_releases": false,
         "fallback_to_clone": true
     },
     "installation": {
