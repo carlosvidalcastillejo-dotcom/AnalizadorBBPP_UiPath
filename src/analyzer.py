@@ -1,3 +1,7 @@
+# Copyright (c) 2025 Carlos Vidal Castillejo
+# Todos los derechos reservados.
+# Este software es propietario. Ver LICENSE para detalles.
+
 """
 Analizador de Buenas Prácticas
 Aplica reglas de BBPP al código XAML parseado

@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# Copyright (c) 2025 Carlos Vidal Castillejo
+# Todos los derechos reservados.
+# Este software es propietario. Ver LICENSE para detalles.
+
 """
 Script de inicio del Analizador BBPP UiPath
 Ejecutar: python run.py
