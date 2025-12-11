@@ -82,3 +82,5 @@ build_app.py
 create_installer.py
 test_installer*.py
 config.zip
+install_dependencies.bat
+install_dependencies.py
