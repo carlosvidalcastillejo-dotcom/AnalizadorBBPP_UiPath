@@ -73,3 +73,12 @@ dummy_project/
 
 # Compiled installer
 AnalizadorBBPP_Installer.exe
+
+# Installer files (belong in AnalizadorBBPP-Installer repo only)
+installer/
+*.spec
+*_Installer.zip
+build_app.py
+create_installer.py
+test_installer*.py
+config.zip
