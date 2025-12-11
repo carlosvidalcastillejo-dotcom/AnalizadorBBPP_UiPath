@@ -1,3 +1,7 @@
+# Copyright (c) 2025 Carlos Vidal Castillejo
+# Todos los derechos reservados.
+# Este software es propietario. Ver LICENSE para detalles.
+
 """
 Ventana principal de la aplicación
 UI con Tkinter (sin necesidad de instalación adicional)
